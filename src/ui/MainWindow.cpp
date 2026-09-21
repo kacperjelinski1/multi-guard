@@ -385,9 +385,6 @@ void MainWindow::wireSignals()
     if (ui->btnDeepScan)         connect(ui->btnDeepScan,  &QPushButton::clicked, this, &MainWindow::onDeepScan);
     if (ui->btnScanMemory)       connect(ui->btnScanMemory,&QPushButton::clicked, this, &MainWindow::onScanMemory);
     if (ui->btnCustomScan)       connect(ui->btnCustomScan,&QPushButton::clicked, this, &MainWindow::onCustomScan);
-    if (ui->btnScanSelected)     connect(ui->btnScanSelected, &QPushButton::clicked, this, &MainWindow::onStartScan);
-    if (ui->btnScanCancel)       connect(ui->btnScanCancel,   &QPushButton::clicked, this, &MainWindow::onCancelScan);
-    if (ui->btnScanBack)         connect(ui->btnScanBack,     &QPushButton::clicked, this, &MainWindow::onScanBackToDashboard);
 
     // Tools Page - System Cleaner
     if (ui->btnScanClean) connect(ui->btnScanClean, &QPushButton::clicked, this, &MainWindow::onScanCleanClicked);
@@ -455,18 +452,6 @@ void MainWindow::wireSignals()
     if (ui->cbContextMenu)         connect(ui->cbContextMenu,         &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->cbMinimizeToTray)      connect(ui->cbMinimizeToTray,      &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->cbShowNotifications)   connect(ui->cbShowNotifications,   &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
-    if (ui->cbRealTimeShield) {
-        connect(ui->cbRealTimeShield, &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
-        connect(ui->cbRealTimeShield, &QCheckBox::toggled, this, [](bool v){
-            RealTimeShield::instance().setEnabled(v);
-        });
-    }
-    if (ui->cbWebShield) {
-        connect(ui->cbWebShield, &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
-        connect(ui->cbWebShield, &QCheckBox::toggled, this, [](bool v){
-            WebShield::instance().setEnabled(v);
-        });
-    }
     if (ui->cbScanUsbOnInsert)     connect(ui->cbScanUsbOnInsert,     &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->cbAutoUpdateSignatures)connect(ui->cbAutoUpdateSignatures,&QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->comboLanguage)         connect(ui->comboLanguage, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -602,7 +587,7 @@ void MainWindow::onNavClicked()
 {
     if (!LicenseManager::instance().isValid()) {
         setActiveNav(PageLicenseLocked);
-        Toaster::show(this, tr("Licencja wygasła. Wprowadź nowy klucz lub zadzwoń: 505 012 914"), Toaster::Warning);
+        Toaster::show(this, tr("Licencja wygasła. Wprowadź nowy klucz lub zadzwoń: 505 012 914"), Toaster::Warn);
         return;
     }
 
@@ -616,7 +601,7 @@ void MainWindow::onNavClicked()
     else if (name == "navQuarantine") idx = PageQuarantine;
     else if (name == "navRepair") {
         if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
-            Toaster::show(this, tr("Moduł Naprawa Windows wymaga licencji Multi-Guard Secure lub ADMIN FULL."), Toaster::Warning);
+            Toaster::show(this, tr("Moduł Naprawa Windows wymaga licencji Multi-Guard Secure lub ADMIN FULL."), Toaster::Warn);
             return;
         }
         idx = PageRepair;
@@ -624,7 +609,7 @@ void MainWindow::onNavClicked()
     else if (name == "navTools")        idx = PageTools;
     else if (name == "navRemoteRepair") {
         if (!LicenseManager::instance().hasCapability(LicenseCapability::RemoteRepair)) {
-            Toaster::show(this, tr("Zdalna Pomoc Techniczna wymaga licencji Assist / Assist PRO lub ADMIN FULL."), Toaster::Warning);
+            Toaster::show(this, tr("Zdalna Pomoc Techniczna wymaga licencji Assist / Assist PRO lub ADMIN FULL."), Toaster::Warn);
             return;
         }
         idx = PageRemoteRepair;

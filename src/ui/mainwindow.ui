@@ -2448,6 +2448,16 @@
                       </widget>
                      </item>
                      <item>
+                      <widget class="verax::FlagIcon" name="flagPl" native="true">
+                       <property name="minimumSize">
+                        <size>
+                         <width>32</width>
+                         <height>22</height>
+                        </size>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
                       <widget class="verax::FlagIcon" name="flagEn" native="true">
                        <property name="minimumSize">
                         <size>
