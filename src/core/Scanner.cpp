@@ -43,7 +43,7 @@ namespace verax {
 QMutex                 Scanner::s_cloudMutex;
 QHash<QString, ThreatInfo> Scanner::s_cloudCache;
 
-bool Scanner::verifyAuthenticode(const QString &path) const
+bool Scanner::verifyAuthenticode(const QString &path)
 {
 #ifdef _WIN32
     std::wstring wPath = path.toStdWString();

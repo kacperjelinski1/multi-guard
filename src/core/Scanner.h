@@ -57,7 +57,7 @@ public:
     // === Advanced Clean Threat / Repair (public for UI direct call) ===
     bool advancedCleanThreat(const QString &path, ThreatInfo &info);
     int  inspectFile(const QString &path, const ScanRequest &req, ThreatInfo &info);
-    bool verifyAuthenticode(const QString &path) const;
+    static bool verifyAuthenticode(const QString &path);
 
 signals:
     void started();
