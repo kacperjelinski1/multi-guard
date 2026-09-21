@@ -72,7 +72,7 @@
             </message>
         <message>
             <source>Online Update Signatures</source>
-            <translation>🔄 Aktualizuj bazy(</translation>)
+            <translation>🔄 Aktualizuj bazy</translation>
             </message>
         <message>
             <source>Companion mode — detecting installed antivirus…</source>
@@ -775,7 +775,7 @@
             </message>
         <message>
             <source>Online Update Signatures</source>
-            <translation>🔄 Aktualizuj bazy(</translation>)
+            <translation>🔄 Aktualizuj bazy</translation>
             </message>
         <message>
             <source>Settings</source>
