@@ -2609,17 +2609,21 @@ void MainWindow::applyLicenseGating()
             setActiveNav(PageLicenseLocked);
         }
 
+        bool isExpired = (lm.status() == LicenseStatus::Expired);
         if (ui->lblLockedStatus) {
-            ui->lblLockedStatus->setText(tr("<font color='#f87171'>Licencja wygasła lub nie została aktywowana.</font>"));
+            ui->lblLockedStatus->setText(isExpired
+                ? tr("<font color='#f87171'>Twoja licencja wygasła. Wprowadź nowy klucz lub skontaktuj się pod 505 012 914.</font>")
+                : tr("<font color='#f87171'>Program nie został aktywowany. Wprowadź klucz licencyjny, aby włączyć pełną ochronę.</font>"));
         }
 
         if (ui->lblAppNameVersion) {
-            ui->lblAppNameVersion->setText(QStringLiteral("%1 v%2  [⚠️ Licencja wygasła - 505 012 914]")
-                                               .arg(APP_NAME, APP_VERSION_STR));
+            ui->lblAppNameVersion->setText(isExpired
+                ? QStringLiteral("%1 v%2  [⚠️ Licencja wygasła - 505 012 914]").arg(APP_NAME, APP_VERSION_STR)
+                : QStringLiteral("%1 v%2  [Wymagana aktywacja - 505 012 914]").arg(APP_NAME, APP_VERSION_STR));
         }
 
         if (ui->lblLicenseDaysValue) {
-            ui->lblLicenseDaysValue->setText(tr("Wygasła (0 dni)"));
+            ui->lblLicenseDaysValue->setText(isExpired ? tr("Wygasła (0 dni)") : tr("Brak aktywacji (0 dni)"));
         }
 
         WindowsSecurityIntegration::updateProductState(false);

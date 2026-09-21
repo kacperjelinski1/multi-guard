@@ -17,10 +17,10 @@ on:
         type: boolean
         default: false
       release_tag:
-        description: 'Tag name for manual release (e.g. v1.1.1.0)'
+        description: 'Tag name for manual release (e.g. v1.1.2.0)'
         required: false
         type: string
-        default: 'v1.1.1.0'
+        default: 'v1.1.2.0'
 
 permissions:
   contents: write
@@ -100,6 +100,13 @@ jobs:
           Copy-Item "C:/mingw64/bin/libgcc_s_*.dll" -Destination "RELEASED/" -Force -ErrorAction SilentlyContinue
           Copy-Item "C:/mingw64/bin/libstdc++-*.dll" -Destination "RELEASED/" -Force -ErrorAction SilentlyContinue
           Copy-Item "C:/mingw64/bin/libwinpthread-*.dll" -Destination "RELEASED/" -Force -ErrorAction SilentlyContinue
+
+          # Deploy OpenSSL 1.1.1 x64 TLS runtime for QtNetwork
+          if (Test-Path "third_party/openssl/libssl-1_1-x64.dll") {
+            Write-Host "Deploying OpenSSL 1.1.1 x64 runtime DLLs..."
+            Copy-Item "third_party/openssl/libssl-1_1-x64.dll" -Destination "RELEASED/" -Force
+            Copy-Item "third_party/openssl/libcrypto-1_1-x64.dll" -Destination "RELEASED/" -Force
+          }
           Get-ChildItem -Path RELEASED
 
       - name: Build Inno Setup Installer
@@ -111,13 +118,15 @@ jobs:
       - name: Package Portable ZIP Archive
         shell: pwsh
         run: |
-          Compress-Archive -Path RELEASED\* -DestinationPath RELEASED_SETUP/Multi-Guard-1.1.1.0-win64-portable.zip -Force
+          $setupExe = Get-ChildItem RELEASED_SETUP/Multi-Guard-Setup-*.exe | Select-Object -First 1
+          $ver = if ($setupExe) { $setupExe.Name -replace 'Multi-Guard-Setup-','' -replace '\.exe','' } else { "1.1.2.0" }
+          Compress-Archive -Path RELEASED\* -DestinationPath "RELEASED_SETUP/Multi-Guard-$ver-win64-portable.zip" -Force
 
       - name: Generate SHA256 Checksums
         shell: pwsh
         working-directory: RELEASED_SETUP
         run: |
-          Get-FileHash -Algorithm SHA256 Multi-Guard-Setup-1.1.1.0.exe, Multi-Guard-1.1.1.0-win64-portable.zip | `
+          Get-FileHash -Algorithm SHA256 (Get-ChildItem Multi-Guard-Setup-*.exe, Multi-Guard-*-win64-portable.zip) | `
             ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | `
             Out-File -Encoding ascii SHA256SUMS.txt
           Get-Content SHA256SUMS.txt
@@ -139,6 +148,6 @@ jobs:
           prerelease: false
           generate_release_notes: true
           files: |
-            RELEASED_SETUP/Multi-Guard-Setup-1.1.1.0.exe
-            RELEASED_SETUP/Multi-Guard-1.1.1.0-win64-portable.zip
+            RELEASED_SETUP/Multi-Guard-Setup-*.exe
+            RELEASED_SETUP/Multi-Guard-*-win64-portable.zip
             RELEASED_SETUP/SHA256SUMS.txt

@@ -2,7 +2,7 @@
 ; Developed by Multi-Servis (https://multi-servis.pl)
 
 #define MyAppName "Multi-Guard"
-#define MyAppVersion "1.1.1.0"
+#define MyAppVersion "1.1.2.0"
 #define MyAppPublisher "Multi-Servis"
 #define MyAppURL "https://multi-servis.pl"
 #define MyAppExeName "Multi-Guard.exe"
@@ -56,3 +56,55 @@ Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChang
 [UninstallRun]
 ; Wyrejestrowanie z Windows Security Center przed deinstalacją
 Filename: "{app}\{#MyAppExeName}"; Parameters: "--uninstall"; Flags: runhidden
+
+[Code]
+var
+  LicensePage: TInputQueryWizardPage;
+
+procedure InitializeWizard;
+begin
+  LicensePage := CreateInputQueryPage(
+    wpSelectDir,
+    'Aktywacja licencji Multi-Guard',
+    'Wymagana weryfikacja licencji',
+    'Wprowadź swój klucz licencyjny otrzymany od Multi-Servis (kontakt: 505 012 914).' + #13#10 +
+    'Bez aktywnego klucza instalacja nie może być kontynuowana:'
+  );
+  LicensePage.Add('Klucz licencyjny:', False);
+end;
+
+function NextButtonClick(CurPageID: Integer): Boolean;
+var
+  Key: String;
+begin
+  Result := True;
+  if CurPageID = LicensePage.ID then begin
+    Key := Trim(LicensePage.Values[0]);
+    if (Length(Key) < 8) then begin
+      MsgBox('Wprowadź poprawny klucz licencyjny Multi-Guard, aby kontynuować instalację.' + #13#10 +
+             'W celu zakupu lub przedłużenia licencji skontaktuj się z Multi-Servis pod numerem 505 012 914.', mbError, MB_OK);
+      Result := False;
+    end;
+  end;
+end;
+
+function GetEnteredLicenseKey(Param: String): String;
+begin
+  Result := Trim(LicensePage.Values[0]);
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+var
+  Key: String;
+  KeyDir: String;
+begin
+  if CurStep = ssPostInstall then begin
+    Key := Trim(LicensePage.Values[0]);
+    if Key <> '' then begin
+      RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Multi-Guard', 'LicenseKey', Key);
+      KeyDir := ExpandConstant('{commonappdata}\Multi-Guard');
+      ForceDirectories(KeyDir);
+      SaveStringToFile(KeyDir + '\license.key', Key, False);
+    end;
+  end;
+end;

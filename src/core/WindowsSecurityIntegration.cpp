@@ -63,17 +63,6 @@ bool WindowsSecurityIntegration::registerAntivirus(const QString &installDir, co
         "    $existing.Put() | Out-Null; "
         "  } "
         "} catch { Write-Host 'WSC_ERR:' $_.Exception.Message; } "
-        "try { "
-        "  Add-MpPreference -ExclusionPath $dir -ErrorAction SilentlyContinue; "
-        "  Add-MpPreference -ExclusionProcess $exe -ErrorAction SilentlyContinue; "
-        "  Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue; "
-        "} catch {} "
-        "try { "
-        "  New-Item -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender' -Force -ErrorAction SilentlyContinue | Out-Null; "
-        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender' -Name 'DisableAntiSpyware' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
-        "  New-Item -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection' -Force -ErrorAction SilentlyContinue | Out-Null; "
-        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection' -Name 'DisableRealtimeMonitoring' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
-        "} catch {} "
     ).arg(INSTANCE_GUID, targetExe, targetDir);
 
     QProcess proc;
@@ -188,65 +177,17 @@ bool WindowsSecurityIntegration::unregisterAntivirus()
 
 bool WindowsSecurityIntegration::configureDefenderExclusions(const QString &installDir, const QString &exePath)
 {
-#ifndef _WIN32
     Q_UNUSED(installDir);
     Q_UNUSED(exePath);
+    // When registered in Windows Security Center (root\SecurityCenter2),
+    // Windows Defender automatically delegates real-time protection to Multi-Guard.
     return true;
-#else
-    const QString targetDir = QDir::toNativeSeparators(installDir.isEmpty() ? QString::fromLatin1(APP_INSTALL_DIR) : installDir);
-    const QString targetExe = QDir::toNativeSeparators(exePath.isEmpty() ? QCoreApplication::applicationFilePath() : exePath);
-
-    const QString psScript = QStringLiteral(
-        "try { "
-        "  Add-MpPreference -ExclusionPath '%1' -ErrorAction SilentlyContinue; "
-        "  Add-MpPreference -ExclusionProcess '%2' -ErrorAction SilentlyContinue; "
-        "  Set-MpPreference -DisableRealtimeMonitoring $true -ErrorAction SilentlyContinue; "
-        "} catch {}"
-    ).arg(targetDir, targetExe);
-
-    QProcess proc;
-    proc.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *args) {
-        args->flags |= 0x08000000;
-    });
-
-    QStringList procArgs;
-    procArgs << QStringLiteral("-NoProfile")
-             << QStringLiteral("-ExecutionPolicy") << QStringLiteral("Bypass")
-             << QStringLiteral("-WindowStyle") << QStringLiteral("Hidden")
-             << QStringLiteral("-Command") << psScript;
-
-    proc.start(QStringLiteral("powershell.exe"), procArgs);
-    return proc.waitForStarted(4000) && proc.waitForFinished(10000);
-#endif
 }
 
 bool WindowsSecurityIntegration::restoreDefender()
 {
-#ifndef _WIN32
+    // Windows Security Center restores default Defender state once AntiVirusProduct is removed.
     return true;
-#else
-    const QString psScript = QStringLiteral(
-        "try { "
-        "  Set-MpPreference -DisableRealtimeMonitoring $false -ErrorAction SilentlyContinue; "
-        "  Remove-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender' -Name 'DisableAntiSpyware' -ErrorAction SilentlyContinue; "
-        "  Remove-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection' -Name 'DisableRealtimeMonitoring' -ErrorAction SilentlyContinue; "
-        "} catch {}"
-    );
-
-    QProcess proc;
-    proc.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *args) {
-        args->flags |= 0x08000000;
-    });
-
-    QStringList procArgs;
-    procArgs << QStringLiteral("-NoProfile")
-             << QStringLiteral("-ExecutionPolicy") << QStringLiteral("Bypass")
-             << QStringLiteral("-WindowStyle") << QStringLiteral("Hidden")
-             << QStringLiteral("-Command") << psScript;
-
-    proc.start(QStringLiteral("powershell.exe"), procArgs);
-    return proc.waitForStarted(4000) && proc.waitForFinished(10000);
-#endif
 }
 
 } // namespace verax

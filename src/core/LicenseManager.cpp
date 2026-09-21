@@ -14,6 +14,7 @@
 #include <QEventLoop>
 #include <QStandardPaths>
 #include <QUrl>
+#include <QSslSocket>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -37,6 +38,14 @@ void LicenseManager::init()
 {
     Logger::info("LicenseManager: Initializing licensing subsystem...");
 
+    Logger::info(QStringLiteral("LicenseManager: SSL supportsSsl=%1, build=%2, runtime=%3")
+                     .arg(QSslSocket::supportsSsl() ? QStringLiteral("YES") : QStringLiteral("NO"),
+                          QSslSocket::sslLibraryBuildVersionString(),
+                          QSslSocket::sslLibraryVersionString()));
+    if (!QSslSocket::supportsSsl()) {
+        Logger::warn("LicenseManager: OpenSSL runtime libraries not found! TLS/HTTPS requests will fail!");
+    }
+
     // Try loading cached public key if present, otherwise pinned key is used
     QString savedToken = loadSavedToken();
     if (!savedToken.isEmpty()) {
@@ -54,6 +63,20 @@ void LicenseManager::init()
         } else {
             Logger::warn(QStringLiteral("LicenseManager: Saved token failed validation: %1 (%2)")
                              .arg(res.errorMessage, res.errorCode));
+        }
+    } else {
+        // If no saved token exists yet, check if a license key was saved during installation
+        QString savedKey = loadSavedKey();
+        if (!savedKey.isEmpty()) {
+            Logger::info("LicenseManager: Found saved license key from installer, attempting auto-activation...");
+            ActivationResult res = activateKey(savedKey);
+            if (res.success) {
+                Logger::info("LicenseManager: Initial auto-activation succeeded!");
+                return;
+            } else {
+                Logger::warn(QStringLiteral("LicenseManager: Initial auto-activation failed: %1 (%2)")
+                                 .arg(res.errorMessage, res.errorCode));
+            }
         }
     }
 

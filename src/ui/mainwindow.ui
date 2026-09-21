@@ -152,7 +152,7 @@
           <item>
            <widget class="QPushButton" name="navTools">
             <property name="text">
-             <string>🛠️  Narzędzia i System</string>
+             <string>🛠️  Narzędzia</string>
             </property>
            </widget>
           </item>
