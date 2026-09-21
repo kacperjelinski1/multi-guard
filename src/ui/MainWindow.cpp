@@ -1769,7 +1769,7 @@ void MainWindow::onCheckUpdatesClicked()
     }
     Toaster::show(this, tr("Sprawdzanie dostępności aktualizacji..."), Toaster::Info);
     onUpdateSignatures();
-    Updater::instance().checkUpdate(false);
+    Updater::instance().checkSilently(this);
 }
 
 void MainWindow::onNotificationsClicked()
