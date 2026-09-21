@@ -93,7 +93,7 @@ QString ReportGenerator::generateServiceReportHtml(const QString &targetFilePath
        << "    <div class=\"info-card\"><strong>Nazwa komputera (Host)</strong><span>" << hostname << "</span></div>\n"
        << "    <div class=\"info-card\"><strong>System operacyjny</strong><span>" << osPretty << "</span></div>\n"
        << "    <div class=\"info-card\"><strong>Jądro systemu</strong><span>" << kernel << "</span></div>\n"
-       << "    <div class=\"info-card\"><strong>Baza sygnatur</strong><span>" << (SignatureDb::instance().count() > 0 ? QString::number(SignatureDb::instance().count()) + " sygnatur" : "Zainicjalizowana") << "</span></div>\n"
+       << "    <div class=\"info-card\"><strong>Baza sygnatur</strong><span>" << (SignatureDb::instance().totalSignatures() > 0 ? QString::number(SignatureDb::instance().totalSignatures()) + " sygnatur" : "Zainicjalizowana") << "</span></div>\n"
        << "  </div>\n"
 
        << "  <h2>2. Status Aktywnych Osłon Ochronnych</h2>\n"
