@@ -19,7 +19,7 @@
 // ─── Version (single source of truth) ─────────────────────────────────
 #define APP_VERSION_MAJOR   1
 #define APP_VERSION_MINOR   1
-#define APP_VERSION_PATCH   4
+#define APP_VERSION_PATCH   5
 #define APP_VERSION_BUILD   0
 
 // Auto-derived — DO NOT EDIT BELOW
@@ -44,4 +44,4 @@ _VR_S(APP_VERSION_MAJOR) "." _VR_S(APP_VERSION_MINOR) "." \
 #define APP_DOWNLOAD_URL        "https://github.com/kacperjelinski1/multi-guard/releases/latest"
 
 // ─── Theme ────────────────────────────────────────────────────────────
-#define APP_THEME           "Daylight"
+#define APP_THEME           "Dark"

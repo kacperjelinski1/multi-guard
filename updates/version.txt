@@ -1,6 +1,8 @@
-1.1.4.0
+1.1.5.0
 Changelog=>
-Multi-Guard Endpoint Security 1.1.4:
+Multi-Guard Endpoint Security 1.1.5:
+- Domyślny i jedyny motyw: Ciemny (Dark)
+- Usunięcie motywu jasnego i pełna unifikacja wizualna w ciemnej tonacji
 - Obowiązkowy klucz licencyjny w instalatorze (wymagany przed instalacją)
 - Pełna integracja z bibliotekami OpenSSL TLS 1.3 dla serwera licencji KeyGate
 - Całkowicie zablokowany zasobnik systemowy (Tray) przy braku aktywacji (tylko "Wymagana aktywacja" i "Zakończ zadanie")

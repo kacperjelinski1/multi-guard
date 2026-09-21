@@ -2407,17 +2407,7 @@
                       <widget class="QComboBox" name="comboTheme">
                        <item>
                         <property name="text">
-                         <string>Ciemny (Dark)</string>
-                        </property>
-                       </item>
-                       <item>
-                        <property name="text">
-                         <string>Jasny (Light)</string>
-                        </property>
-                       </item>
-                       <item>
-                        <property name="text">
-                         <string>Systemowy (Auto)</string>
+                         <string>Ciemny (Domyślny)</string>
                         </property>
                        </item>
                       </widget>

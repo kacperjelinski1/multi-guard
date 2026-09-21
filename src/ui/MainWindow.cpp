@@ -300,10 +300,8 @@ void MainWindow::wireUi()
 
     if (ui->comboTheme) {
         ui->comboTheme->blockSignals(true);
-        int themeIdx = 0; // 0 = dark
-        if (s.theme() == "light") themeIdx = 1;
-        else if (s.theme() == "system") themeIdx = 2;
-        ui->comboTheme->setCurrentIndex(themeIdx);
+        ui->comboTheme->setCurrentIndex(0);
+        ui->comboTheme->setEnabled(false);
         ui->comboTheme->blockSignals(false);
     }
 
@@ -443,15 +441,11 @@ void MainWindow::wireSignals()
 
     if (ui->comboTheme) {
         connect(ui->comboTheme, QOverload<int>::of(&QComboBox::currentIndexChanged),
-                this, [this](int idx){
-            QString mode = "dark";
-            if (idx == 1) mode = "light";
-            else if (idx == 2) mode = "system";
-            ThemeManager::applyTheme(mode);
+                this, [this](int){
+            ThemeManager::applyTheme("dark");
             if (m_tray && m_tray->contextMenu()) {
                 m_tray->contextMenu()->setStyleSheet(ThemeManager::trayStyleSheet());
             }
-            Toaster::show(this, tr("Motyw interfejsu został zmieniony."), Toaster::Success);
         });
     }
     if (ui->comboScheduledScan)    connect(ui->comboScheduledScan, QOverload<int>::of(&QComboBox::currentIndexChanged),
