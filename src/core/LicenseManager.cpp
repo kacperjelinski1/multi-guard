@@ -659,6 +659,11 @@ const LicenseInfo& LicenseManager::currentLicense() const
     return m_license;
 }
 
+LicenseStatus LicenseManager::status() const
+{
+    return m_license.status;
+}
+
 bool LicenseManager::saveToken(const QString &token)
 {
     QString dirPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/Multi-Guard";

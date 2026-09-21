@@ -122,6 +122,7 @@ public:
     LicenseTier currentTier() const;
     QString tierName() const;
     const LicenseInfo& currentLicense() const;
+    LicenseStatus status() const;
 
     // Storage
     bool saveToken(const QString &token);
