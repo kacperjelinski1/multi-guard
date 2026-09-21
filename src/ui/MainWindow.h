@@ -140,6 +140,7 @@ private:
     void populateAboutPage();
     void setActiveNav(PageIndex idx);
     void setupTrayIcon();
+    void updateTrayLicenseState();
     void buildThreatFilterToolbar();
     QString signaturesInfoHtml() const;
     void updateChromeStatus(const QString &kind, const QString &text);
@@ -182,6 +183,14 @@ private:
     Ui::MainWindow *ui = nullptr;
     PageTransition *m_transition = nullptr;
     QSystemTrayIcon *m_tray = nullptr;
+    QAction *m_trayHeaderAction = nullptr;
+    QAction *m_trayToggleRtAction = nullptr;
+    QAction *m_trayToggleWebAction = nullptr;
+    QAction *m_trayQuickScanAction = nullptr;
+    QAction *m_trayRamScanAction = nullptr;
+    QAction *m_trayToolsAction = nullptr;
+    QAction *m_trayRemoteAction = nullptr;
+    QAction *m_trayUpdateAction = nullptr;
     QTimer *m_watchdog = nullptr;
     QTimer *m_hwTimer = nullptr;
     QTimer *m_schedulerTimer = nullptr;

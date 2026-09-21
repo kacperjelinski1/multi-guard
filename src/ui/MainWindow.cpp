@@ -828,6 +828,14 @@ void MainWindow::onRealTimeThreatDetected(const verax::ThreatInfo &info)
 
 void MainWindow::onScanMemory()
 {
+    if (!LicenseManager::instance().isValid()) {
+        show();
+        setActiveNav(PageLicenseLocked);
+        raise();
+        activateWindow();
+        Toaster::show(this, tr("Wymagana aktywna licencja do uruchomienia skanowania."), Toaster::Warn);
+        return;
+    }
     Logger::info("Memory/Running processes scan requested");
     const QVector<ProcInfo> procs = SystemEnum::listProcesses();
     if (procs.isEmpty()) {
@@ -880,6 +888,14 @@ void MainWindow::onUsbDriveInserted(const QString &drivePath)
 
 void MainWindow::onQuickScan()
 {
+    if (!LicenseManager::instance().isValid()) {
+        show();
+        setActiveNav(PageLicenseLocked);
+        raise();
+        activateWindow();
+        Toaster::show(this, tr("Wymagana aktywna licencja do uruchomienia skanowania."), Toaster::Warn);
+        return;
+    }
     Logger::info("Quick scan requested");
     ScanRequest req = buildQuickDefaults();
 
@@ -903,6 +919,14 @@ void MainWindow::onQuickScan()
 
 void MainWindow::onFullScan()
 {
+    if (!LicenseManager::instance().isValid()) {
+        show();
+        setActiveNav(PageLicenseLocked);
+        raise();
+        activateWindow();
+        Toaster::show(this, tr("Wymagana aktywna licencja do uruchomienia skanowania."), Toaster::Warn);
+        return;
+    }
     Logger::info("Full scan requested");
     ScanRequest req = buildFullDefaults();
 
@@ -1807,41 +1831,40 @@ void MainWindow::setupTrayIcon()
     QIcon icon(QStringLiteral(":/assets/logo.png"));
     if (icon.isNull()) icon = style()->standardIcon(QStyle::SP_ComputerIcon);
     m_tray->setIcon(icon);
-    m_tray->setToolTip(QStringLiteral("Multi-Guard v%1 — System Chroniony").arg(APP_VERSION_STR));
 
     auto *menu = new QMenu(this);
     menu->setStyleSheet(ThemeManager::trayStyleSheet());
 
     // Header Status Action
-    QAction *aHeader = menu->addAction(tr("🛡 Multi-Guard — Ochrona Aktywna"));
-    aHeader->setEnabled(false);
+    m_trayHeaderAction = menu->addAction(tr("🛡 Multi-Guard — Ochrona Aktywna"));
+    m_trayHeaderAction->setEnabled(false);
     menu->addSeparator();
 
     // Direct Toggles
-    QAction *aToggleRt = menu->addAction(tr("Ochrona w czasie rzeczywistym"));
-    aToggleRt->setCheckable(true);
-    aToggleRt->setChecked(Settings::instance().realTimeProtection());
-    connect(aToggleRt, &QAction::toggled, this, [this](bool v){
+    m_trayToggleRtAction = menu->addAction(tr("Ochrona w czasie rzeczywistym"));
+    m_trayToggleRtAction->setCheckable(true);
+    m_trayToggleRtAction->setChecked(Settings::instance().realTimeProtection());
+    connect(m_trayToggleRtAction, &QAction::toggled, this, [this](bool v){
         Settings::instance().setRealTimeProtection(v);
         RealTimeShield::instance().setEnabled(v);
         NotificationAlert::showInfo(tr("Multi-Guard"), v ? tr("Ochrona w czasie rzeczywistym została włączona.") : tr("Ochrona w czasie rzeczywistym została wyłączona."));
     });
 
-    QAction *aToggleWeb = menu->addAction(tr("Ochrona sieciowa (Web Shield)"));
-    aToggleWeb->setCheckable(true);
-    aToggleWeb->setChecked(Settings::instance().webShield());
-    connect(aToggleWeb, &QAction::toggled, this, [this](bool v){
+    m_trayToggleWebAction = menu->addAction(tr("Ochrona sieciowa (Web Shield)"));
+    m_trayToggleWebAction->setCheckable(true);
+    m_trayToggleWebAction->setChecked(Settings::instance().webShield());
+    connect(m_trayToggleWebAction, &QAction::toggled, this, [this](bool v){
         Settings::instance().setWebShield(v);
         WebShield::instance().setEnabled(v);
     });
 
     menu->addSeparator();
     QAction *aOpen   = menu->addAction(tr("Otwórz pulpit Multi-Guard"));
-    QAction *aQuick  = menu->addAction(tr("Szybkie skanowanie"));
-    QAction *aRam    = menu->addAction(tr("Skanuj pamięć RAM (Procesy)"));
-    QAction *aTools  = menu->addAction(tr("Narzędzia i Wydajność"));
-    QAction *aRemote = menu->addAction(tr("Zdalna Naprawa Multi-Servis"));
-    QAction *aUpdate = menu->addAction(tr("Aktualizuj sygnatury w chmurze"));
+    m_trayQuickScanAction  = menu->addAction(tr("Szybkie skanowanie"));
+    m_trayRamScanAction    = menu->addAction(tr("Skanuj pamięć RAM (Procesy)"));
+    m_trayToolsAction  = menu->addAction(tr("Narzędzia"));
+    m_trayRemoteAction = menu->addAction(tr("Zdalna Naprawa Multi-Servis"));
+    m_trayUpdateAction = menu->addAction(tr("Aktualizuj sygnatury w chmurze"));
     menu->addSeparator();
     QAction *aSet    = menu->addAction(tr("Ustawienia"));
     QAction *aAbout  = menu->addAction(tr("O programie"));
@@ -1849,18 +1872,60 @@ void MainWindow::setupTrayIcon()
     QAction *aQuit   = menu->addAction(tr("Zakończ działanie"));
 
     connect(aOpen,   &QAction::triggered, this, [this]{ show(); raise(); activateWindow(); });
-    connect(aQuick,  &QAction::triggered, this, &MainWindow::onQuickScan);
-    connect(aRam,    &QAction::triggered, this, &MainWindow::onScanMemory);
-    connect(aTools,  &QAction::triggered, this, [this]{ show(); setActiveNav(PageTools); raise(); activateWindow(); });
-    connect(aRemote, &QAction::triggered, this, [this]{ show(); setActiveNav(PageRemoteRepair); raise(); activateWindow(); });
-    connect(aUpdate, &QAction::triggered, this, &MainWindow::onUpdateSignatures);
+    connect(m_trayQuickScanAction,  &QAction::triggered, this, &MainWindow::onQuickScan);
+    connect(m_trayRamScanAction,    &QAction::triggered, this, &MainWindow::onScanMemory);
+    connect(m_trayToolsAction,  &QAction::triggered, this, [this]{ show(); setActiveNav(PageTools); raise(); activateWindow(); });
+    connect(m_trayRemoteAction, &QAction::triggered, this, [this]{ show(); setActiveNav(PageRemoteRepair); raise(); activateWindow(); });
+    connect(m_trayUpdateAction, &QAction::triggered, this, &MainWindow::onUpdateSignatures);
     connect(aSet,    &QAction::triggered, this, [this]{ show(); setActiveNav(PageSettings); raise(); activateWindow(); });
     connect(aAbout,  &QAction::triggered, this, [this]{ show(); setActiveNav(PageAbout); raise(); activateWindow(); });
     connect(aQuit,   &QAction::triggered, qApp,  &QCoreApplication::quit);
 
     m_tray->setContextMenu(menu);
     connect(m_tray, &QSystemTrayIcon::activated, this, &MainWindow::onTrayActivated);
+    updateTrayLicenseState();
     m_tray->show();
+}
+
+void MainWindow::updateTrayLicenseState()
+{
+    if (!m_tray) return;
+
+    const auto &lm = LicenseManager::instance();
+    bool valid = lm.isValid();
+
+    if (!valid) {
+        bool isExpired = (lm.status() == LicenseStatus::Expired);
+        if (m_trayHeaderAction) {
+            m_trayHeaderAction->setText(isExpired
+                ? tr("⚠️ Multi-Guard — Licencja Wygasła")
+                : tr("⚠️ Multi-Guard — Wymagana Aktywacja"));
+        }
+        m_tray->setToolTip(isExpired
+            ? QStringLiteral("Multi-Guard v%1 — Licencja Wygasła (505 012 914)").arg(APP_VERSION_STR)
+            : QStringLiteral("Multi-Guard v%1 — Wymagana Aktywacja (505 012 914)").arg(APP_VERSION_STR));
+
+        if (m_trayToggleRtAction)  m_trayToggleRtAction->setEnabled(false);
+        if (m_trayToggleWebAction) m_trayToggleWebAction->setEnabled(false);
+        if (m_trayQuickScanAction) m_trayQuickScanAction->setEnabled(false);
+        if (m_trayRamScanAction)   m_trayRamScanAction->setEnabled(false);
+        if (m_trayToolsAction)     m_trayToolsAction->setEnabled(false);
+        if (m_trayRemoteAction)    m_trayRemoteAction->setEnabled(false);
+        if (m_trayUpdateAction)    m_trayUpdateAction->setEnabled(false);
+    } else {
+        if (m_trayHeaderAction) {
+            m_trayHeaderAction->setText(tr("🛡 Multi-Guard — Ochrona Aktywna"));
+        }
+        m_tray->setToolTip(QStringLiteral("Multi-Guard v%1 — System Chroniony (%2)").arg(APP_VERSION_STR, lm.tierName()));
+
+        if (m_trayToggleRtAction)  m_trayToggleRtAction->setEnabled(true);
+        if (m_trayToggleWebAction) m_trayToggleWebAction->setEnabled(true);
+        if (m_trayQuickScanAction) m_trayQuickScanAction->setEnabled(true);
+        if (m_trayRamScanAction)   m_trayRamScanAction->setEnabled(true);
+        if (m_trayToolsAction)     m_trayToolsAction->setEnabled(true);
+        if (m_trayRemoteAction)    m_trayRemoteAction->setEnabled(lm.hasCapability(LicenseCapability::RemoteRepair));
+        if (m_trayUpdateAction)    m_trayUpdateAction->setEnabled(true);
+    }
 }
 
 void MainWindow::onTrayActivated(QSystemTrayIcon::ActivationReason r)
@@ -2627,6 +2692,7 @@ void MainWindow::applyLicenseGating()
         }
 
         WindowsSecurityIntegration::updateProductState(false);
+        updateTrayLicenseState();
         return;
     }
 
@@ -2716,6 +2782,7 @@ void MainWindow::applyLicenseGating()
         ui->lblAppNameVersion->setText(QStringLiteral("%1 v%2  [%3 • %4]")
                                            .arg(APP_NAME, APP_VERSION_STR, lm.tierName(), lm.daysRemainingText()));
     }
+    updateTrayLicenseState();
 }
 
 void MainWindow::onLicenseChanged(LicenseTier tier, bool isValid)
