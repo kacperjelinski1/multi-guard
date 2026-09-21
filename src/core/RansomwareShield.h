@@ -4,10 +4,8 @@
 #include <QStringList>
 #include <QDateTime>
 #include <QMap>
-#include <QVector>
+#include <QFileSystemWatcher>
 #include <memory>
-
-class QFileSystemWatcher;
 
 namespace verax {
 
