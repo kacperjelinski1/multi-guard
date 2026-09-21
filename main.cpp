@@ -184,7 +184,7 @@ int main(int argc, char *argv[])
     if (parser.isSet(optUninstall)) {
         verax::Logger::info("main: unregistering antivirus due to --uninstall");
         verax::WindowsSecurityIntegration::unregisterAntivirus();
-        verax::WindowsSecurityIntegration::restoreDefenderMonitoring();
+        verax::WindowsSecurityIntegration::restoreDefender();
         return 0;
     }
 
