@@ -585,7 +585,7 @@ bool LicenseManager::hasCapability(LicenseCapability cap) const
 {
     if (m_license.tier == LicenseTier::AdminFull)
         return true;
-    if (isLicensed()) {
+    if (isValid()) {
         if (cap == LicenseCapability::BasicScanning ||
             cap == LicenseCapability::QuarantineAndRepair ||
             cap == LicenseCapability::RealTimeProtection ||
