@@ -61,6 +61,15 @@ void FlagIcon::paintAr(QPainter &p, const QRectF &r)
     p.drawText(r, Qt::AlignCenter, QStringLiteral("\u0627\u0644\u0639\u0631\u0628\u064A\u0629"));
 }
 
+void FlagIcon::paintPl(QPainter &p, const QRectF &r)
+{
+    // Poland flag: top half white, bottom half red
+    QRectF top(r.left(), r.top(), r.width(), r.height() / 2.0);
+    QRectF btm(r.left(), r.top() + r.height() / 2.0, r.width(), r.height() / 2.0);
+    p.fillRect(top, QColor("#FFFFFF"));
+    p.fillRect(btm, QColor("#DC143C"));
+}
+
 void FlagIcon::paintEvent(QPaintEvent *)
 {
     QPainter p(this);
@@ -70,8 +79,9 @@ void FlagIcon::paintEvent(QPaintEvent *)
     QPainterPath clip; clip.addRoundedRect(r, 3, 3);
     p.setClipPath(clip);
 
-    if (m_code == "ar") paintAr(p, r);
-    else                paintEn(p, r);
+    if (m_code == "ar")      paintAr(p, r);
+    else if (m_code == "pl") paintPl(p, r);
+    else                     paintEn(p, r);
 
     p.setClipping(false);
     p.setPen(m_hover ? QColor("#2563EB") : QColor("#CBD5E1"));

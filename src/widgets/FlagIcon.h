@@ -23,10 +23,11 @@ protected:
     void leaveEvent(QEvent *e) override;
 
 private:
-    QString m_code = QStringLiteral("en");
+    QString m_code = QStringLiteral("pl");
     bool    m_hover = false;
     void paintEn(QPainter &p, const QRectF &r);
     void paintAr(QPainter &p, const QRectF &r);
+    void paintPl(QPainter &p, const QRectF &r);
 };
 
 } // namespace verax

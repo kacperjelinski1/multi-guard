@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
@@ -114,7 +114,7 @@
           <item>
            <widget class="QPushButton" name="navDashboard">
             <property name="text">
-             <string>Dashboard</string>
+             <string>🛡️  Pulpit</string>
             </property>
             <property name="checkable">
              <bool>false</bool>
@@ -124,42 +124,56 @@
           <item>
            <widget class="QPushButton" name="navScanConfig">
             <property name="text">
-             <string>New Scan</string>
+             <string>🔍  Nowe skanowanie</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="navScan">
             <property name="text">
-             <string>Scan Progress</string>
+             <string>⚡  Postęp skanowania</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="navQuarantine">
             <property name="text">
-             <string>Quarantine</string>
+             <string>☣️  Kwarantanna</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="navRepair">
             <property name="text">
-             <string>Repair</string>
+             <string>🩹  Naprawa</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="navTools">
+            <property name="text">
+             <string>🛠️  Narzędzia i System</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="navRemoteRepair">
+            <property name="text">
+             <string>🌐  Zdalna Naprawa</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="navSettings">
             <property name="text">
-             <string>Settings</string>
+             <string>⚙️  Ustawienia</string>
             </property>
            </widget>
           </item>
           <item>
            <widget class="QPushButton" name="navAbout">
             <property name="text">
-             <string>About</string>
+             <string>ℹ️  O programie</string>
             </property>
            </widget>
           </item>
@@ -302,7 +316,7 @@
                     </sizepolicy>
                    </property>
                    <property name="text">
-                    <string>Last Scan</string>
+                    <string>⏱️ Ostatnie skanowanie</string>
                    </property>
                   </widget>
                  </item>
@@ -331,7 +345,7 @@
                     </sizepolicy>
                    </property>
                    <property name="text">
-                    <string>Quarantine</string>
+                    <string>☣️ Kwarantanna</string>
                    </property>
                   </widget>
                  </item>
@@ -354,10 +368,36 @@
                  <item>
                   <widget class="QLabel" name="lblSignaturesHeader">
                    <property name="text">
-                    <string>Signature Database</string>
+                    <string>🛡️ Baza sygnatur</string>
                    </property>
                   </widget>
                  </item>
+               <item>
+                <widget class="verax::SurfaceCard" name="cardLicenseDays">
+                 <layout class="QVBoxLayout" name="cardLicenseDaysLayout">
+                  <property name="spacing">
+                   <number>4</number>
+                  </property>
+                  <item>
+                   <widget class="QLabel" name="lblLicenseDaysHeader">
+                    <property name="text">
+                     <string>🔑 Ważność licencji</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="lblLicenseDaysValue">
+                    <property name="text">
+                     <string>Pozostało: -- dni</string>
+                    </property>
+                    <property name="wordWrap">
+                     <bool>false</bool>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
                  <item>
                   <widget class="QLabel" name="lblSignaturesInfo">
                    <property name="text">
@@ -383,7 +423,7 @@
               <item>
                <widget class="QPushButton" name="btnQuickScan">
                 <property name="text">
-                 <string>Quick Scan</string>
+                 <string>⚡ Szybkie skanowanie</string>
                 </property>
                 <property name="property" stdset="0">
                  <string notr="true">primary</string>
@@ -393,14 +433,14 @@
               <item>
                <widget class="QPushButton" name="btnFullScan">
                 <property name="text">
-                 <string>Full Scan</string>
+                 <string>🔍 Pełne skanowanie</string>
                 </property>
                </widget>
               </item>
               <item>
                <widget class="QPushButton" name="btnUpdateSignatures">
                 <property name="text">
-                 <string>Online Update Signatures</string>
+                 <string>🔄 Aktualizuj sygnatury</string>
                 </property>
                </widget>
               </item>
@@ -1532,6 +1572,628 @@
            </item>
           </layout>
          </widget>
+         <widget class="QWidget" name="pageTools">
+           <layout class="QVBoxLayout" name="toolsLayout">
+            <property name="spacing">
+             <number>16</number>
+            </property>
+            <property name="leftMargin">
+             <number>28</number>
+            </property>
+            <property name="topMargin">
+             <number>24</number>
+            </property>
+            <property name="rightMargin">
+             <number>28</number>
+            </property>
+            <property name="bottomMargin">
+             <number>24</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="lblToolsTitle">
+              <property name="text">
+               <string>Tools &amp; System Performance</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="lblToolsSubtitle">
+              <property name="text">
+               <string>Monitor hardware, clean unnecessary files, manage startup and shred files.</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QTabWidget" name="tabTools">
+              <property name="currentIndex">
+               <number>0</number>
+              </property>
+              <widget class="QWidget" name="tabHw">
+               <attribute name="title">
+                <string>📊 Monitor Sprzętu</string>
+               </attribute>
+               <layout class="QVBoxLayout" name="hwLayout">
+                <property name="spacing">
+                 <number>16</number>
+                </property>
+                <property name="leftMargin">
+                 <number>16</number>
+                </property>
+                <property name="topMargin">
+                 <number>16</number>
+                </property>
+                <property name="rightMargin">
+                 <number>16</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>16</number>
+                </property>
+                <item>
+                 <widget class="QGroupBox" name="gbCpu">
+                  <property name="title">
+                   <string>Processor (CPU)</string>
+                  </property>
+                  <layout class="QVBoxLayout" name="gbCpuLayout">
+                   <item>
+                    <widget class="QLabel" name="lblCpuName">
+                     <property name="text">
+                      <string>Detecting CPU...</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QProgressBar" name="pbCpuUsage">
+                     <property name="value">
+                      <number>0</number>
+                     </property>
+                     <property name="format">
+                      <string>CPU Load: %p%</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="lblCpuTemp">
+                     <property name="text">
+                      <string>Temperature: -- °C</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QGroupBox" name="gbRam">
+                  <property name="title">
+                   <string>RAM Memory</string>
+                  </property>
+                  <layout class="QVBoxLayout" name="gbRamLayout">
+                   <item>
+                    <widget class="QLabel" name="lblRamDetails">
+                     <property name="text">
+                      <string>Memory: -- / -- GB</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QProgressBar" name="pbRamUsage">
+                     <property name="value">
+                      <number>0</number>
+                     </property>
+                     <property name="format">
+                      <string>RAM Usage: %p%</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QGroupBox" name="gbGpu">
+                  <property name="title">
+                   <string>Graphics Card (GPU)</string>
+                  </property>
+                  <layout class="QVBoxLayout" name="gbGpuLayout">
+                   <item>
+                    <widget class="QLabel" name="lblGpuName">
+                     <property name="text">
+                      <string>GPU: Detecting...</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="lblGpuVram">
+                     <property name="text">
+                      <string>VRAM: --</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="spHwBottom">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QWidget" name="tabCleaner">
+               <attribute name="title">
+                <string>🧹 Optymalizator Dysku</string>
+               </attribute>
+               <layout class="QVBoxLayout" name="cleanerLayout">
+                <property name="spacing">
+                 <number>12</number>
+                </property>
+                <property name="leftMargin">
+                 <number>16</number>
+                </property>
+                <property name="topMargin">
+                 <number>16</number>
+                </property>
+                <property name="rightMargin">
+                 <number>16</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>16</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="lblCleanInfo">
+                  <property name="text">
+                   <string>Clean temporary files, browser cache and Recycle Bin safely.</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <layout class="QHBoxLayout" name="cleanBtnLayout">
+                  <item>
+                   <widget class="QPushButton" name="btnScanClean">
+                    <property name="text">
+                     <string>Scan Cleanable Files</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="btnDoClean">
+                    <property name="text">
+                     <string>Clean Now</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="spCleanTop">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QListWidget" name="listCleanItems"/>
+                </item>
+                <item>
+                 <widget class="QLabel" name="lblCleanStatus">
+                  <property name="text">
+                   <string>Ready to analyze system.</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QWidget" name="tabStartup">
+               <attribute name="title">
+                <string>🚀 Autostart (Startup)</string>
+               </attribute>
+               <layout class="QVBoxLayout" name="startupLayout">
+                <property name="spacing">
+                 <number>12</number>
+                </property>
+                <property name="leftMargin">
+                 <number>16</number>
+                </property>
+                <property name="topMargin">
+                 <number>16</number>
+                </property>
+                <property name="rightMargin">
+                 <number>16</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>16</number>
+                </property>
+                <item>
+                 <layout class="QHBoxLayout" name="startupBtnLayout">
+                  <item>
+                   <widget class="QPushButton" name="btnRefreshStartup">
+                    <property name="text">
+                     <string>Refresh</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="btnToggleStartup">
+                    <property name="text">
+                     <string>Enable / Disable</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="btnDeleteStartup">
+                    <property name="text">
+                     <string>Delete Entry</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="spStartupTop">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QTableWidget" name="tableStartup">
+                  <column>
+                   <property name="text">
+                    <string>Program Name</string>
+                   </property>
+                  </column>
+                  <column>
+                   <property name="text">
+                    <string>Command</string>
+                   </property>
+                  </column>
+                  <column>
+                   <property name="text">
+                    <string>Location</string>
+                   </property>
+                  </column>
+                  <column>
+                   <property name="text">
+                    <string>Digital Signature</string>
+                   </property>
+                  </column>
+                  <column>
+                   <property name="text">
+                    <string>Status</string>
+                   </property>
+                  </column>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+              <widget class="QWidget" name="tabShredder">
+               <attribute name="title">
+                <string>💥 Niszczarka Plików</string>
+               </attribute>
+               <layout class="QVBoxLayout" name="shredLayout">
+                <property name="spacing">
+                 <number>16</number>
+                </property>
+                <property name="leftMargin">
+                 <number>16</number>
+                </property>
+                <property name="topMargin">
+                 <number>16</number>
+                </property>
+                <property name="rightMargin">
+                 <number>16</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>16</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="lblShredInfo">
+                  <property name="text">
+                   <string>Securely shred files and folders with multi-pass overwrite. Data cannot be recovered.</string>
+                  </property>
+                  <property name="wordWrap">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <layout class="QHBoxLayout" name="shredInputLayout">
+                  <item>
+                   <widget class="QLineEdit" name="leShredPath">
+                    <property name="placeholderText">
+                     <string>Select file or folder to shred...</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="btnBrowseShredFile">
+                    <property name="text">
+                     <string>Browse File...</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="btnBrowseShredDir">
+                    <property name="text">
+                     <string>Browse Folder...</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QProgressBar" name="pbShredProgress">
+                  <property name="value">
+                   <number>0</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <layout class="QHBoxLayout" name="shredActLayout">
+                  <item>
+                   <widget class="QPushButton" name="btnDoShred">
+                    <property name="text">
+                     <string>Shred Permanently</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="spShredAct">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QLabel" name="lblShredStatus">
+                  <property name="text">
+                   <string></string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="spShredBottom">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </widget>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+         <widget class="QWidget" name="pageRemoteRepair">
+          <layout class="QVBoxLayout" name="remoteLayout">
+           <property name="spacing">
+            <number>18</number>
+           </property>
+           <property name="leftMargin">
+            <number>32</number>
+           </property>
+           <property name="topMargin">
+            <number>28</number>
+           </property>
+           <property name="rightMargin">
+            <number>32</number>
+           </property>
+           <property name="bottomMargin">
+            <number>28</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="lblRemoteHeader">
+             <property name="text">
+              <string>Zdalna Pomoc Techniczna i Naprawa Multi-Servis</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="lblRemoteSub">
+             <property name="text">
+              <string>Połącz się bezpośrednio ze specjalistą technicznym Multi-Servis w celu usunięcia zaawansowanych zagrożeń i optymalizacji.</string>
+             </property>
+             <property name="wordWrap">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="verax::SurfaceCard" name="cardRemoteSession">
+             <layout class="QVBoxLayout" name="cardRemoteLayout">
+              <property name="spacing">
+               <number>14</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="lblSessionTitle">
+                <property name="text">
+                 <string>Twój bezpieczny identyfikator sesji:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="sessionCodeRow">
+                <property name="spacing">
+                 <number>12</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="lblSessionCode">
+                  <property name="text">
+                   <string>MS-842-194</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">background: rgba(0,0,0,0.3); color: #00e676; font-size: 26px; font-weight: bold; padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(0, 230, 118, 0.4); letter-spacing: 4px;</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="btnCopySessionCode">
+                  <property name="text">
+                   <string>Kopiuj kod</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="btnGenSessionCode">
+                  <property name="text">
+                   <string>Nowy kod</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="spSessionRow">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QLabel" name="lblTunnelStatus">
+                <property name="text">
+                 <string>🔒 Szyfrowane połączenie TLS 1.3: Oczekiwanie na technika Multi-Servis</string>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">color: #3399ff; font-weight: 500;</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="remoteActRow">
+                <item>
+                 <widget class="QPushButton" name="btnConnectRemote">
+                  <property name="text">
+                   <string>Połącz ze stanowiskiem Multi-Servis</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="spRemoteAct">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="verax::SurfaceCard" name="cardRemotePerms">
+             <layout class="QVBoxLayout" name="cardPermsLayout">
+              <property name="spacing">
+               <number>10</number>
+              </property>
+              <item>
+               <widget class="QLabel" name="lblPermsHeader">
+                <property name="text">
+                 <string>Uprawnienia i Bezpieczeństwo:</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="cbRemoteControl">
+                <property name="text">
+                 <string>Zezwól technikowi na bezpieczną kontrolę pulpitu w celach naprawczych</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="cbRemoteFiles">
+                <property name="text">
+                 <string>Zezwól na przesyłanie dedykowanych skryptów czyszczących i łatek</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="verax::SurfaceCard" name="cardRemoteDiag">
+             <layout class="QVBoxLayout" name="cardDiagLayout">
+              <item>
+               <widget class="QLabel" name="lblDiagInfo">
+                <property name="text">
+                 <string>Telemetria diagnostyczna jest przygotowana. Po nawiązaniu sesji technik automatycznie otrzyma raport o kondycji systemu, aktywnych procesach oraz stanie silnika ochronnego.</string>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <spacer name="spRemoteBottom">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>20</width>
+               <height>40</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </widget>
          <widget class="QWidget" name="pageSettings">
           <layout class="QVBoxLayout" name="settingsLayout">
            <property name="spacing">
@@ -1577,6 +2239,122 @@
                <property name="spacing">
                 <number>18</number>
                </property>
+                <item>
+                 <widget class="verax::SurfaceCard" name="cardLicenseSettings">
+                  <layout class="QVBoxLayout" name="cardLicenseSettingsLayout">
+                   <property name="spacing">
+                    <number>12</number>
+                   </property>
+                   <item>
+                    <widget class="QLabel" name="lblLicenseSettingsTitle">
+                     <property name="text">
+                      <string>Licencja i subskrypcja Multi-Guard</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QWidget" name="rowLicenseInfo" native="true">
+                     <layout class="QHBoxLayout" name="rowLicenseInfoLayout">
+                      <item>
+                       <widget class="QLabel" name="lblSettingsPlanTitle">
+                        <property name="text">
+                         <string>Aktywny plan:</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="lblSettingsPlanValue">
+                        <property name="text">
+                         <string>Multi-Guard</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="licSp1">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>10</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="lblSettingsDaysTitle">
+                        <property name="text">
+                         <string>Ważność:</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="lblSettingsDaysValue">
+                        <property name="text">
+                         <string>-- dni</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <spacer name="licSp2">
+                        <property name="orientation">
+                         <enum>Qt::Horizontal</enum>
+                        </property>
+                        <property name="sizeHint" stdset="0">
+                         <size>
+                          <width>20</width>
+                          <height>10</height>
+                         </size>
+                        </property>
+                       </spacer>
+                      </item>
+                      <item>
+                       <widget class="QPushButton" name="btnRefreshLicense">
+                        <property name="text">
+                         <string>🔄 Odśwież online</string>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QWidget" name="rowNewLicenseKey" native="true">
+                     <layout class="QHBoxLayout" name="rowNewLicenseKeyLayout">
+                      <item>
+                       <widget class="QLineEdit" name="editNewLicenseKey">
+                        <property name="placeholderText">
+                         <string>Wprowadź nowy klucz licencyjny (XXXX-XXXX-XXXX-XXXX)...</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QPushButton" name="btnChangeLicenseKey">
+                        <property name="text">
+                         <string>🔑 Zmień klucz i zrestartuj</string>
+                        </property>
+                        <property name="property" stdset="0">
+                         <string notr="true">primary</string>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="lblLicenseContactNotice">
+                     <property name="text">
+                      <string>&lt;font color='#38bdf8'&gt;&lt;b&gt;📞 Kontakt do serwisu Multi-Servis:&lt;/b&gt;&lt;/font&gt; &lt;b&gt;505 012 914&lt;/b&gt; by przedłużyć okres licencji bądź wykupić inną wersję.</string>
+                     </property>
+                     <property name="wordWrap">
+                      <bool>true</bool>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
                <item>
                 <widget class="verax::SurfaceCard" name="cardGeneral">
                  <layout class="QVBoxLayout" name="cardGeneralLayout">
@@ -1612,6 +2390,51 @@
                     <property name="checked">
                      <bool>true</bool>
                     </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QWidget" name="rowTheme" native="true">
+                    <layout class="QHBoxLayout" name="rowThemeLayout">
+                     <item>
+                      <widget class="QLabel" name="lblThemeHeader">
+                       <property name="text">
+                        <string>Motyw interfejsu:</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QComboBox" name="comboTheme">
+                       <item>
+                        <property name="text">
+                         <string>Ciemny (Dark)</string>
+                        </property>
+                       </item>
+                       <item>
+                        <property name="text">
+                         <string>Jasny (Light)</string>
+                        </property>
+                       </item>
+                       <item>
+                        <property name="text">
+                         <string>Systemowy (Auto)</string>
+                        </property>
+                       </item>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="themeSp">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>0</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
                    </widget>
                   </item>
                   <item>
@@ -1698,6 +2521,23 @@
                    </widget>
                   </item>
                   <item>
+                   <widget class="QCheckBox" name="cbRansomwareProtection">
+                    <property name="text">
+                     <string>Ochrona folderów przed Ransomware (Canary Guard)</string>
+                    </property>
+                    <property name="checked">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QCheckBox" name="cbContextMenu">
+                    <property name="text">
+                     <string>Add 'Scan with Multi-Guard' to Windows context menu</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
                    <widget class="QWidget" name="rowSchedule" native="true">
                     <layout class="QHBoxLayout" name="rowScheduleLayout">
                      <item>
@@ -1765,6 +2605,74 @@
                 </widget>
                </item>
                <item>
+                 <widget class="verax::SurfaceCard" name="cardExclusions">
+                  <layout class="QVBoxLayout" name="cardExclusionsLayout">
+                   <item>
+                    <widget class="QLabel" name="lblExclusionsTitle">
+                     <property name="text">
+                      <string>Zaufane pliki i foldery (Biała lista wykluczeń)</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="lblExclusionsSubtitle">
+                     <property name="text">
+                      <string>Elementy dodane do tej listy są pomijane podczas skanowania i ochrony w czasie rzeczywistym.</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QListWidget" name="listExclusions">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>90</height>
+                      </size>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <layout class="QHBoxLayout" name="exclusionsBtnLayout">
+                     <item>
+                      <widget class="QPushButton" name="btnAddExclusionFolder">
+                       <property name="text">
+                        <string>📁 Dodaj folder...</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="btnAddExclusionFile">
+                       <property name="text">
+                        <string>📄 Dodaj plik...</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QPushButton" name="btnRemoveExclusion">
+                       <property name="text">
+                        <string>🗑️ Usuń z listy</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="spExcl">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
                 <widget class="verax::SurfaceCard" name="cardUpdates">
                  <layout class="QVBoxLayout" name="cardUpdatesLayout">
                   <item>
@@ -2003,27 +2911,54 @@
             </widget>
            </item>
            <item>
-            <widget class="verax::SurfaceCard" name="cardAboutLinks">
-             <layout class="QVBoxLayout" name="aboutLinksLayout">
-              <item>
-               <widget class="QLabel" name="lblAboutLinksTitle">
-                <property name="text">
-                 <string>Author &amp; community</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="lblAboutLinksHint">
-                <property name="text">
-                 <string>Find Ali Sakkaf on the web, Facebook, and GitHub through the icons on the left sidebar.</string>
-                </property>
-                <property name="wordWrap">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
+            <widget class="verax::SurfaceCard" name="cardAboutService">
+              <layout class="QVBoxLayout" name="aboutServiceLayout">
+               <item>
+                <widget class="QLabel" name="lblAboutServiceTitle">
+                 <property name="text">
+                  <string>Multi-Servis — Wsparcie i Serwis Komputerowy</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lblAboutServiceHint">
+                 <property name="text">
+                  <string>Zapewniamy pełne wsparcie techniczne, usuwanie zaawansowanego złośliwego oprogramowania oraz serwis stacji roboczych i laptopów. Kontakt: pomoc@multi-servis.pl | Infolinia: (+48) 123 456 789</string>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="aboutReportBtnLayout">
+                 <item>
+                  <widget class="QPushButton" name="btnGenerateReportAbout">
+                   <property name="text">
+                    <string>📄 Generuj Raport Serwisowy Stacji (HTML)</string>
+                   </property>
+                   <property name="property" stdset="0">
+                    <string notr="true">primary</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="spAboutRep">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>40</width>
+                     <height>20</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
            </item>
            <item>
             <widget class="verax::SurfaceCard" name="cardAboutSelfTest">
@@ -2138,14 +3073,14 @@
               <item>
                <widget class="QLabel" name="lblInstallerTitle">
                 <property name="text">
-                 <string>Welcome to VeraxCore Antivirus</string>
+                 <string>Witamy w Instalatorze Multi-Guard</string>
                 </property>
                </widget>
               </item>
               <item>
                <widget class="QLabel" name="lblInstallerSubtitle">
                 <property name="text">
-                 <string>VeraxCore Antivirus installs in a single step so it's always available from the Start Menu and runs at login.</string>
+                 <string>Multi-Guard zabezpiecza system przed zagrożeniami, ransomware i kradzieżą danych. Kliknij Zainstaluj, aby wdrożyć zaawansowaną ochronę.</string>
                 </property>
                 <property name="wordWrap">
                  <bool>true</bool>
@@ -2165,6 +3100,51 @@
                  <item>
                   <widget class="QLineEdit" name="editCurrentPath">
                    <property name="readOnly">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QWidget" name="rowLicenseKey" native="true">
+                <layout class="QVBoxLayout" name="rowLicenseKeyLayout">
+                 <property name="spacing">
+                  <number>4</number>
+                 </property>
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QLabel" name="lblLicenseKeyHeader">
+                   <property name="text">
+                    <string>Klucz licencyjny KeyGate (Wymagany do instalacji):</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLineEdit" name="editLicenseKey">
+                   <property name="placeholderText">
+                    <string>Wklej swój klucz licencyjny KeyGate...</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QLabel" name="lblLicenseStatusHint">
+                   <property name="text">
+                    <string>Licencja zostanie zweryfikowana i aktywowana na tym urządzeniu przed zakończeniem instalacji.</string>
+                   </property>
+                   <property name="wordWrap">
                     <bool>true</bool>
                    </property>
                   </widget>
@@ -2282,6 +3262,149 @@
            </item>
           </layout>
          </widget>
+          <widget class="QWidget" name="pageLicenseLocked">
+           <layout class="QVBoxLayout" name="lockedLayout">
+            <property name="spacing">
+             <number>20</number>
+            </property>
+            <property name="leftMargin">
+             <number>40</number>
+            </property>
+            <property name="topMargin">
+             <number>40</number>
+            </property>
+            <property name="rightMargin">
+             <number>40</number>
+            </property>
+            <property name="bottomMargin">
+             <number>40</number>
+            </property>
+            <item>
+             <spacer name="lockedTopSp">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="verax::SurfaceCard" name="cardLicenseLocked">
+              <layout class="QVBoxLayout" name="cardLicenseLockedLayout">
+               <property name="spacing">
+                <number>16</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="lblLockedIcon">
+                 <property name="text">
+                  <string>&lt;h1 align='center'&gt;🔒&lt;/h1&gt;</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lblLockedTitle">
+                 <property name="text">
+                  <string>&lt;h2 align='center'&gt;&lt;font color='#f87171'&gt;Twoja licencja Multi-Guard wygasła!&lt;/font&gt;&lt;/h2&gt;</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lblLockedDesc">
+                 <property name="text">
+                  <string>&lt;p align='center'&gt;Ochrona antywirusowa oraz wszystkie moduły aplikacji zostały zablokowane z powodu wygaśnięcia licencji.&lt;br&gt;Wprowadź nowy klucz licencyjny, aby natychmiast odblokować pełną funkcjonalność.&lt;/p&gt;</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lblLockedPhone">
+                 <property name="text">
+                  <string>&lt;p align='center' style='font-size: 15px;'&gt;&lt;font color='#38bdf8'&gt;&lt;b&gt;📞 Kontakt do serwisu Multi-Servis: 505 012 914&lt;/b&gt;&lt;/font&gt;&lt;br&gt;Zadzwoń pod &lt;b&gt;505 012 914&lt;/b&gt; by przedłużyć okres licencji bądź wykupić inną wersję.&lt;/p&gt;</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QWidget" name="rowLockedKey" native="true">
+                 <layout class="QHBoxLayout" name="rowLockedKeyLayout">
+                  <item>
+                   <widget class="QLineEdit" name="editLockedLicenseKey">
+                    <property name="placeholderText">
+                     <string>Wprowadź nowy klucz licencyjny (XXXX-XXXX-XXXX-XXXX)...</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="btnActivateLockedKey">
+                    <property name="text">
+                     <string>🔑 Aktywuj nowy klucz</string>
+                    </property>
+                    <property name="property" stdset="0">
+                     <string notr="true">primary</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QPushButton" name="btnRefreshLockedKey">
+                    <property name="text">
+                     <string>🔄 Sprawdź ważność (Odśwież online)</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="lblLockedStatus">
+                 <property name="text">
+                  <string></string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignCenter</set>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item>
+             <spacer name="lockedBottomSp">
+              <property name="orientation">
+               <enum>Qt::Vertical</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </widget>
         </widget>
        </item>
       </layout>

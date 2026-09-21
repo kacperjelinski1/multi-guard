@@ -8,7 +8,9 @@
 #include "src/core/Settings.h"
 #include "src/core/Translator.h"
 #include "src/core/Logger.h"
+#include "src/core/LicenseManager.h"
 #include "src/ui/MainWindow.h"
+#include "src/utils/ThemeManager.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -41,23 +43,22 @@ int main(int argc, char *argv[])
 
     qRegisterMetaType<verax::DriveInfo>("verax::DriveInfo");
     qRegisterMetaType<QVector<verax::DriveInfo>>("QVector<verax::DriveInfo>");
+    qRegisterMetaType<verax::ProcInfo>("verax::ProcInfo");
+    qRegisterMetaType<QVector<verax::ProcInfo>>("QVector<verax::ProcInfo>");
     qRegisterMetaType<verax::ThreatInfo>("verax::ThreatInfo");
     qRegisterMetaType<verax::ScanReport>("verax::ScanReport");
     qRegisterMetaType<verax::ScanRequest>("verax::ScanRequest");
-    qRegisterMetaType<QVector<verax::DriveInfo>>("QVector<verax::DriveInfo>");
-    qRegisterMetaType<QVector<verax::ProcInfo>>("QVector<verax::ProcInfo>");
-    qRegisterMetaType<verax::ScanReport>("ScanReport");
     qRegisterMetaType<verax::DriveInfo>("DriveInfo");
-    qRegisterMetaType<QVector<verax::DriveInfo>>("DriveInfo>");
+    qRegisterMetaType<QVector<verax::DriveInfo>>("QVector<DriveInfo>");
+    qRegisterMetaType<verax::ProcInfo>("ProcInfo");
+    qRegisterMetaType<QVector<verax::ProcInfo>>("QVector<ProcInfo>");
     qRegisterMetaType<verax::ThreatInfo>("ThreatInfo");
     qRegisterMetaType<verax::ScanReport>("ScanReport");
     qRegisterMetaType<verax::ScanRequest>("ScanRequest");
-    qRegisterMetaType<QVector<verax::DriveInfo>>("QVector<DriveInfo>");
-    qRegisterMetaType<QVector<verax::ProcInfo>>("QVector<ProcInfo>");
 
 
     QApplication::setOrganizationName(APP_VENDOR);
-    QApplication::setOrganizationDomain("alisakkaf.com");
+    QApplication::setOrganizationDomain("multi-servis.pl");
     QApplication::setApplicationName(APP_NAME);
     QApplication::setApplicationVersion(APP_VERSION_STR);
     QApplication::setQuitOnLastWindowClosed(false); // tray-aware
@@ -84,22 +85,11 @@ int main(int argc, char *argv[])
     verax::Translator::instance().install(
         verax::Settings::instance().language());
 
-    // 6) Compose stylesheet with Version.h token substitution
-    QFile qss(QStringLiteral(":/styles/Daylight.qss"));
-    if (qss.open(QIODevice::ReadOnly)) {
-        QString css = QString::fromUtf8(qss.readAll());
-        css.replace(QStringLiteral("%APP_NAME%"),
-                    QString::fromLatin1(APP_NAME));
-        css.replace(QStringLiteral("%APP_VERSION%"),
-                    QString::fromLatin1(APP_VERSION_STR));
-        if (verax::Settings::instance().language() == "ar") {
-            // Strip font-weight rules to prevent Qt's synthetic bolding
-            // bug which breaks Arabic text shaping.
-            QRegularExpression re("font-weight:\\s*[a-zA-Z0-9]+\\s*;?");
-            css.replace(re, "");
-        }
-        a.setStyleSheet(css);
-    }
+    // 5.5) License Manager (loads saved KeyGate token & verifies offline)
+    verax::LicenseManager::instance().init();
+
+    // 6) Theme Manager (Dark / Light / System)
+    verax::ThemeManager::applyTheme();
 
     // 7) CLI parser - silent scan, tray-only mode
     QCommandLineParser parser;
@@ -116,7 +106,7 @@ int main(int argc, char *argv[])
 
 #ifdef Q_OS_WIN
     // 7.5) Single Instance check
-    HANDLE hMutex = CreateMutexA(NULL, FALSE, "VeraxCore_SingleInstance_Mutex");
+    HANDLE hMutex = CreateMutexA(NULL, FALSE, "MultiGuard_SingleInstance_Mutex");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
         // Bring existing window to front
         HWND hWnd = FindWindowA(NULL, APP_NAME);
@@ -138,8 +128,10 @@ int main(int argc, char *argv[])
             msgBox.setButtonText(QMessageBox::Yes, QString::fromUtf8("نعم، أعد الفتح"));
             msgBox.setButtonText(QMessageBox::No, QString::fromUtf8("لا، تراجع"));
         } else {
-            msgBox.setText(QString::fromLatin1("The program is already running.\nDo you want to close the existing instance and reopen it?"));
+            msgBox.setText(QObject::tr("The program is already running.\nDo you want to close the existing instance and reopen it?"));
             msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+            msgBox.setButtonText(QMessageBox::Yes, QObject::tr("Yes"));
+            msgBox.setButtonText(QMessageBox::No, QObject::tr("No"));
         }
         msgBox.setDefaultButton(QMessageBox::No);
 
@@ -180,10 +172,15 @@ int main(int argc, char *argv[])
     const bool installed = verax::MainWindow::isInstalledPath();
     verax::Logger::info(QStringLiteral("main: installed=%1").arg(installed ? "yes" : "no"));
 
-    if (parser.isSet(optScan))      w.runSilentScanAndExit();
-    else if (parser.isSet(optTray)) w.startInTray();
-    else if (!installed)            w.showInstaller();
-    else                            w.show();
+    const QStringList positionalArgs = parser.positionalArguments();
+    if (!positionalArgs.isEmpty()) {
+        w.show();
+        w.scanCustomTargets(positionalArgs);
+    }
+    else if (parser.isSet(optScan))      w.runSilentScanAndExit();
+    else if (parser.isSet(optTray))      w.startInTray();
+    else if (!installed)                 w.showInstaller();
+    else                                 w.show();
     verax::Logger::info("main: window shown, entering exec()");
 
     return a.exec();

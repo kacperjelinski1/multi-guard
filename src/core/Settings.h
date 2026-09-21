@@ -4,7 +4,6 @@
 #include <QObject>
 #include <QString>
 #include <QStandardPaths>
-#include <QStandardPaths>
 namespace verax {
 
 class Settings : public QObject {
@@ -17,10 +16,30 @@ public:
 
     // General
     QString language() const                 { return m_language; }
-    void    setLanguage(const QString &v);
+    void    setLanguage(const QString &code);
+
+    QString theme() const                    { return m_theme; }
+    void    setTheme(const QString &theme);
 
     bool    startWithWindows() const         { return m_startWithWindows; }
     void    setStartWithWindows(bool v);
+
+    bool    contextMenuIntegration() const   { return m_contextMenu; }
+    void    setContextMenuIntegration(bool v);
+
+    bool    realTimeProtection() const       { return m_realTimeProtection; }
+    void    setRealTimeProtection(bool v);
+
+    bool    ransomwareProtection() const     { return m_ransomwareProtection; }
+    void    setRansomwareProtection(bool v);
+
+    bool    webShield() const                { return m_webShield; }
+    void    setWebShield(bool v);
+
+    QStringList exclusions() const           { return m_exclusions; }
+    void    addExclusion(const QString &path);
+    void    removeExclusion(const QString &path);
+    bool    isExcluded(const QString &path) const;
 
     bool    minimizeToTrayOnClose() const    { return m_trayOnClose; }
     void    setMinimizeToTrayOnClose(bool v) { m_trayOnClose = v; save(); }
@@ -71,11 +90,18 @@ signals:
 private:
     explicit Settings(QObject *parent = nullptr);
     void applyStartupRegistry();
+    void applyContextMenuRegistry();
 
-    QString m_language          = QStringLiteral("en");
+    QString m_language          = QStringLiteral("pl");
+    QString m_theme             = QStringLiteral("dark");
     bool    m_startWithWindows  = false;
-    bool    m_trayOnClose       = true;
-    bool    m_showNotifications = true;
+    bool    m_contextMenu       = false;
+    bool        m_realTimeProtection= true;
+    bool        m_ransomwareProtection = true;
+    bool        m_webShield         = false;
+    bool        m_trayOnClose       = true;
+    bool        m_showNotifications = true;
+    QStringList m_exclusions;
 
     bool    m_scanUsbOnInsert   = true;
     QString m_scheduledScan     = QStringLiteral("off");

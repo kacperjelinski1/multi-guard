@@ -8,7 +8,7 @@
 
 QT       += core gui widgets network concurrent xml sql svg
 CONFIG   += c++17 qt warn_off resources_big static
-TARGET    = VeraxCore
+TARGET    = Multi-Guard
 TEMPLATE  = app
 DESTDIR   = $$PWD/RELEASED
 
@@ -26,9 +26,8 @@ QMAKE_LFLAGS_RELEASE   += -Wl,--gc-sections -s -Wl,--exclude-libs,ALL \
                           -static -static-libgcc -static-libstdc++
 
 
-# ─── Fix for Stack Protector (libssp) ────────────────────────────
-# ربط مكتبة الحماية الخاصة بـ MinGW لتجنب أخطاء __stack_chk_guard
-LIBS += -lssp
+# ─── Fix for Stack Protector (libssp) + Authenticode WinVerifyTrust ─
+LIBS += -lssp -lwintrust -lcrypt32
 
 # تمرير أمر الحماية للرابط (Linker) أيضاً لضمان التوافق التام
 QMAKE_LFLAGS_RELEASE += -fstack-protector-strong
@@ -62,6 +61,8 @@ SOURCES += \
     src/core/Translator.cpp \
     src/core/Logger.cpp \
     src/core/Updater.cpp \
+    src/core/RealTimeShield.cpp \
+    src/core/WebShield.cpp \
     src/ui/MainWindow.cpp \
     src/widgets/AnimatedButton.cpp \
     src/widgets/ProgressRing.cpp \
@@ -70,13 +71,26 @@ SOURCES += \
     src/widgets/ScanOptionsDialog.cpp \
     src/widgets/DriveTile.cpp \
     src/widgets/Toaster.cpp \
+    src/widgets/NotificationAlert.cpp \
     src/widgets/FlagIcon.cpp \
     src/widgets/BrandIcon.cpp \
     src/widgets/SurfaceCard.cpp \
     src/widgets/ChromeBar.cpp \
     src/widgets/PageTransition.cpp \
     src/utils/HashUtils.cpp \
-    src/utils/FileOps.cpp
+    src/utils/FileOps.cpp \
+    src/utils/ContextMenuManager.cpp \
+    src/core/SystemOptimizer.cpp \
+    src/core/StartupManager.cpp \
+    src/core/HardwareMonitor.cpp \
+    src/utils/ThemeManager.cpp \
+    src/core/RansomwareShield.cpp \
+    src/core/AuditLogger.cpp \
+    src/core/ReportGenerator.cpp \
+    src/core/Ed25519.cpp \
+    src/core/LicenseManager.cpp \
+    src/core/WindowsSecurityIntegration.cpp \
+    src/core/tweetnacl.c
 
 HEADERS += \
     Version.h \
@@ -91,6 +105,11 @@ HEADERS += \
     src/core/Translator.h \
     src/core/Logger.h \
     src/core/Updater.h \
+    src/core/RealTimeShield.h \
+    src/core/WebShield.h \
+    src/core/SystemOptimizer.h \
+    src/core/StartupManager.h \
+    src/core/HardwareMonitor.h \
     src/ui/MainWindow.h \
     src/widgets/AnimatedButton.h \
     src/widgets/ProgressRing.h \
@@ -99,6 +118,7 @@ HEADERS += \
     src/widgets/ScanOptionsDialog.h \
     src/widgets/DriveTile.h \
     src/widgets/Toaster.h \
+    src/widgets/NotificationAlert.h \
     src/widgets/FlagIcon.h \
     src/widgets/BrandIcon.h \
     src/widgets/SurfaceCard.h \
@@ -106,7 +126,16 @@ HEADERS += \
     src/widgets/PageTransition.h \
     src/utils/HashUtils.h \
     src/utils/FileOps.h \
-    src/utils/Strings.h
+    src/utils/Strings.h \
+    src/utils/ContextMenuManager.h \
+    src/utils/ThemeManager.h \
+    src/core/RansomwareShield.h \
+    src/core/AuditLogger.h \
+    src/core/ReportGenerator.h \
+    src/core/Ed25519.h \
+    src/core/LicenseManager.h \
+    src/core/WindowsSecurityIntegration.h \
+    src/core/tweetnacl.h
 
 FORMS   += src/ui/mainwindow.ui
 
@@ -115,7 +144,8 @@ RESOURCES += Verax.qrc
 
 # ─── Translations ─────────────────────────────────────────────────────
 TRANSLATIONS += i18n/verax_en.ts \
-                i18n/verax_ar.ts
+                i18n/verax_ar.ts \
+                i18n/verax_pl.ts
 
 # ─── Windows-specific ─────────────────────────────────────────────────
 win32 {

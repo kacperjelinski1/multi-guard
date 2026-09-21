@@ -33,7 +33,7 @@ ChromeBar::ChromeBar(QWidget *parent) : QWidget(parent)
         m_logo->setPixmap(pm.scaled(side, side, Qt::KeepAspectRatio,
                                     Qt::SmoothTransformation));
     } else {
-        m_logo->setText("V");
+        m_logo->setText("M");
         m_logo->setObjectName("ChromeBarLogoText");
     }
 

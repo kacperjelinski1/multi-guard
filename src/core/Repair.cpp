@@ -2,6 +2,7 @@
 // By Ali Sakkaf - https://alisakkaf.com
 #include "Repair.h"
 #include "Logger.h"
+#include "LicenseManager.h"
 #include "../../Version.h"
 #include "../utils/HashUtils.h"
 
@@ -234,6 +235,10 @@ RepairStatus Repair::checkPhoneDrivers()
 // ─── Fix actions (async via QtConcurrent-like inline thread) ──────────
 void Repair::fixHosts()
 {
+    if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
+        emit finished("hosts", false, tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+        return;
+    }
 #ifdef _WIN32
     const QString p = QStringLiteral("C:/Windows/System32/drivers/etc/hosts");
     const QString stamp = QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss");
@@ -262,6 +267,10 @@ void Repair::fixHosts()
 
 void Repair::fixVcRedist()
 {
+    if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
+        emit finished("redist", false, tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+        return;
+    }
     const QString url = QStringLiteral("https://aka.ms/vs/17/release/vc_redist.x86.exe");
     const QString dst = tempDir() + QStringLiteral("/vc_redist.x86.exe");
     emit progress("redist", 10, tr("Downloading VC++ Redistributable..."));
@@ -281,6 +290,10 @@ void Repair::fixVcRedist()
 
 void Repair::fixDefenderExclusion()
 {
+    if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
+        emit finished("defender", false, tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+        return;
+    }
 #ifdef _WIN32
     const QString exe = QDir::toNativeSeparators(
                             QCoreApplication::applicationFilePath());
@@ -302,6 +315,10 @@ void Repair::fixDefenderExclusion()
 
 void Repair::fixFirewallRule()
 {
+    if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
+        emit finished("firewall", false, tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+        return;
+    }
 #ifdef _WIN32
     const QString exe = QDir::toNativeSeparators(
                             QCoreApplication::applicationFilePath());
@@ -326,6 +343,10 @@ void Repair::fixFirewallRule()
 
 void Repair::fixCryptoServices()
 {
+    if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
+        emit finished("crypto", false, tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+        return;
+    }
 #ifdef _WIN32
     runProcess("sc", { "config", "CryptSvc", "start=", "auto" }, 8000);
     const int rc = runProcess("net", { "start", "CryptSvc" }, 15000);
@@ -341,6 +362,10 @@ void Repair::fixCryptoServices()
 
 void Repair::fixPhoneDrivers(const QString &infFolder)
 {
+    if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
+        emit finished("drivers", false, tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+        return;
+    }
 #ifdef _WIN32
     if (infFolder.isEmpty() || !QDir(infFolder).exists()) {
         emit finished("drivers", false, tr("Please select a folder containing .inf drivers"));

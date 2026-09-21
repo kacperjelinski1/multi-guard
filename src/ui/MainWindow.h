@@ -36,9 +36,12 @@ public:
         PageScan,
         PageQuarantine,
         PageRepair,
+        PageTools,
+        PageRemoteRepair,
         PageSettings,
         PageAbout,
-        PageInstaller
+        PageInstaller,
+        PageLicenseLocked
     };
     Q_ENUM(PageIndex)
 
@@ -49,6 +52,10 @@ public:
     void showInstaller();
     void startInTray();
     void runSilentScanAndExit();
+    void scanCustomTargets(const QStringList &targets);
+
+public slots:
+    void onRealTimeThreatDetected(const verax::ThreatInfo &info);
 
 protected:
     void changeEvent(QEvent *e) override;
@@ -66,7 +73,9 @@ private slots:
     // Dashboard
     void onQuickScan();
     void onFullScan();
+    void onScanMemory();
     void onUpdateSignatures();
+    void onUsbDriveInserted(const QString &drivePath);
 
     // Scan config
     void onAddFolder();
@@ -129,7 +138,6 @@ private:
     void populateRepairCards();
     void populateAboutPage();
     void setActiveNav(PageIndex idx);
-    void applyDaylightStylesheet();
     void setupTrayIcon();
     void buildThreatFilterToolbar();
     QString signaturesInfoHtml() const;
@@ -138,10 +146,44 @@ private:
     QStringList collectScanTargets() const;
     ScanRequest buildScanRequest() const;
 
+    void initToolsPage();
+    void onRefreshHardwareStats();
+    void onScanCleanClicked();
+    void onDoCleanClicked();
+    void onRefreshStartupClicked();
+    void onToggleStartupClicked();
+    void onDeleteStartupClicked();
+    void onBrowseShredFile();
+    void onBrowseShredDir();
+    void onDoShredClicked();
+    void onContextMenuToggled(bool checked);
+    void onGenerateSessionCode();
+    void onCopySessionCode();
+    void onConnectRemoteClicked();
+
+    // Whitelist, Scheduler & Reports
+    void initScheduler();
+    void onScheduledTimerTick();
+    void onAddExclusionFolder();
+    void onAddExclusionFile();
+    void onRemoveExclusion();
+    void onGenerateServiceReportClicked();
+
+    // Licensing
+    void applyLicenseGating();
+    void onLicenseChanged(verax::LicenseTier tier, bool isValid);
+    void onChangeLicenseKeyClicked();
+    void onRefreshLicenseClicked();
+    void onActivateLockedKeyClicked();
+    void onRefreshLockedKeyClicked();
+    void restartWithNewLicense(const QString &key);
+
     Ui::MainWindow *ui = nullptr;
     PageTransition *m_transition = nullptr;
     QSystemTrayIcon *m_tray = nullptr;
     QTimer *m_watchdog = nullptr;
+    QTimer *m_hwTimer = nullptr;
+    QTimer *m_schedulerTimer = nullptr;
     QFutureWatcher<QVector<DriveInfo>> *m_drivesWatcher = nullptr;
 
     int  m_currentPage = PageDashboard;

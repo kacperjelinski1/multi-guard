@@ -27,6 +27,7 @@ ScanOptionsDialog::ScanOptionsDialog(Mode mode,
     setObjectName("ScanOptionsDialog");
     setProperty("class", "ScanOptionsDialog");
     setModal(true);
+    setWindowIcon(QIcon(QStringLiteral(":/assets/logo.png")));
     // Sized by content + reasonable minimum so the dialog never feels cramped.
     setMinimumSize(560, 520);
     buildUi();

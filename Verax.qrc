@@ -1,10 +1,12 @@
 <RCC>
     <qresource prefix="/">
         <file alias="styles/Daylight.qss">resources/styles/Daylight.qss</file>
+        <file alias="styles/Dark.qss">resources/styles/Dark.qss</file>
         <file alias="signatures/seed.json">resources/signatures/seed.json</file>
         <file alias="sql/schema.sql">resources/sql/schema.sql</file>
         <file alias="i18n/verax_en.qm">i18n/verax_en.qm</file>
         <file alias="i18n/verax_ar.qm">i18n/verax_ar.qm</file>
+        <file alias="i18n/verax_pl.qm">i18n/verax_pl.qm</file>
     </qresource>
     <qresource prefix="/assets">
         <file alias="logo.png">resources/assets/logo.png</file>

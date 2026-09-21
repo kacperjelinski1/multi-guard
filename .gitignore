@@ -70,6 +70,7 @@ UserData/
 
 # Qt translation compiled
 *.qm
+!i18n/*.qm
 
 # Implementation plans (dev notes)
 implementation_plan.md

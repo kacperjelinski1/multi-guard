@@ -6,15 +6,15 @@
 #pragma once
 
 // ─── Identity ──────────────────────────────────────────────────────────
-#define APP_NAME            "VeraxCore Antivirus"
-#define APP_NAME_SHORT      "VeraxCore"
+#define APP_NAME            "Multi-Guard"
+#define APP_NAME_SHORT      "Multi-Guard"
 #define APP_TAGLINE         "Real protection. Zero noise."
-#define APP_VENDOR          "VeraxCore"
-#define APP_DESCRIPTION     "VeraxCore Antivirus - intelligent PC integrity & threat protection."
-#define APP_COPYRIGHT       "Copyright (c) 2026 VeraxCore"
-#define APP_HOMEPAGE        "https://alisakkaf.com"
-#define APP_AUTHOR_FB       "https://www.facebook.com/AliSakkaf.Dev"
-#define APP_AUTHOR_GH       "https://github.com/alisakkaf"
+#define APP_VENDOR          "Multi-Servis"
+#define APP_DESCRIPTION     "Multi-Guard - inteligentna ochrona i integralność komputera."
+#define APP_COPYRIGHT       "Copyright (c) 2026 Multi-Servis"
+#define APP_HOMEPAGE        "https://multi-servis.pl"
+#define APP_AUTHOR_FB       "https://facebook.com/MultiServis"
+#define APP_AUTHOR_GH       "https://github.com/MultiServis"
 
 // ─── Version (single source of truth) ─────────────────────────────────
 #define APP_VERSION_MAJOR   1
@@ -32,9 +32,9 @@ _VR_S(APP_VERSION_MAJOR) "." _VR_S(APP_VERSION_MINOR) "." \
     APP_VERSION_MAJOR,APP_VERSION_MINOR,APP_VERSION_PATCH,APP_VERSION_BUILD
 
 // ─── Install paths (Removed custom author name subdirectories) ────────
-#define APP_INSTALL_DIR     "C:\\Program Files\\VeraxCore"
-#define APP_BIN_NAME        "VeraxCore.exe"
-#define APP_REG_KEY         "SOFTWARE\\AliSakkaF\\VeraxCore\\Antivirus"
+#define APP_INSTALL_DIR     "C:\\Program Files\\Multi-Guard"
+#define APP_BIN_NAME        "Multi-Guard.exe"
+#define APP_REG_KEY         "SOFTWARE\\Multi-Servis\\Multi-Guard"
 #define APP_VAULT_SUBDIR    "Vault"
 #define APP_LOG_SUBDIR      "Logs"
 

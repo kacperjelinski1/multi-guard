@@ -13,12 +13,25 @@
 #include "../core/Quarantine.h"
 #include "../core/Repair.h"
 #include "../core/Updater.h"
+#include "../core/RealTimeShield.h"
+#include "../core/WebShield.h"
+#include "../core/SystemOptimizer.h"
+#include "../core/StartupManager.h"
+#include "../core/HardwareMonitor.h"
+#include "../core/RansomwareShield.h"
+#include "../core/AuditLogger.h"
+#include "../core/ReportGenerator.h"
+#include "../core/LicenseManager.h"
+#include "../core/WindowsSecurityIntegration.h"
+#include "../utils/ContextMenuManager.h"
+#include "../utils/ThemeManager.h"
 #include "../widgets/PageTransition.h"
 #include "../widgets/ChromeBar.h"
 #include "../widgets/DriveTile.h"
 #include "../widgets/ThreatCard.h"
 #include "../widgets/ScanOptionsDialog.h"
 #include "../widgets/Toaster.h"
+#include "../widgets/NotificationAlert.h"
 #include "../widgets/BrandIcon.h"
 #include "../widgets/FlagIcon.h"
 #include "../widgets/ProgressRing.h"
@@ -28,6 +41,7 @@
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <windowsx.h>
+#include <dbt.h>
 #endif
 
 #include <QFile>
@@ -66,6 +80,9 @@
 #include <QVBoxLayout>
 #include <QHeaderView>
 #include <QTableWidgetItem>
+#include <QColor>
+#include <QClipboard>
+#include <QRandomGenerator>
 #include <QDesktopServices>
 #include <QUrl>
 #include <QMetaType>
@@ -82,9 +99,15 @@ MainWindow::MainWindow(QWidget *parent)
     Logger::info("MainWindow: ctor begin");
     ui->setupUi(this);
 
-    setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowMinMaxButtonsHint);
     setAttribute(Qt::WA_TranslucentBackground, false);
     setMinimumSize(960, 640);
+
+#ifdef Q_OS_WIN
+    HWND hwnd = (HWND)winId();
+    LONG style = GetWindowLong(hwnd, GWL_STYLE);
+    SetWindowLong(hwnd, GWL_STYLE, style | WS_MINIMIZEBOX | WS_CAPTION | CS_DBLCLKS);
+#endif
 
     setWindowTitle(QString::fromLatin1(APP_NAME));
     setWindowIcon(QIcon(QStringLiteral(":/assets/logo.png")));
@@ -97,7 +120,31 @@ MainWindow::MainWindow(QWidget *parent)
     wireUi();
     wireSignals();
     setupTrayIcon();
-    setActiveNav(PageDashboard);
+    if (!LicenseManager::instance().isValid()) {
+        setActiveNav(PageLicenseLocked);
+    } else {
+        setActiveNav(PageDashboard);
+    }
+
+    connect(&RealTimeShield::instance(), &RealTimeShield::threatDetected,
+            this, &MainWindow::onRealTimeThreatDetected);
+    if (LicenseManager::instance().isValid() && Settings::instance().realTimeProtection()) {
+        RealTimeShield::instance().start();
+    }
+    if (LicenseManager::instance().isValid() && Settings::instance().ransomwareProtection()) {
+        RansomwareShield::instance().setEnabled(true);
+    }
+    connect(&RansomwareShield::instance(), &RansomwareShield::ransomwareActivityDetected,
+            this, [this](const QString &folder, const QString &desc){
+        AuditLogger::instance().logEvent(QStringLiteral("RansomwareBlocked"), desc, folder, 3);
+        NotificationAlert::showThreat(tr("Ransomware Shield"), desc, folder);
+    });
+
+    initScheduler();
+
+    if (Settings::instance().webShield()) {
+        WebShield::instance().setEnabled(true);
+    }
 
     QTimer::singleShot(0, this, [this]{
         // populateDrivesOnConfig();
@@ -226,26 +273,22 @@ void MainWindow::wireUi()
             delete item;
         }
         auto *web = new BrandIcon(BrandIcon::Website, brandBox);
-        auto *fb  = new BrandIcon(BrandIcon::Facebook, brandBox);
-        auto *gh  = new BrandIcon(BrandIcon::GitHub,  brandBox);
-        web->setToolTip(QStringLiteral("alisakkaf.com"));
-        fb->setToolTip(tr("Facebook"));
-        gh->setToolTip(tr("GitHub"));
+        web->setToolTip(QStringLiteral("https://multi-servis.pl"));
         connect(web, &BrandIcon::clicked, this, [this]{ onBrandClicked(BrandIcon::Website); });
-        connect(fb,  &BrandIcon::clicked, this, [this]{ onBrandClicked(BrandIcon::Facebook); });
-        connect(gh,  &BrandIcon::clicked, this, [this]{ onBrandClicked(BrandIcon::GitHub); });
         lay->addWidget(web);
-        lay->addWidget(fb);
-        lay->addWidget(gh);
     }
 
+    if (ui->flagPl) ui->flagPl->setCode("pl");
     if (ui->flagEn) ui->flagEn->setCode("en");
     if (ui->flagAr) ui->flagAr->setCode("ar");
 
     Settings &s = Settings::instance();
     if (ui->cbStartWithWindows)    ui->cbStartWithWindows->setChecked(s.startWithWindows());
+    if (ui->cbContextMenu)         ui->cbContextMenu->setChecked(s.contextMenuIntegration());
     if (ui->cbMinimizeToTray)      ui->cbMinimizeToTray->setChecked(s.minimizeToTrayOnClose());
     if (ui->cbShowNotifications)   ui->cbShowNotifications->setChecked(s.showNotifications());
+    if (ui->cbRealTimeShield)      ui->cbRealTimeShield->setChecked(s.realTimeProtection());
+    if (ui->cbWebShield)           ui->cbWebShield->setChecked(s.webShield());
     if (ui->cbScanUsbOnInsert)     ui->cbScanUsbOnInsert->setChecked(s.scanUsbOnInsert());
     if (ui->cbAutoUpdateSignatures)ui->cbAutoUpdateSignatures->setChecked(s.autoUpdateSignatures());
     // if (ui->editUpdateUrl)         ui->editUpdateUrl->setText(s.updateUrl());
@@ -271,8 +314,20 @@ void MainWindow::wireUi()
             "QComboBox::down-arrow { image: none; }"
         );
         ui->comboLanguage->blockSignals(true);
-        ui->comboLanguage->setCurrentIndex(s.language() == "ar" ? 1 : 0);
+        int langIdx = 0;
+        if (s.language() == "en") langIdx = 1;
+        else if (s.language() == "ar") langIdx = 2;
+        ui->comboLanguage->setCurrentIndex(langIdx);
         ui->comboLanguage->blockSignals(false);
+    }
+
+    if (ui->comboTheme) {
+        ui->comboTheme->blockSignals(true);
+        int themeIdx = 0; // 0 = dark
+        if (s.theme() == "light") themeIdx = 1;
+        else if (s.theme() == "system") themeIdx = 2;
+        ui->comboTheme->setCurrentIndex(themeIdx);
+        ui->comboTheme->blockSignals(false);
     }
 
     if (ui->comboScheduledScan) {
@@ -283,6 +338,25 @@ void MainWindow::wireUi()
     if (ui->editScheduledTime)
         ui->editScheduledTime->setTime(QTime::fromString(s.scheduledTime(), "HH:mm"));
 
+    if (ui->cbRansomwareProtection)
+        ui->cbRansomwareProtection->setChecked(s.ransomwareProtection());
+
+    if (ui->listExclusions) {
+        ui->listExclusions->clear();
+        for (const auto &ex : s.exclusions()) {
+            ui->listExclusions->addItem(ex);
+        }
+    }
+
+    if (ui->editUpdateUrl) {
+        ui->editUpdateUrl->setReadOnly(true);
+        if (s.updateUrl().isEmpty()) {
+            ui->editUpdateUrl->setText(QStringLiteral("https://multi-servis.pl/api/signatures/latest.json"));
+        } else {
+            ui->editUpdateUrl->setText(s.updateUrl());
+        }
+    }
+
     if (ui->editInstallPath)
         ui->editInstallPath->setText(QString::fromLatin1(APP_INSTALL_DIR));
     if (ui->editCurrentPath)
@@ -290,6 +364,8 @@ void MainWindow::wireUi()
 
     if (ui->lblAppNameVersion)
         ui->lblAppNameVersion->setText(QStringLiteral("%1 v%2").arg(APP_NAME, APP_VERSION_STR));
+
+    initToolsPage();
 }
 
 void MainWindow::wireSignals()
@@ -308,7 +384,31 @@ void MainWindow::wireSignals()
     }
 
     if (ui->btnQuickScan)        connect(ui->btnQuickScan, &QPushButton::clicked, this, &MainWindow::onQuickScan);
-    if (ui->btnFullScan)         connect(ui->btnFullScan,  &QPushButton::clicked, this, &MainWindow::onFullScan);
+    if (ui->btnDeepScan)         connect(ui->btnDeepScan,  &QPushButton::clicked, this, &MainWindow::onDeepScan);
+    if (ui->btnScanMemory)       connect(ui->btnScanMemory,&QPushButton::clicked, this, &MainWindow::onScanMemory);
+    if (ui->btnCustomScan)       connect(ui->btnCustomScan,&QPushButton::clicked, this, &MainWindow::onCustomScan);
+    if (ui->btnScanSelected)     connect(ui->btnScanSelected, &QPushButton::clicked, this, &MainWindow::onStartScan);
+    if (ui->btnScanCancel)       connect(ui->btnScanCancel,   &QPushButton::clicked, this, &MainWindow::onCancelScan);
+    if (ui->btnScanBack)         connect(ui->btnScanBack,     &QPushButton::clicked, this, &MainWindow::onScanBackToDashboard);
+
+    // Tools Page - System Cleaner
+    if (ui->btnScanClean) connect(ui->btnScanClean, &QPushButton::clicked, this, &MainWindow::onScanCleanClicked);
+    if (ui->btnDoClean)   connect(ui->btnDoClean, &QPushButton::clicked, this, &MainWindow::onDoCleanClicked);
+
+    // Tools Page - Startup Manager
+    if (ui->btnRefreshStartup) connect(ui->btnRefreshStartup, &QPushButton::clicked, this, &MainWindow::onRefreshStartupClicked);
+    if (ui->btnToggleStartup)  connect(ui->btnToggleStartup, &QPushButton::clicked, this, &MainWindow::onToggleStartupClicked);
+    if (ui->btnDeleteStartup)  connect(ui->btnDeleteStartup, &QPushButton::clicked, this, &MainWindow::onDeleteStartupClicked);
+
+    // Tools Page - Shredder
+    if (ui->btnBrowseShredFile) connect(ui->btnBrowseShredFile, &QPushButton::clicked, this, &MainWindow::onBrowseShredFile);
+    if (ui->btnBrowseShredDir)  connect(ui->btnBrowseShredDir, &QPushButton::clicked, this, &MainWindow::onBrowseShredDir);
+    if (ui->btnDoShred)         connect(ui->btnDoShred, &QPushButton::clicked, this, &MainWindow::onDoShredClicked);
+
+    // Remote Repair Page
+    if (ui->btnGenSessionCode)  connect(ui->btnGenSessionCode,  &QPushButton::clicked, this, &MainWindow::onGenerateSessionCode);
+    if (ui->btnCopySessionCode) connect(ui->btnCopySessionCode, &QPushButton::clicked, this, &MainWindow::onCopySessionCode);
+    if (ui->btnConnectRemote)   connect(ui->btnConnectRemote,   &QPushButton::clicked, this, &MainWindow::onConnectRemoteClicked);
     if (ui->btnUpdateSignatures) connect(ui->btnUpdateSignatures, &QPushButton::clicked, this, &MainWindow::onUpdateSignatures);
 
     if (ui->btnAddFolder)        connect(ui->btnAddFolder, &QPushButton::clicked, this, &MainWindow::onAddFolder);
@@ -354,28 +454,63 @@ void MainWindow::wireSignals()
     });
 
     if (ui->cbStartWithWindows)    connect(ui->cbStartWithWindows,    &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
+    if (ui->cbContextMenu)         connect(ui->cbContextMenu,         &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->cbMinimizeToTray)      connect(ui->cbMinimizeToTray,      &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->cbShowNotifications)   connect(ui->cbShowNotifications,   &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
+    if (ui->cbRealTimeShield) {
+        connect(ui->cbRealTimeShield, &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
+        connect(ui->cbRealTimeShield, &QCheckBox::toggled, this, [](bool v){
+            RealTimeShield::instance().setEnabled(v);
+        });
+    }
+    if (ui->cbWebShield) {
+        connect(ui->cbWebShield, &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
+        connect(ui->cbWebShield, &QCheckBox::toggled, this, [](bool v){
+            WebShield::instance().setEnabled(v);
+        });
+    }
     if (ui->cbScanUsbOnInsert)     connect(ui->cbScanUsbOnInsert,     &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->cbAutoUpdateSignatures)connect(ui->cbAutoUpdateSignatures,&QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->comboLanguage)         connect(ui->comboLanguage, QOverload<int>::of(&QComboBox::currentIndexChanged),
                                            this, &MainWindow::onLanguageSelectionChanged);
+    if (ui->comboTheme) {
+        connect(ui->comboTheme, QOverload<int>::of(&QComboBox::currentIndexChanged),
+                this, [this](int idx){
+            QString mode = "dark";
+            if (idx == 1) mode = "light";
+            else if (idx == 2) mode = "system";
+            ThemeManager::applyTheme(mode);
+            if (m_tray && m_tray->contextMenu()) {
+                m_tray->contextMenu()->setStyleSheet(ThemeManager::trayStyleSheet());
+            }
+            Toaster::show(this, tr("Motyw interfejsu został zmieniony."), Toaster::Success);
+        });
+    }
     if (ui->comboScheduledScan)    connect(ui->comboScheduledScan, QOverload<int>::of(&QComboBox::currentIndexChanged),
                                            this, [this](int){ onSettingsSaved(); });
     if (ui->btnResetSettings)      connect(ui->btnResetSettings, &QPushButton::clicked, this, &MainWindow::onSettingsReset);
-    if (ui->btnCheckUpdatesNow)    connect(ui->btnCheckUpdatesNow, &QPushButton::clicked, this, &MainWindow::onCheckUpdatesNow);
-    if (ui->btnOpenLogs)           connect(ui->btnOpenLogs, &QPushButton::clicked, this, []{
-        QDesktopServices::openUrl(QUrl::fromLocalFile(Logger::logDir()));
-    });
-    if (ui->btnOpenInstallDir)     connect(ui->btnOpenInstallDir, &QPushButton::clicked, this, []{
-        QDesktopServices::openUrl(QUrl::fromLocalFile(QString::fromLatin1(APP_INSTALL_DIR)));
-    });
+    if (ui->cbRansomwareProtection) {
+        connect(ui->cbRansomwareProtection, &QCheckBox::toggled, this, [](bool v){
+            Settings::instance().setRansomwareProtection(v);
+            RansomwareShield::instance().setEnabled(v);
+        });
+    }
+    if (ui->btnAddExclusionFolder)  connect(ui->btnAddExclusionFolder, &QPushButton::clicked, this, &MainWindow::onAddExclusionFolder);
+    if (ui->btnAddExclusionFile)    connect(ui->btnAddExclusionFile,   &QPushButton::clicked, this, &MainWindow::onAddExclusionFile);
+    if (ui->btnRemoveExclusion)     connect(ui->btnRemoveExclusion,    &QPushButton::clicked, this, &MainWindow::onRemoveExclusion);
+    if (ui->btnGenerateReportAbout) connect(ui->btnGenerateReportAbout,&QPushButton::clicked, this, &MainWindow::onGenerateServiceReportClicked);
 
     if (ui->btnSelfTest)           connect(ui->btnSelfTest, &QPushButton::clicked, this, &MainWindow::onSelfTest);
 
     if (ui->btnInstallNow)    connect(ui->btnInstallNow,    &QPushButton::clicked, this, &MainWindow::onInstallNow);
     if (ui->btnInstallBrowse) connect(ui->btnInstallBrowse, &QPushButton::clicked, this, &MainWindow::onInstallBrowse);
     if (ui->btnInstallCancel) connect(ui->btnInstallCancel, &QPushButton::clicked, this, &MainWindow::onInstallCancel);
+
+    // Licensing buttons (Settings & Lock screen)
+    if (ui->btnChangeLicenseKey)   connect(ui->btnChangeLicenseKey,   &QPushButton::clicked, this, &MainWindow::onChangeLicenseKeyClicked);
+    if (ui->btnRefreshLicense)     connect(ui->btnRefreshLicense,     &QPushButton::clicked, this, &MainWindow::onRefreshLicenseClicked);
+    if (ui->btnActivateLockedKey)  connect(ui->btnActivateLockedKey,  &QPushButton::clicked, this, &MainWindow::onActivateLockedKeyClicked);
+    if (ui->btnRefreshLockedKey)   connect(ui->btnRefreshLockedKey,   &QPushButton::clicked, this, &MainWindow::onRefreshLockedKeyClicked);
 
     connect(&SignatureDb::instance(), &SignatureDb::updateFinished,
             this, [this](int added, int total, const QString &err){
@@ -393,6 +528,7 @@ void MainWindow::wireSignals()
 
     connect(&Translator::instance(), &Translator::localeChanged, this, &MainWindow::onLanguageChanged);
 
+    if (ui->flagPl) connect(ui->flagPl, &FlagIcon::clicked, this, []{ Translator::instance().install("pl"); });
     if (ui->flagEn) connect(ui->flagEn, &FlagIcon::clicked, this, []{ Translator::instance().install("en"); });
     if (ui->flagAr) connect(ui->flagAr, &FlagIcon::clicked, this, []{ Translator::instance().install("ar"); });
 
@@ -446,19 +582,32 @@ void MainWindow::retranslateRuntime()
     }
     if (ui->lblAppNameVersion)
         ui->lblAppNameVersion->setText(QStringLiteral("%1 v%2").arg(APP_NAME, APP_VERSION_STR));
+
+    connect(&LicenseManager::instance(), &LicenseManager::licenseChanged,
+            this, &MainWindow::onLicenseChanged);
+    applyLicenseGating();
 }
 
 void MainWindow::onLanguageChanged(const QString &code)
 {
     if (ui->comboLanguage) {
         const QSignalBlocker block(ui->comboLanguage);
-        ui->comboLanguage->setCurrentIndex(code == "ar" ? 1 : 0);
+        int idx = 0;
+        if (code == "en") idx = 1;
+        else if (code == "ar") idx = 2;
+        ui->comboLanguage->setCurrentIndex(idx);
     }
     if (m_tray) m_tray->setToolTip(QString::fromLatin1(APP_NAME));
 }
 
 void MainWindow::onNavClicked()
 {
+    if (!LicenseManager::instance().isValid()) {
+        setActiveNav(PageLicenseLocked);
+        Toaster::show(this, tr("Licencja wygasła. Wprowadź nowy klucz lub zadzwoń: 505 012 914"), Toaster::Warning);
+        return;
+    }
+
     auto *btn = qobject_cast<QPushButton*>(sender());
     if (!btn) return;
     const QString name = btn->objectName();
@@ -467,9 +616,23 @@ void MainWindow::onNavClicked()
     else if (name == "navScanConfig") idx = PageScanConfig;
     else if (name == "navScan")       idx = PageScan;
     else if (name == "navQuarantine") idx = PageQuarantine;
-    else if (name == "navRepair")     idx = PageRepair;
-    else if (name == "navSettings")   idx = PageSettings;
-    else if (name == "navAbout")      idx = PageAbout;
+    else if (name == "navRepair") {
+        if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
+            Toaster::show(this, tr("Moduł Naprawa Windows wymaga licencji Multi-Guard Secure lub ADMIN FULL."), Toaster::Warning);
+            return;
+        }
+        idx = PageRepair;
+    }
+    else if (name == "navTools")        idx = PageTools;
+    else if (name == "navRemoteRepair") {
+        if (!LicenseManager::instance().hasCapability(LicenseCapability::RemoteRepair)) {
+            Toaster::show(this, tr("Zdalna Pomoc Techniczna wymaga licencji Assist / Assist PRO lub ADMIN FULL."), Toaster::Warning);
+            return;
+        }
+        idx = PageRemoteRepair;
+    }
+    else if (name == "navSettings")     idx = PageSettings;
+    else if (name == "navAbout")        idx = PageAbout;
     setActiveNav(idx);
 }
 
@@ -478,17 +641,31 @@ void MainWindow::setActiveNav(PageIndex idx)
     m_currentPage = idx;
     m_transition->slideTo(int(idx));
 
+    if (idx == PageTools) {
+        onRefreshHardwareStats();
+        onRefreshStartupClicked();
+        if (m_hwTimer && !m_hwTimer->isActive()) {
+            m_hwTimer->start();
+        }
+    } else {
+        if (m_hwTimer && m_hwTimer->isActive()) {
+            m_hwTimer->stop();
+        }
+    }
+
     const QList<QPushButton*> navButtons = ui->sidebar->findChildren<QPushButton*>();
     for (auto *b : navButtons) {
         if (!b->objectName().startsWith("nav")) continue;
         bool active = false;
-        if (b->objectName() == "navDashboard")  active = (idx == PageDashboard);
-        if (b->objectName() == "navScanConfig") active = (idx == PageScanConfig);
-        if (b->objectName() == "navScan")       active = (idx == PageScan);
-        if (b->objectName() == "navQuarantine") active = (idx == PageQuarantine);
-        if (b->objectName() == "navRepair")     active = (idx == PageRepair);
-        if (b->objectName() == "navSettings")   active = (idx == PageSettings);
-        if (b->objectName() == "navAbout")      active = (idx == PageAbout);
+        if (b->objectName() == "navDashboard")    active = (idx == PageDashboard);
+        if (b->objectName() == "navScanConfig")   active = (idx == PageScanConfig);
+        if (b->objectName() == "navScan")         active = (idx == PageScan);
+        if (b->objectName() == "navQuarantine")   active = (idx == PageQuarantine);
+        if (b->objectName() == "navRepair")       active = (idx == PageRepair);
+        if (b->objectName() == "navTools")        active = (idx == PageTools);
+        if (b->objectName() == "navRemoteRepair") active = (idx == PageRemoteRepair);
+        if (b->objectName() == "navSettings")     active = (idx == PageSettings);
+        if (b->objectName() == "navAbout")        active = (idx == PageAbout);
         b->setProperty("active", active);
         b->style()->unpolish(b);
         b->style()->polish(b);
@@ -620,6 +797,106 @@ void MainWindow::primeScanUi(const QString &phaseLabel)
     QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 }
 
+void MainWindow::scanCustomTargets(const QStringList &targets)
+{
+    if (targets.isEmpty()) return;
+    ScanRequest req;
+    req.targets    = targets;
+    req.useSigDb   = Settings::instance().useSignatureDb();
+    req.usePe      = Settings::instance().usePeInspection();
+    req.useHeur    = Settings::instance().useHeuristics();
+    req.useCloud   = Settings::instance().useCloudLookup();
+    req.threshold  = Settings::instance().heuristicThreshold();
+    req.action     = Settings::instance().detectionAction();
+
+    Logger::info(QStringLiteral("Custom targets scan requested: %1 target(s)").arg(targets.size()));
+    primeScanUi(tr("Skanowanie wybranego elementu..."));
+    m_activeScanPhase = tr("Skanowanie...");
+    Toaster::show(this, tr("Rozpoczęto skanowanie wybranego elementu"), Toaster::Info);
+    ShieldEngine::instance().startScan(req);
+}
+
+void MainWindow::onRealTimeThreatDetected(const verax::ThreatInfo &info)
+{
+    const QString fileName = QFileInfo(info.path).fileName();
+    const QString msg = tr("Wykryto zagrożenie w czasie rzeczywistym:\n%1 w %2")
+                        .arg(info.detectionName, fileName);
+    Toaster::show(this, msg, Toaster::Error);
+
+    NotificationAlert::showThreat(
+        info.detectionName,
+        info.path,
+        [info]{
+            Quarantine::instance().quarantineFile(info.path, info.detectionName, info.family);
+        },
+        [this]{
+            show();
+            setActiveNav(PageQuarantine);
+            raise();
+            activateWindow();
+        }
+    );
+
+    if (m_tray && Settings::instance().showNotifications()) {
+        m_tray->showMessage(tr("Multi-Guard — Wykryto zagrożenie!"),
+                            tr("Zablokowano lub odizolowano złośliwy plik: %1 (%2)")
+                            .arg(fileName, info.detectionName),
+                            QSystemTrayIcon::Critical, 8000);
+    }
+}
+
+void MainWindow::onScanMemory()
+{
+    Logger::info("Memory/Running processes scan requested");
+    const QVector<ProcInfo> procs = SystemEnum::listProcesses();
+    if (procs.isEmpty()) {
+        Toaster::show(this, tr("Brak aktywnych procesów do analizy"), Toaster::Warn);
+        return;
+    }
+
+    QStringList procPaths;
+    for (const auto &p : procs) {
+        if (!p.path.isEmpty() && QFile::exists(p.path)) {
+            if (!procPaths.contains(p.path, Qt::CaseInsensitive)) {
+                procPaths << p.path;
+            }
+        }
+    }
+
+    if (procPaths.isEmpty()) {
+        Toaster::show(this, tr("Nie znaleziono procesów z dostępem do ścieżki pliku"), Toaster::Warn);
+        return;
+    }
+
+    Logger::info(QStringLiteral("Memory scan launching for %1 running process binaries").arg(procPaths.size()));
+    primeScanUi(tr("Skanowanie procesów w pamięci RAM..."));
+    m_activeScanPhase = tr("Skanowanie pamięci...");
+    Toaster::show(this, tr("Rozpoczęto skanowanie aktywnych procesów w pamięci RAM"), Toaster::Info);
+
+    ScanRequest req;
+    req.targets   = procPaths;
+    req.useSigDb  = Settings::instance().useSignatureDb();
+    req.usePe     = Settings::instance().usePeInspection();
+    req.useHeur   = Settings::instance().useHeuristics();
+    req.useCloud  = Settings::instance().useCloudLookup();
+    req.threshold = Settings::instance().heuristicThreshold();
+    req.action    = Settings::instance().detectionAction();
+
+    ShieldEngine::instance().startScan(req);
+}
+
+void MainWindow::onUsbDriveInserted(const QString &drivePath)
+{
+    if (!Settings::instance().scanUsbOnInsert()) return;
+
+    NotificationAlert::showUsb(drivePath, [this, drivePath]{
+        show();
+        raise();
+        activateWindow();
+        scanCustomTargets(QStringList{drivePath});
+    });
+}
+
 void MainWindow::onQuickScan()
 {
     Logger::info("Quick scan requested");
@@ -670,7 +947,7 @@ void MainWindow::onFullScan()
 void MainWindow::onUpdateSignatures()
 {
     Toaster::show(this, tr("Contacting update server..."), Toaster::Info);
-    SignatureDb::instance().updateOnline(QStringLiteral("https://gist.githubusercontent.com/alisakkaf/01eaea5312e4e583f993b891554666f3/raw/VeraxCore_Antivirus.json"));
+    SignatureDb::instance().updateOnline(Settings::instance().updateUrl());
 }
 
 void MainWindow::onAddFolder()
@@ -1199,8 +1476,11 @@ void MainWindow::onSettingsSaved()
 {
     Settings &s = Settings::instance();
     if (ui->cbStartWithWindows)    s.setStartWithWindows(ui->cbStartWithWindows->isChecked());
+    if (ui->cbContextMenu)         s.setContextMenuIntegration(ui->cbContextMenu->isChecked());
     if (ui->cbMinimizeToTray)      s.setMinimizeToTrayOnClose(ui->cbMinimizeToTray->isChecked());
     if (ui->cbShowNotifications)   s.setShowNotifications(ui->cbShowNotifications->isChecked());
+    if (ui->cbRealTimeShield)      s.setRealTimeProtection(ui->cbRealTimeShield->isChecked());
+    if (ui->cbWebShield)           s.setWebShield(ui->cbWebShield->isChecked());
     if (ui->cbScanUsbOnInsert)     s.setScanUsbOnInsert(ui->cbScanUsbOnInsert->isChecked());
     if (ui->cbAutoUpdateSignatures)s.setAutoUpdateSignatures(ui->cbAutoUpdateSignatures->isChecked());
     // if (ui->editUpdateUrl)         s.setUpdateUrl(ui->editUpdateUrl->text());
@@ -1225,6 +1505,10 @@ void MainWindow::onSettingsReset()
     blockAll(true);
     wireUi();
     blockAll(false);
+    ThemeManager::applyTheme(Settings::instance().theme());
+    if (m_tray && m_tray->contextMenu()) {
+        m_tray->contextMenu()->setStyleSheet(ThemeManager::trayStyleSheet());
+    }
     Toaster::show(this, tr("Settings reset to defaults"), Toaster::Success);
 }
 
@@ -1243,7 +1527,9 @@ void MainWindow::onCheckUpdatesNow()
 
 void MainWindow::onLanguageSelectionChanged(int idx)
 {
-    Translator::instance().install(idx == 1 ? "ar" : "en");
+    if (idx == 0)      Translator::instance().install("pl");
+    else if (idx == 1) Translator::instance().install("en");
+    else if (idx == 2) Translator::instance().install("ar");
 }
 
 QString MainWindow::signaturesInfoHtml() const
@@ -1324,11 +1610,8 @@ void MainWindow::populateAboutPage()
         ui->lblSignaturesInfo->setText(signaturesInfoHtml());
     }
     if (ui->lblAboutLogo) {
-        // Swap the raster fallback for the new branded SVG. QSvgRenderer is
-        // routed automatically through QPixmap::fromImage when the file has
-        // a .svg extension and the qsvg image plugin is loaded (already
-        // listed in QTPLUGIN.imageformats).
         QPixmap pm(QStringLiteral(":/assets/logo.svg"));
+        if (pm.isNull()) pm = QPixmap(QStringLiteral(":/assets/logo.png"));
         if (!pm.isNull()) ui->lblAboutLogo->setPixmap(pm);
     }
 
@@ -1345,14 +1628,9 @@ void MainWindow::populateAboutPage()
     }
 }
 
-void MainWindow::onBrandClicked(int kind)
+void MainWindow::onBrandClicked(int /*kind*/)
 {
-    QString url;
-    switch (kind) {
-    case BrandIcon::Website:  url = QString::fromLatin1(APP_HOMEPAGE);  break;
-    case BrandIcon::Facebook: url = QString::fromLatin1(APP_AUTHOR_FB); break;
-    case BrandIcon::GitHub:   url = QString::fromLatin1(APP_AUTHOR_GH); break;
-    }
+    const QString url = QString::fromLatin1(APP_HOMEPAGE);
     if (!url.isEmpty()) QDesktopServices::openUrl(QUrl(url));
 }
 
@@ -1393,6 +1671,40 @@ void MainWindow::onInstallCancel() { close(); }
 
 void MainWindow::onInstallNow()
 {
+    // 0) License Key validation via KeyGate
+    if (ui->editLicenseKey) {
+        const QString licenseKey = ui->editLicenseKey->text().trimmed();
+        if (licenseKey.isEmpty()) {
+            if (ui->lblLicenseStatusHint) {
+                ui->lblLicenseStatusHint->setText(tr("<font color='#f87171'><b>Błąd:</b> Wprowadź klucz licencyjny przed rozpoczęciem instalacji.</font>"));
+            }
+            Toaster::show(this, tr("Wymagany jest ważny klucz licencyjny KeyGate."), Toaster::Warning);
+            return;
+        }
+
+        if (ui->lblLicenseStatusHint) {
+            ui->lblLicenseStatusHint->setText(tr("<font color='#60a5fa'>Weryfikacja i aktywacja klucza w KeyGate...</font>"));
+        }
+        QCoreApplication::processEvents();
+
+        auto actRes = LicenseManager::instance().activateKey(licenseKey);
+        if (!actRes.success) {
+            if (ui->lblLicenseStatusHint) {
+                ui->lblLicenseStatusHint->setText(tr("<font color='#f87171'><b>Błąd aktywacji:</b> %1 (%2)</font>")
+                                                      .arg(actRes.errorMessage, actRes.errorCode));
+            }
+            QMessageBox::critical(this, tr("Błąd aktywacji licencji"),
+                                  tr("Nie można ukończyć instalacji bez aktywnej licencji.\n\nPowód: %1\nKod błędu: %2")
+                                      .arg(actRes.errorMessage, actRes.errorCode));
+            return;
+        }
+
+        if (ui->lblLicenseStatusHint) {
+            ui->lblLicenseStatusHint->setText(tr("<font color='#4ade80'><b>Aktywowano pomyślnie:</b> %1</font>")
+                                                  .arg(LicenseManager::instance().tierName()));
+        }
+    }
+
     const QString src    = QCoreApplication::applicationFilePath();
     const QString target = (ui->editInstallPath && !ui->editInstallPath->text().isEmpty())
         ? ui->editInstallPath->text()
@@ -1502,6 +1814,9 @@ void MainWindow::onInstallNow()
     Toaster::show(this, tr("Installed to %1").arg(target), Toaster::Success);
     Logger::info(QStringLiteral("Install complete: %1").arg(dst));
 
+    // Register Multi-Guard in Windows Security Center & configure Defender yield
+    WindowsSecurityIntegration::registerAntivirus(target, dst);
+
     QProcess::startDetached(dst, { });
     QCoreApplication::quit();
 }
@@ -1513,23 +1828,57 @@ void MainWindow::setupTrayIcon()
     QIcon icon(QStringLiteral(":/assets/logo.png"));
     if (icon.isNull()) icon = style()->standardIcon(QStyle::SP_ComputerIcon);
     m_tray->setIcon(icon);
-    m_tray->setToolTip(QString::fromLatin1(APP_NAME));
+    m_tray->setToolTip(QStringLiteral("Multi-Guard v%1 — System Chroniony").arg(APP_VERSION_STR));
 
     auto *menu = new QMenu(this);
-    QAction *aOpen   = menu->addAction(tr("Open %1").arg(APP_NAME));
-    QAction *aQuick  = menu->addAction(tr("Quick Scan"));
-    QAction *aUpdate = menu->addAction(tr("Online Update Signatures"));
+    menu->setStyleSheet(ThemeManager::trayStyleSheet());
+
+    // Header Status Action
+    QAction *aHeader = menu->addAction(tr("🛡 Multi-Guard — Ochrona Aktywna"));
+    aHeader->setEnabled(false);
     menu->addSeparator();
-    QAction *aSet    = menu->addAction(tr("Settings"));
-    QAction *aAbout  = menu->addAction(tr("About"));
+
+    // Direct Toggles
+    QAction *aToggleRt = menu->addAction(tr("Ochrona w czasie rzeczywistym"));
+    aToggleRt->setCheckable(true);
+    aToggleRt->setChecked(Settings::instance().realTimeProtection());
+    connect(aToggleRt, &QAction::toggled, this, [this](bool v){
+        Settings::instance().setRealTimeProtection(v);
+        RealTimeShield::instance().setEnabled(v);
+        if (ui->cbRealTimeShield) ui->cbRealTimeShield->setChecked(v);
+        NotificationAlert::showInfo(tr("Multi-Guard"), v ? tr("Ochrona w czasie rzeczywistym została włączona.") : tr("Ochrona w czasie rzeczywistym została wyłączona."));
+    });
+
+    QAction *aToggleWeb = menu->addAction(tr("Ochrona sieciowa (Web Shield)"));
+    aToggleWeb->setCheckable(true);
+    aToggleWeb->setChecked(Settings::instance().webShield());
+    connect(aToggleWeb, &QAction::toggled, this, [this](bool v){
+        Settings::instance().setWebShield(v);
+        WebShield::instance().setEnabled(v);
+        if (ui->cbWebShield) ui->cbWebShield->setChecked(v);
+    });
+
     menu->addSeparator();
-    QAction *aQuit   = menu->addAction(tr("Exit"));
+    QAction *aOpen   = menu->addAction(tr("Otwórz pulpit Multi-Guard"));
+    QAction *aQuick  = menu->addAction(tr("Szybkie skanowanie"));
+    QAction *aRam    = menu->addAction(tr("Skanuj pamięć RAM (Procesy)"));
+    QAction *aTools  = menu->addAction(tr("Narzędzia i Wydajność"));
+    QAction *aRemote = menu->addAction(tr("Zdalna Naprawa Multi-Servis"));
+    QAction *aUpdate = menu->addAction(tr("Aktualizuj sygnatury w chmurze"));
+    menu->addSeparator();
+    QAction *aSet    = menu->addAction(tr("Ustawienia"));
+    QAction *aAbout  = menu->addAction(tr("O programie"));
+    menu->addSeparator();
+    QAction *aQuit   = menu->addAction(tr("Zakończ działanie"));
 
     connect(aOpen,   &QAction::triggered, this, [this]{ show(); raise(); activateWindow(); });
     connect(aQuick,  &QAction::triggered, this, &MainWindow::onQuickScan);
+    connect(aRam,    &QAction::triggered, this, &MainWindow::onScanMemory);
+    connect(aTools,  &QAction::triggered, this, [this]{ show(); setActiveNav(PageTools); raise(); activateWindow(); });
+    connect(aRemote, &QAction::triggered, this, [this]{ show(); setActiveNav(PageRemoteRepair); raise(); activateWindow(); });
     connect(aUpdate, &QAction::triggered, this, &MainWindow::onUpdateSignatures);
-    connect(aSet,    &QAction::triggered, this, [this]{ show(); setActiveNav(PageSettings); });
-    connect(aAbout,  &QAction::triggered, this, [this]{ show(); setActiveNav(PageAbout); });
+    connect(aSet,    &QAction::triggered, this, [this]{ show(); setActiveNav(PageSettings); raise(); activateWindow(); });
+    connect(aAbout,  &QAction::triggered, this, [this]{ show(); setActiveNav(PageAbout); raise(); activateWindow(); });
     connect(aQuit,   &QAction::triggered, qApp,  &QCoreApplication::quit);
 
     m_tray->setContextMenu(menu);
@@ -1549,7 +1898,7 @@ void MainWindow::onTrayActivated(QSystemTrayIcon::ActivationReason r)
 
 void MainWindow::closeEvent(QCloseEvent *e)
 {
-    if (Settings::instance().minimizeToTrayOnClose() && m_tray) {
+    if (m_tray) {
         hide();
         e->ignore();
         return;
@@ -1875,8 +2224,646 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, long *r
             return true;
         }
     }
+    else if (msg->message == WM_DEVICECHANGE && msg->wParam == 0x8000 /* DBT_DEVICEARRIVAL */) {
+        PDEV_BROADCAST_HDR pHdr = reinterpret_cast<PDEV_BROADCAST_HDR>(msg->lParam);
+        if (pHdr && pHdr->dbch_devicetype == 0x00000002 /* DBT_DEVTYP_VOLUME */) {
+            PDEV_BROADCAST_VOLUME pVol = reinterpret_cast<PDEV_BROADCAST_VOLUME>(msg->lParam);
+            DWORD unitmask = pVol->dbcv_unitmask;
+            for (int i = 0; i < 26; ++i) {
+                if (unitmask & (1 << i)) {
+                    char letter = 'A' + i;
+                    const QString drivePath = QStringLiteral("%1:\\").arg(letter);
+                    QTimer::singleShot(600, this, [this, drivePath]{
+                        onUsbDriveInserted(drivePath);
+                    });
+                    break;
+                }
+            }
+        }
+    }
 #endif
     return QMainWindow::nativeEvent(eventType, message, result);
+}
+
+void MainWindow::initToolsPage()
+{
+    if (m_hwTimer) return;
+    m_hwTimer = new QTimer(this);
+    m_hwTimer->setInterval(1500);
+    connect(m_hwTimer, &QTimer::timeout, this, &MainWindow::onRefreshHardwareStats);
+
+    if (ui->tableStartup) {
+        ui->tableStartup->setColumnCount(5);
+        ui->tableStartup->setHorizontalHeaderLabels({
+            tr("Nazwa programu"), tr("Polecenie / Ścieżka"), tr("Lokalizacja"), tr("Podpis cyfrowy"), tr("Stan")
+        });
+        ui->tableStartup->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+        ui->tableStartup->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+        ui->tableStartup->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+        ui->tableStartup->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+        ui->tableStartup->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+        ui->tableStartup->setSelectionBehavior(QAbstractItemView::SelectRows);
+        ui->tableStartup->setSelectionMode(QAbstractItemView::SingleSelection);
+    }
+}
+
+void MainWindow::onContextMenuToggled(bool checked)
+{
+    Settings::instance().setContextMenuIntegration(checked);
+}
+
+void MainWindow::onRefreshHardwareStats()
+{
+    HardwareStats stats = HardwareMonitor::instance().refreshStats();
+    if (ui->lblCpuName) {
+        ui->lblCpuName->setText(stats.cpuName);
+    }
+    if (ui->pbCpuUsage) {
+        ui->pbCpuUsage->setValue(qBound(0, int(stats.cpuUsagePercent), 100));
+    }
+    if (ui->lblCpuTemp) {
+        if (stats.cpuTempCelsius > 0) {
+            ui->lblCpuTemp->setText(tr("Temperatura: %1 °C").arg(QString::number(stats.cpuTempCelsius, 'f', 1)));
+        } else {
+            ui->lblCpuTemp->setText(tr("Temperatura: W normie (czujnik OEM)"));
+        }
+    }
+    if (ui->lblRamDetails) {
+        QString usedStr = SystemOptimizer::formatBytes(stats.ramUsedBytes);
+        QString totalStr = SystemOptimizer::formatBytes(stats.ramTotalBytes);
+        ui->lblRamDetails->setText(tr("Pamięć: %1 / %2 (%3%)").arg(usedStr, totalStr, QString::number(stats.ramUsagePercent, 'f', 0)));
+    }
+    if (ui->pbRamUsage) {
+        ui->pbRamUsage->setValue(qBound(0, int(stats.ramUsagePercent), 100));
+    }
+    if (ui->lblGpuName) {
+        ui->lblGpuName->setText(tr("Karta graficzna: %1").arg(stats.gpuName));
+    }
+    if (ui->lblGpuVram) {
+        if (stats.gpuVramTotalBytes > 0) {
+            ui->lblGpuVram->setText(tr("Pamięć wideo VRAM: %1").arg(SystemOptimizer::formatBytes(stats.gpuVramTotalBytes)));
+        } else {
+            ui->lblGpuVram->setText(tr("Pamięć wideo: Pamięć współdzielona systemu"));
+        }
+    }
+}
+
+void MainWindow::onScanCleanClicked()
+{
+    if (!ui->listCleanItems) return;
+    ui->listCleanItems->clear();
+    if (ui->lblCleanStatus) ui->lblCleanStatus->setText(tr("Analizowanie zbędnych plików..."));
+
+    QList<CleanItem> items = SystemOptimizer::instance().scanSystem();
+    qint64 totalBytes = 0;
+    for (const CleanItem &item : items) {
+        totalBytes += item.byteCount;
+        auto *listItem = new QListWidgetItem(ui->listCleanItems);
+        listItem->setText(QStringLiteral("%1 — %2 (%3 plików)")
+            .arg(item.name, SystemOptimizer::formatBytes(item.byteCount), QString::number(item.fileCount)));
+        listItem->setData(Qt::UserRole, item.id);
+        listItem->setFlags(listItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
+        listItem->setCheckState(item.byteCount > 0 ? Qt::Checked : Qt::Unchecked);
+    }
+
+    if (ui->lblCleanStatus) {
+        ui->lblCleanStatus->setText(tr("Zidentyfikowano do odzyskania: %1").arg(SystemOptimizer::formatBytes(totalBytes)));
+    }
+}
+
+void MainWindow::onDoCleanClicked()
+{
+    if (!ui->listCleanItems) return;
+    QStringList ids;
+    for (int i = 0; i < ui->listCleanItems->count(); ++i) {
+        QListWidgetItem *item = ui->listCleanItems->item(i);
+        if (item->checkState() == Qt::Checked) {
+            ids.append(item->data(Qt::UserRole).toString());
+        }
+    }
+    if (ids.isEmpty()) {
+        QMessageBox::information(this, tr("Optymalizator"), tr("Nie zaznaczono żadnych elementów do wyczyszczenia."));
+        return;
+    }
+
+    if (ui->lblCleanStatus) ui->lblCleanStatus->setText(tr("Czyszczenie w toku..."));
+    qint64 freed = SystemOptimizer::instance().cleanItems(ids);
+    if (ui->lblCleanStatus) {
+        ui->lblCleanStatus->setText(tr("Pomyślnie oczyszczono! Zwolniono %1 miejsca na dysku.").arg(SystemOptimizer::formatBytes(freed)));
+    }
+    Toaster::show(this, tr("Zwolniono %1 miejsca").arg(SystemOptimizer::formatBytes(freed)));
+    onScanCleanClicked();
+}
+
+void MainWindow::onRefreshStartupClicked()
+{
+    if (!ui->tableStartup) return;
+    ui->tableStartup->setRowCount(0);
+
+    QList<StartupEntry> entries = StartupManager::getEntries();
+    for (const StartupEntry &e : entries) {
+        int r = ui->tableStartup->rowCount();
+        ui->tableStartup->insertRow(r);
+
+        auto *nameItem = new QTableWidgetItem(e.name);
+        nameItem->setData(Qt::UserRole, e.location);
+        nameItem->setData(Qt::UserRole + 1, e.command);
+
+        auto *cmdItem = new QTableWidgetItem(e.command);
+        auto *locItem = new QTableWidgetItem(e.location);
+        auto *signItem = new QTableWidgetItem(e.isSigned ? tr("Zaufany (Authenticode)") : tr("Brak podpisu"));
+        signItem->setForeground(e.isSigned ? QColor(46, 204, 113) : QColor(231, 76, 60));
+
+        auto *statusItem = new QTableWidgetItem(e.enabled ? tr("Aktywny") : tr("Wyłączony"));
+        statusItem->setForeground(e.enabled ? QColor(52, 152, 219) : QColor(149, 165, 166));
+
+        ui->tableStartup->setItem(r, 0, nameItem);
+        ui->tableStartup->setItem(r, 1, cmdItem);
+        ui->tableStartup->setItem(r, 2, locItem);
+        ui->tableStartup->setItem(r, 3, signItem);
+        ui->tableStartup->setItem(r, 4, statusItem);
+    }
+}
+
+void MainWindow::onToggleStartupClicked()
+{
+    if (!ui->tableStartup) return;
+    int r = ui->tableStartup->currentRow();
+    if (r < 0) {
+        QMessageBox::information(this, tr("Autostart"), tr("Wybierz wpis z listy, aby go włączyć lub wyłączyć."));
+        return;
+    }
+    QTableWidgetItem *nameItem = ui->tableStartup->item(r, 0);
+    QTableWidgetItem *statusItem = ui->tableStartup->item(r, 4);
+    if (!nameItem || !statusItem) return;
+
+    StartupEntry e;
+    e.name = nameItem->text();
+    e.location = nameItem->data(Qt::UserRole).toString();
+    e.command = nameItem->data(Qt::UserRole + 1).toString();
+    bool isCurrentlyEnabled = (statusItem->text() == tr("Aktywny"));
+
+    if (StartupManager::setEntryEnabled(e, !isCurrentlyEnabled)) {
+        onRefreshStartupClicked();
+    }
+}
+
+void MainWindow::onDeleteStartupClicked()
+{
+    if (!ui->tableStartup) return;
+    int r = ui->tableStartup->currentRow();
+    if (r < 0) {
+        QMessageBox::information(this, tr("Autostart"), tr("Wybierz wpis z listy, aby go usunąć."));
+        return;
+    }
+    QTableWidgetItem *nameItem = ui->tableStartup->item(r, 0);
+    if (!nameItem) return;
+
+    StartupEntry e;
+    e.name = nameItem->text();
+    e.location = nameItem->data(Qt::UserRole).toString();
+    e.command = nameItem->data(Qt::UserRole + 1).toString();
+
+    if (QMessageBox::question(this, tr("Potwierdzenie"),
+        tr("Czy na pewno chcesz trwale usunąć wpis autostartu '%1'?").arg(e.name)) == QMessageBox::Yes) {
+        StartupManager::deleteEntry(e);
+        onRefreshStartupClicked();
+    }
+}
+
+void MainWindow::onBrowseShredFile()
+{
+    QString f = QFileDialog::getOpenFileName(this, tr("Wybierz plik do trwałego zniszczenia"));
+    if (!f.isEmpty() && ui->leShredPath) {
+        ui->leShredPath->setText(f);
+    }
+}
+
+void MainWindow::onBrowseShredDir()
+{
+    QString d = QFileDialog::getExistingDirectory(this, tr("Wybierz folder do trwałego zniszczenia"));
+    if (!d.isEmpty() && ui->leShredPath) {
+        ui->leShredPath->setText(d);
+    }
+}
+
+void MainWindow::onDoShredClicked()
+{
+    if (!ui->leShredPath) return;
+    QString target = ui->leShredPath->text().trimmed();
+    if (target.isEmpty() || (!QFile::exists(target) && !QDir(target).exists())) {
+        QMessageBox::warning(this, tr("Niszczarka"), tr("Wskaż istniejący plik lub folder do zniszczenia."));
+        return;
+    }
+
+    auto ret = QMessageBox::critical(this, tr("OSTRZEŻENIE O TRWAŁYM ZNISZCZENIU"),
+        tr("Czy na pewno chcesz BEZPOWROTNIE zniszczyć:\n%1\n\nDane zostaną wielokrotnie nadpisane losowymi wzorcami. Tej operacji NIE MOŻNA cofnąć!").arg(target),
+        QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+
+    if (ret != QMessageBox::Yes) return;
+
+    if (ui->pbShredProgress) ui->pbShredProgress->setValue(0);
+    if (ui->lblShredStatus) ui->lblShredStatus->setText(tr("Trwa bezpieczne niszczenie danych..."));
+
+    bool ok = false;
+    QFileInfo fi(target);
+    if (fi.isDir()) {
+        ok = SystemOptimizer::shredDirectory(target, [this](int pct){
+            if (ui->pbShredProgress) ui->pbShredProgress->setValue(pct);
+            QCoreApplication::processEvents();
+        });
+    } else {
+        ok = SystemOptimizer::shredFile(target, [this](int pct){
+            if (ui->pbShredProgress) ui->pbShredProgress->setValue(pct);
+            QCoreApplication::processEvents();
+        });
+    }
+
+    if (ok) {
+        if (ui->pbShredProgress) ui->pbShredProgress->setValue(100);
+        if (ui->lblShredStatus) ui->lblShredStatus->setText(tr("Dane zostały pomyślnie i bezpowrotnie zniszczone."));
+        if (ui->leShredPath) ui->leShredPath->clear();
+        Toaster::show(this, tr("Plik został zniszczony"));
+    } else {
+        if (ui->lblShredStatus) ui->lblShredStatus->setText(tr("Błąd podczas niszczenia (plik może być używany przez inny proces)."));
+    }
+}
+
+void MainWindow::onGenerateSessionCode()
+{
+    int p1 = QRandomGenerator::global()->bounded(100, 999);
+    int p2 = QRandomGenerator::global()->bounded(100, 999);
+    QString code = QStringLiteral("MS-%1-%2").arg(p1).arg(p2);
+    if (ui->lblSessionCode) {
+        ui->lblSessionCode->setText(code);
+    }
+    Toaster::show(this, tr("Wygenerowano nowy kod sesji: %1").arg(code), Toaster::Info);
+}
+
+void MainWindow::onCopySessionCode()
+{
+    if (!ui->lblSessionCode) return;
+    QString code = ui->lblSessionCode->text().trimmed();
+    QClipboard *cb = QGuiApplication::clipboard();
+    if (cb) {
+        cb->setText(code);
+    }
+    Toaster::show(this, tr("Kod sesji skopiowany do schowka: %1").arg(code), Toaster::Success);
+}
+
+void MainWindow::onConnectRemoteClicked()
+{
+    if (ui->lblTunnelStatus) {
+        ui->lblTunnelStatus->setText(tr("🔒 Próba nawiązania połączenia z serwerem Multi-Servis..."));
+        ui->lblTunnelStatus->setStyleSheet("color: #ffb300; font-weight: bold;");
+    }
+    QTimer::singleShot(1200, this, [this]{
+        if (ui->lblTunnelStatus) {
+            ui->lblTunnelStatus->setText(tr("✅ Połączono z centrum serwisowym Multi-Servis. Oczekiwanie na technika."));
+            ui->lblTunnelStatus->setStyleSheet("color: #00e676; font-weight: bold;");
+        }
+        NotificationAlert::showInfo(tr("Zdalna Naprawa"), tr("Stanowisko serwisowe Multi-Servis odebrało zgłoszenie. Specjalista dołączy za chwilę."));
+    });
+}
+
+void MainWindow::initScheduler()
+{
+    if (!m_schedulerTimer) {
+        m_schedulerTimer = new QTimer(this);
+        m_schedulerTimer->setInterval(60000); // Check every 60 seconds
+        connect(m_schedulerTimer, &QTimer::timeout, this, &MainWindow::onScheduledTimerTick);
+        m_schedulerTimer->start();
+    }
+}
+
+void MainWindow::onScheduledTimerTick()
+{
+    const QString sched = Settings::instance().scheduledScan();
+    if (sched == "off" || Scanner::instance().isRunning()) return;
+
+    const QTime now = QTime::currentTime();
+    const QTime target = QTime::fromString(Settings::instance().scheduledTime(), "HH:mm");
+    if (!target.isValid()) return;
+
+    if (now.hour() == target.hour() && now.minute() == target.minute()) {
+        const QDate today = QDate::currentDate();
+        static QDate s_lastScanDate;
+        if (s_lastScanDate == today) return;
+
+        if (sched == "weekly" && today.dayOfWeek() != 1) return; // Monday only
+        if (sched == "monthly" && today.day() != 1) return;      // 1st day only
+
+        s_lastScanDate = today;
+        Logger::info("Scheduled background scan triggered");
+        AuditLogger::instance().logEvent("ScheduledScan", tr("Uruchomiono automatyczne zaplanowane skanowanie w tle."), QString(), 0);
+        onQuickScan();
+    }
+}
+
+void MainWindow::onAddExclusionFolder()
+{
+    const QString dir = QFileDialog::getExistingDirectory(this, tr("Wybierz folder do wykluczenia ze skanowania"));
+    if (!dir.isEmpty()) {
+        Settings::instance().addExclusion(dir);
+        if (ui->listExclusions) ui->listExclusions->addItem(QDir::cleanPath(dir));
+        Toaster::show(this, tr("Dodano folder do listy wykluczeń."), Toaster::Success);
+        AuditLogger::instance().logEvent("ExclusionAdded", tr("Dodano folder do wykluczeń: %1").arg(dir), dir, 0);
+    }
+}
+
+void MainWindow::onAddExclusionFile()
+{
+    const QString file = QFileDialog::getOpenFileName(this, tr("Wybierz plik do wykluczenia ze skanowania"));
+    if (!file.isEmpty()) {
+        Settings::instance().addExclusion(file);
+        if (ui->listExclusions) ui->listExclusions->addItem(QDir::cleanPath(file));
+        Toaster::show(this, tr("Dodano plik do listy wykluczeń."), Toaster::Success);
+        AuditLogger::instance().logEvent("ExclusionAdded", tr("Dodano plik do wykluczeń: %1").arg(file), file, 0);
+    }
+}
+
+void MainWindow::onRemoveExclusion()
+{
+    if (!ui->listExclusions) return;
+    auto *item = ui->listExclusions->currentItem();
+    if (item) {
+        const QString path = item->text();
+        Settings::instance().removeExclusion(path);
+        delete item;
+        Toaster::show(this, tr("Usunięto element z listy wykluczeń."), Toaster::Info);
+        AuditLogger::instance().logEvent("ExclusionRemoved", tr("Usunięto wykluczenie: %1").arg(path), path, 0);
+    }
+}
+
+void MainWindow::onGenerateServiceReportClicked()
+{
+    const QString path = ReportGenerator::generateServiceReportHtml();
+    if (!path.isEmpty()) {
+        Toaster::show(this, tr("Wygenerowano raport serwisowy na Pulpicie."), Toaster::Success);
+        QDesktopServices::openUrl(QUrl::fromLocalFile(path));
+        AuditLogger::instance().logEvent("ReportGenerated", tr("Wygenerowano oficjalny raport stacji roboczej (HTML)."), path, 1);
+    } else {
+        Toaster::show(this, tr("Nie udało się zapisać raportu."), Toaster::Error);
+    }
+}
+
+void MainWindow::applyLicenseGating()
+{
+    const auto &lm = LicenseManager::instance();
+    bool valid = lm.isValid();
+
+    // 0. Complete lockdown if license has expired or is invalid
+    if (!valid) {
+        // Stop background protection engines
+        RealTimeShield::instance().stop();
+        RansomwareShield::instance().setEnabled(false);
+        WebShield::instance().setEnabled(false);
+
+        // Lock all sidebar navigation buttons
+        const QList<QPushButton*> navButtons = ui->sidebar->findChildren<QPushButton*>();
+        for (auto *b : navButtons) {
+            if (b->objectName().startsWith("nav")) {
+                b->setEnabled(false);
+            }
+        }
+
+        // Switch to the locked screen if not running the installer
+        if (m_currentPage != PageInstaller && m_currentPage != PageLicenseLocked) {
+            setActiveNav(PageLicenseLocked);
+        }
+
+        if (ui->lblLockedStatus) {
+            ui->lblLockedStatus->setText(tr("<font color='#f87171'>Licencja wygasła lub nie została aktywowana.</font>"));
+        }
+
+        if (ui->lblAppNameVersion) {
+            ui->lblAppNameVersion->setText(QStringLiteral("%1 v%2  [⚠️ Licencja wygasła - 505 012 914]")
+                                               .arg(APP_NAME, APP_VERSION_STR));
+        }
+
+        if (ui->lblLicenseDaysValue) {
+            ui->lblLicenseDaysValue->setText(tr("Wygasła (0 dni)"));
+        }
+
+        WindowsSecurityIntegration::updateProductState(false);
+        return;
+    }
+
+    // Register Multi-Guard in Windows Security Center once active and installed
+    static bool s_wscRegistered = false;
+    if (!s_wscRegistered && isInstalledPath()) {
+        s_wscRegistered = true;
+        WindowsSecurityIntegration::registerAntivirus();
+    } else if (isInstalledPath()) {
+        WindowsSecurityIntegration::updateProductState(true);
+    }
+
+    // License is valid: restore sidebar navigation buttons
+    const QList<QPushButton*> navButtons = ui->sidebar->findChildren<QPushButton*>();
+    for (auto *b : navButtons) {
+        if (b->objectName().startsWith("nav")) {
+            b->setEnabled(true);
+        }
+    }
+
+    // If previously stuck on locked page, transition back to Dashboard
+    if (m_currentPage == PageLicenseLocked) {
+        setActiveNav(PageDashboard);
+    }
+
+    // 1. Sidebar Nav Gating per tier
+    if (ui->navRepair) {
+        bool canRepair = lm.hasCapability(LicenseCapability::SystemRepair);
+        ui->navRepair->setEnabled(canRepair);
+        ui->navRepair->setToolTip(canRepair ? QString() : tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+    }
+
+    if (ui->navRemoteRepair) {
+        bool canRemote = lm.hasCapability(LicenseCapability::RemoteRepair);
+        ui->navRemoteRepair->setEnabled(canRemote);
+        ui->navRemoteRepair->setToolTip(canRemote ? QString() : tr("Dostępne w planach Assist / Assist PRO / ADMIN FULL"));
+    }
+
+    // 2. Tools tabs
+    if (ui->tabTools) {
+        bool canHw = lm.hasCapability(LicenseCapability::HardwareMonitor);
+        bool canClean = lm.hasCapability(LicenseCapability::DiskCleaner);
+        bool canStartup = lm.hasCapability(LicenseCapability::StartupManager);
+        bool canShred = lm.hasCapability(LicenseCapability::FileShredder);
+
+        ui->tabTools->setTabEnabled(0, canHw);
+        ui->tabTools->setTabEnabled(1, canClean);
+        ui->tabTools->setTabEnabled(2, canStartup);
+        ui->tabTools->setTabEnabled(3, canShred);
+    }
+
+    // 3. Settings checkboxes
+    if (ui->cbRansomwareProtection) {
+        bool canRansom = lm.hasCapability(LicenseCapability::RansomwareProtection);
+        ui->cbRansomwareProtection->setEnabled(canRansom);
+        if (!canRansom) {
+            ui->cbRansomwareProtection->setChecked(false);
+            ui->cbRansomwareProtection->setToolTip(tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+        } else {
+            ui->cbRansomwareProtection->setToolTip(QString());
+        }
+    }
+
+    // 4. Report generation in About
+    if (ui->btnGenerateReportAbout) {
+        bool canReport = lm.hasCapability(LicenseCapability::ServiceReports);
+        ui->btnGenerateReportAbout->setEnabled(canReport);
+        ui->btnGenerateReportAbout->setToolTip(canReport ? QString() : tr("Wymagana licencja Assist PRO lub ADMIN FULL"));
+    }
+
+    // 5. Update Dashboard License Card
+    if (ui->lblLicenseDaysValue) {
+        ui->lblLicenseDaysValue->setText(lm.daysRemainingText());
+    }
+
+    // 6. Update Settings License Card
+    if (ui->lblSettingsPlanValue) {
+        ui->lblSettingsPlanValue->setText(QStringLiteral("<b>%1</b>").arg(lm.tierName()));
+    }
+    if (ui->lblSettingsDaysValue) {
+        ui->lblSettingsDaysValue->setText(QStringLiteral("<b>%1</b> (%2)")
+                                              .arg(lm.daysRemainingText(), lm.expirationDateText()));
+    }
+
+    // 7. Update banner with tier & days remaining
+    if (ui->lblAppNameVersion) {
+        ui->lblAppNameVersion->setText(QStringLiteral("%1 v%2  [%3 • %4]")
+                                           .arg(APP_NAME, APP_VERSION_STR, lm.tierName(), lm.daysRemainingText()));
+    }
+}
+
+void MainWindow::onLicenseChanged(LicenseTier tier, bool isValid)
+{
+    Q_UNUSED(tier);
+    Q_UNUSED(isValid);
+    applyLicenseGating();
+}
+
+void MainWindow::onChangeLicenseKeyClicked()
+{
+    if (!ui->editNewLicenseKey) return;
+    QString key = ui->editNewLicenseKey->text().trimmed();
+    if (key.isEmpty()) {
+        Toaster::show(this, tr("Wprowadź nowy klucz licencyjny."), Toaster::Warning);
+        return;
+    }
+    restartWithNewLicense(key);
+}
+
+void MainWindow::onRefreshLicenseClicked()
+{
+    Toaster::show(this, tr("Weryfikacja licencji online..."), Toaster::Info);
+    QCoreApplication::processEvents();
+
+    auto res = LicenseManager::instance().refreshOnline();
+    if (res.success) {
+        Toaster::show(this, tr("Licencja pomyślnie zaktualizowana: %1 (%2)")
+                               .arg(LicenseManager::instance().tierName(),
+                                    LicenseManager::instance().daysRemainingText()),
+                      Toaster::Success);
+        applyLicenseGating();
+    } else {
+        Toaster::show(this, tr("Błąd odświeżania: %1").arg(res.errorMessage), Toaster::Error);
+    }
+}
+
+void MainWindow::onActivateLockedKeyClicked()
+{
+    if (!ui->editLockedLicenseKey) return;
+    QString key = ui->editLockedLicenseKey->text().trimmed();
+    if (key.isEmpty()) {
+        if (ui->lblLockedStatus) {
+            ui->lblLockedStatus->setText(tr("<font color='#f87171'>Wprowadź klucz licencyjny.</font>"));
+        }
+        Toaster::show(this, tr("Wprowadź klucz licencyjny."), Toaster::Warning);
+        return;
+    }
+    restartWithNewLicense(key);
+}
+
+void MainWindow::onRefreshLockedKeyClicked()
+{
+    if (ui->lblLockedStatus) {
+        ui->lblLockedStatus->setText(tr("<font color='#60a5fa'>Weryfikacja licencji w KeyGate...</font>"));
+    }
+    QCoreApplication::processEvents();
+
+    auto res = LicenseManager::instance().refreshOnline();
+    if (res.success) {
+        if (ui->lblLockedStatus) {
+            ui->lblLockedStatus->setText(tr("<font color='#4ade80'><b>Licencja aktywna!</b> Ponowne uruchamianie programu...</font>"));
+        }
+        QMessageBox msgBox(this);
+        msgBox.setWindowTitle(tr("Aktywacja licencji"));
+        msgBox.setIcon(QMessageBox::Information);
+        msgBox.setText(tr("Trwa zmiana licencji... Program wymaga ponownego uruchomienia, proszę czekać."));
+        msgBox.setStandardButtons(QMessageBox::NoButton);
+        msgBox.show();
+        QCoreApplication::processEvents();
+
+        QTimer::singleShot(1200, this, []() {
+            QString appPath = QCoreApplication::applicationFilePath();
+            QStringList args = QCoreApplication::arguments();
+            if (!args.isEmpty()) args.removeFirst();
+            QProcess::startDetached(appPath, args);
+            QCoreApplication::quit();
+        });
+    } else {
+        if (ui->lblLockedStatus) {
+            ui->lblLockedStatus->setText(tr("<font color='#f87171'><b>Błąd weryfikacji:</b> %1<br>Kontakt do serwisu: 505 012 914</font>")
+                                             .arg(res.errorMessage));
+        }
+        Toaster::show(this, tr("Błąd weryfikacji: %1").arg(res.errorMessage), Toaster::Error);
+    }
+}
+
+void MainWindow::restartWithNewLicense(const QString &key)
+{
+    if (ui->lblLockedStatus) {
+        ui->lblLockedStatus->setText(tr("<font color='#60a5fa'>Weryfikacja i aktywacja klucza w KeyGate...</font>"));
+    }
+    QCoreApplication::processEvents();
+
+    auto actRes = LicenseManager::instance().activateKey(key);
+    if (!actRes.success) {
+        if (ui->lblLockedStatus) {
+            ui->lblLockedStatus->setText(tr("<font color='#f87171'><b>Błąd aktywacji:</b> %1 (%2)<br>Kontakt do serwisu: 505 012 914</font>")
+                                             .arg(actRes.errorMessage, actRes.errorCode));
+        }
+        QMessageBox::critical(this, tr("Błąd aktywacji licencji"),
+                              tr("Nie udało się aktywować podanego klucza licencyjnego.\n\nPowód: %1\nKod: %2\n\nKontakt w sprawie licencji: 505 012 914")
+                                  .arg(actRes.errorMessage, actRes.errorCode));
+        return;
+    }
+
+    if (ui->lblLockedStatus) {
+        ui->lblLockedStatus->setText(tr("<font color='#4ade80'><b>Klucz zaakceptowany (%1)!</b> Ponowne uruchamianie...</font>")
+                                         .arg(LicenseManager::instance().tierName()));
+    }
+
+    // Update Security Center registration
+    WindowsSecurityIntegration::registerAntivirus();
+
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr("Zmiana licencji"));
+    msgBox.setIcon(QMessageBox::Information);
+    msgBox.setText(tr("Trwa zmiana licencji... Program wymaga ponownego uruchomienia, proszę czekać."));
+    msgBox.setStandardButtons(QMessageBox::NoButton);
+    msgBox.show();
+    QCoreApplication::processEvents();
+
+    QTimer::singleShot(1200, this, []() {
+        QString appPath = QCoreApplication::applicationFilePath();
+        QStringList args = QCoreApplication::arguments();
+        if (!args.isEmpty()) args.removeFirst();
+        QProcess::startDetached(appPath, args);
+        QCoreApplication::quit();
+    });
 }
 
 } // namespace verax

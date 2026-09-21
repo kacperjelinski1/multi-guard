@@ -767,6 +767,96 @@
                 "FF25????????4883EC"
             ],
             "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "d61391c4819d65a88c7f99990e515d97f26d8339b1a7ea6ff68a73a388f8d098",
+            "name": "Ransom:Win32/LockBit.3.Black",
+            "family": "Ransom.LockBit",
+            "severity": 10,
+            "source": "CISA/FBI Alert AA23-075A",
+            "repairable": false,
+            "notes": "LockBit 3.0 (Black) Ransomware payload"
+        },
+        {
+            "sha256": "3f3b92ec84013ee42e5f5835697ea3c7515d1cb1c7df0e3860bb3b8a3e7faab3",
+            "name": "Ransom:Win32/LockBit.2.Red",
+            "family": "Ransom.LockBit",
+            "severity": 10,
+            "source": "Public IOC LockBit 2.0",
+            "repairable": false
+        },
+        {
+            "sha256": "1387d8e6a25f9b457ccbc2a0f8eb8989ee5e11c79c0b62b16df83269b2d97c5f",
+            "name": "Ransom:Win64/BlackCat.ALPHV",
+            "family": "Ransom.BlackCat",
+            "severity": 10,
+            "source": "FBI Flash CP-000167-KB",
+            "repairable": false
+        },
+        {
+            "sha256": "96898b9588bfda71d09e5b774d0d0bb99a538d38bf03b7eb81f8f9c1b7524ce8",
+            "name": "Ransom:Win32/Phobos.Crying",
+            "family": "Ransom.Phobos",
+            "severity": 9,
+            "source": "CISA Alert AA24-060A",
+            "repairable": false
+        },
+        {
+            "sha256": "b6fbe147e4b219bb44bb7ce5f68b3f46f338a09ee2ba54817d23d8c1c0421e42",
+            "name": "Ransom:Win32/Medusa.Locker",
+            "family": "Ransom.Medusa",
+            "severity": 10,
+            "source": "MalwareBazaar Medusa sample",
+            "repairable": false
+        },
+        {
+            "sha256": "4ae751859c25624dcbebfceb1784ca451e04139e559595faec3ea8ca514782bb",
+            "name": "Trojan:Win32/RedlineStealer.A",
+            "family": "Stealer.Redline",
+            "severity": 9,
+            "source": "Public Threat Intelligence IOC",
+            "repairable": false,
+            "notes": "RedLine Credential and Token Stealer"
+        },
+        {
+            "sha256": "c29546d1bf1e6fbe5303c72b22bb686415f3e923e20092c7324d77292275b22b",
+            "name": "Trojan:Win32/LummaStealer.C",
+            "family": "Stealer.Lumma",
+            "severity": 9,
+            "source": "MalwareBazaar Lumma IOC",
+            "repairable": false
+        },
+        {
+            "sha256": "82a4d455437813735165c9705a61e712a488c9cf016df3d1c14dce1f421ca125",
+            "name": "Spyware:Win32/AgentTesla.Keylogger",
+            "family": "Spyware.AgentTesla",
+            "severity": 9,
+            "source": "CISA Alert IOC",
+            "repairable": false
+        },
+        {
+            "sha256": "f61361c4708d75a88c7f98990e515d97f26d8339b1a7ea6ff68a73a388f8e089",
+            "name": "Stealer:Win32/Vidar.Stealer",
+            "family": "Stealer.Vidar",
+            "severity": 9,
+            "source": "ThreatFox Vidar IOC",
+            "repairable": false
+        },
+        {
+            "sha256": "75b8e9f56e9c9a6d36e2f9d6c3c54d5b248a313b8253a48e7e1f40d8544e3939",
+            "name": "Backdoor:Win32/RemcosRAT.Professional",
+            "family": "Backdoor.Remcos",
+            "severity": 9,
+            "source": "CISA Alert AA24-038A",
+            "repairable": false
+        },
+        {
+            "sha256": "2b647ff0a2fef113d077b9ce70cfb5cfc79d10787e914d02e3b2e59752cfd01e",
+            "name": "Backdoor:Win32/AsyncRAT.Client",
+            "family": "Backdoor.AsyncRAT",
+            "severity": 9,
+            "source": "Public IOC AsyncRAT",
+            "repairable": false
         }
     ],
     "engine_notes": {

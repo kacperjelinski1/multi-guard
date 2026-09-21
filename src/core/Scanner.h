@@ -3,6 +3,8 @@
 #include <QObject>
 #include <QStringList>
 #include <QAtomicInt>
+#include <QHash>
+#include <QMutex>
 #include "SignatureDb.h"
 
 namespace verax {
@@ -54,6 +56,8 @@ public:
 
     // === Advanced Clean Threat / Repair (public for UI direct call) ===
     bool advancedCleanThreat(const QString &path, ThreatInfo &info);
+    int  inspectFile(const QString &path, const ScanRequest &req, ThreatInfo &info);
+    bool verifyAuthenticode(const QString &path) const;
 
 signals:
     void started();
@@ -66,7 +70,6 @@ signals:
 private:
     void runOn(const ScanRequest &req);
     void enumerate(const QString &target, QStringList &out, const QStringList &exts);
-    int inspectFile(const QString &path, const ScanRequest &req, ThreatInfo &info);
     int peHeuristics(const QString &path, ThreatInfo &info);
     int scriptHeuristics(const QString &path, ThreatInfo &info);
     int documentHeuristics(const QString &path, ThreatInfo &info);
@@ -116,6 +119,9 @@ private:
     int        m_cloudCallsThisScan = 0; // capped per-scan to avoid stalls
     bool       m_cloudErrorWarned   = false; // log only the first network error
     QList<ByteSig> m_byteSignatures; // loaded once per scan
+
+    static QMutex                 s_cloudMutex;
+    static QHash<QString, SigHit> s_cloudCache;
 };
 
 } // namespace verax

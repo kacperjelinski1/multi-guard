@@ -17,6 +17,7 @@ if exist .ui   rmdir /s /q .ui   >nul 2>&1
 echo [1/4] Generating translations...
 if exist i18n\verax_ar.ts lrelease.exe i18n\verax_ar.ts -qm i18n\verax_ar.qm
 if exist i18n\verax_en.ts lrelease.exe i18n\verax_en.ts -qm i18n\verax_en.qm
+if exist i18n\verax_pl.ts lrelease.exe i18n\verax_pl.ts -qm i18n\verax_pl.qm
 
 echo [2/4] Running qmake...
 qmake Verax.pro -spec win32-g++ "CONFIG+=release" || goto :error
@@ -25,11 +26,11 @@ echo [3/4] Compiling...
 mingw32-make -j%NUMBER_OF_PROCESSORS% release || goto :error
 
 echo [4/4] Stripping symbols...
-if exist RELEASED\VeraxCore.exe strip RELEASED\VeraxCore.exe
+if exist RELEASED\Multi-Guard.exe strip RELEASED\Multi-Guard.exe
 
 echo.
 echo =================================================
-echo  BUILD OK : RELEASED\VeraxCore.exe (VeraxCore Antivirus)
+echo  BUILD OK : RELEASED\Multi-Guard.exe (Multi-Guard)
 echo =================================================
 goto :eof
 

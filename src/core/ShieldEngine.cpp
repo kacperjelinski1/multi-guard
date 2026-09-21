@@ -4,6 +4,7 @@
 #include "SignatureDb.h"
 #include "Settings.h"
 #include "Logger.h"
+#include "LicenseManager.h"
 
 namespace verax {
 
@@ -30,6 +31,10 @@ void ShieldEngine::setState(State s) {
 }
 
 void ShieldEngine::startScan(const ScanRequest &req) {
+    if (!LicenseManager::instance().hasCapability(LicenseCapability::BasicScanning)) {
+        Logger::warn("ShieldEngine: Pominięto skanowanie — brak uprawnień licencyjnych.");
+        return;
+    }
     // Force-reset stale state: if scanner thread is not actually running but
     // state was left as Scanning from a previous crash/error, allow restart.
     if (m_state == Scanning && !m_scanner->isRunning()) {
@@ -46,6 +51,10 @@ void ShieldEngine::pauseScan(bool p)    { m_scanner->requestPause(p); }
 
 void ShieldEngine::updateSignatures()
 {
+    if (!LicenseManager::instance().hasCapability(LicenseCapability::SignaturesAndUpdates)) {
+        Logger::warn("ShieldEngine: Pominięto aktualizację — brak uprawnień licencyjnych.");
+        return;
+    }
     setState(Updating);
     SignatureDb::instance().updateOnline(Settings::instance().updateUrl());
     connect(&SignatureDb::instance(), &SignatureDb::updateFinished,

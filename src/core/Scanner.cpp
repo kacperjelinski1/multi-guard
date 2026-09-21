@@ -1,6 +1,7 @@
 #include "Scanner.h"
 #include "Logger.h"
 #include "SignatureDb.h"
+#include "Settings.h"
 #include "../utils/HashUtils.h"
 
 #include <QFile>
@@ -33,9 +34,41 @@
 #  include <windows.h>
 #  include <tlhelp32.h>
 #  include <psapi.h>
+#  include <wintrust.h>
+#  include <softpub.h>
 #endif
 
 namespace verax {
+
+QMutex                 Scanner::s_cloudMutex;
+QHash<QString, SigHit> Scanner::s_cloudCache;
+
+bool Scanner::verifyAuthenticode(const QString &path) const
+{
+#ifdef _WIN32
+    std::wstring wPath = path.toStdWString();
+    WINTRUST_FILE_INFO fileData{};
+    fileData.cbStruct = sizeof(WINTRUST_FILE_INFO);
+    fileData.pcwszFilePath = wPath.c_str();
+
+    GUID policyGuid = WINTRUST_ACTION_GENERIC_VERIFY_V2;
+
+    WINTRUST_DATA winTrustData{};
+    winTrustData.cbStruct = sizeof(WINTRUST_DATA);
+    winTrustData.dwUIChoice = WTD_UI_NONE;
+    winTrustData.fdwRevocationChecks = WTD_REVOKE_NONE; // Fast offline check
+    winTrustData.dwUnionChoice = WTD_CHOICE_FILE;
+    winTrustData.pFile = &fileData;
+    winTrustData.dwStateAction = WTD_STATEACTION_IGNORE;
+    winTrustData.dwProvFlags = WTD_SAFER_FLAG;
+
+    LONG status = WinVerifyTrust(NULL, &policyGuid, &winTrustData);
+    return (status == ERROR_SUCCESS);
+#else
+    Q_UNUSED(path);
+    return false;
+#endif
+}
 
 Scanner::Scanner(QObject *parent) : QObject(parent)
 {
@@ -95,6 +128,10 @@ void Scanner::enumerate(const QString &target, QStringList &out, const QStringLi
 }
 void Scanner::runOn(const ScanRequest &req)
 {
+#ifdef _WIN32
+    // Low priority I/O and CPU: allows user to game or work with zero stutter during background scan
+    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
+#endif
     emit started();
     // Force UI feedback instantly on initialization
     emit progress(0, 0, 1);
@@ -196,6 +233,7 @@ void Scanner::runOn(const ScanRequest &req)
 
 int Scanner::inspectFile(const QString &path, const ScanRequest &req, ThreatInfo &info)
 {
+    if (Settings::instance().isExcluded(path)) return 0;
     QFileInfo fi(path);
     if (!fi.exists() || !fi.isFile()) return 0;
     info.path = path;
@@ -206,7 +244,23 @@ int Scanner::inspectFile(const QString &path, const ScanRequest &req, ThreatInfo
     int score = 0;
     const QString ext = fi.suffix().toLower();
 
-    // 1) Hash DB lookup ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â cheapest and most definitive engine.
+    // 0) Standard EICAR Antivirus Test File detection (industry standard signature)
+    if (fi.size() <= 65536) {
+        QFile fEicar(path);
+        if (fEicar.open(QIODevice::ReadOnly)) {
+            QByteArray headBytes = fEicar.read(4096);
+            if (headBytes.contains("X5O!P%@AP[4\\PZX54(P^)7CC)7}$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*")) {
+                info.detectionName = QStringLiteral("EICAR-Standard-AV-Test-File");
+                info.family        = QStringLiteral("TestVirus");
+                info.severity      = 5;
+                info.repairable    = false;
+                info.reason        = QStringLiteral("Matched EICAR standard antivirus test string");
+                return 100;
+            }
+        }
+    }
+
+    // 1) Hash DB lookup — cheapest and most definitive engine.
     QString hash;
     if (req.useSigDb) {
         hash = HashUtils::sha256Hex(path).toLower().trimmed();
@@ -234,6 +288,16 @@ int Scanner::inspectFile(const QString &path, const ScanRequest &req, ThreatInfo
 
     if (req.usePe && peExts.contains(ext)) {
         score += peHeuristics(path, info);
+
+        // Authenticode signature verification (SmartScreen whitelisting):
+        // If the binary has a cryptographically valid, trusted digital signature,
+        // reduce borderline heuristic score to prevent false positives on legitimate software.
+        if (verifyAuthenticode(path)) {
+            if (score < 85) {
+                score = qMax(0, score - 60);
+                info.reason += QStringLiteral(" | [Podpis cyfrowy Authenticode: Prawidłowy]");
+            }
+        }
     }
     if (req.useHeur && scriptExts.contains(ext)) {
         score += scriptHeuristics(path, info);
@@ -310,6 +374,19 @@ int Scanner::inspectFile(const QString &path, const ScanRequest &req, ThreatInfo
 
 bool Scanner::cloudLookup(const QString &hash, ThreatInfo &info)
 {
+    // Check in-memory cloud cache first
+    {
+        QMutexLocker locker(&s_cloudMutex);
+        if (s_cloudCache.contains(hash)) {
+            ThreatInfo cached = s_cloudCache.value(hash);
+            if (!cached.detectionName.isEmpty()) {
+                info = cached;
+                return true;
+            }
+            return false; // Cached as clean
+        }
+    }
+
     // Guard: abort if scan was cancelled while we were queued
     if (m_stop.loadAcquire()) return false;
 
@@ -340,7 +417,7 @@ bool Scanner::cloudLookup(const QString &hash, ThreatInfo &info)
         loop.exec();
         if (timer.isActive()) timer.stop();
 
-        // Check again after blocking wait ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â scan might have been cancelled
+        // Check again after blocking wait — scan might have been cancelled
         if (m_stop.loadAcquire()) {
             if (reply) { reply->abort(); reply->deleteLater(); }
             delete nam;
@@ -366,6 +443,11 @@ bool Scanner::cloudLookup(const QString &hash, ThreatInfo &info)
                         Logger::info(QStringLiteral("Cloud HIT: %1 -> %2").arg(hash, sig));
                         detected = true;
                     }
+                }
+                // Cache result (either malware info or empty ThreatInfo for clean)
+                {
+                    QMutexLocker locker(&s_cloudMutex);
+                    s_cloudCache.insert(hash, detected ? info : ThreatInfo());
                 }
             }
         } else if (reply && reply->error() != QNetworkReply::NoError) {
@@ -2810,6 +2892,23 @@ int Scanner::scriptHeuristics(const QString &path, ThreatInfo &info)
         // Obfuscation tells
         { "[A-Za-z0-9+/]{200,}=",                             20, "Long base64-like blob" },
         { "(?i)char\\(\\s*\\d{2,3}\\s*\\)\\s*&\\s*char\\(",   15, "Char()&Char() string assembly" },
+
+        // Ransomware volume shadow / recovery tampering (living-off-the-land)
+        { "(?i)vssadmin(\\.exe)?\\s+delete\\s+shadows",       75, "Ransomware Shadow Copy deletion" },
+        { "(?i)wmic(\\.exe)?\\s+shadowcopy\\s+delete",        75, "WMI Shadow Copy deletion" },
+        { "(?i)wbadmin(\\.exe)?\\s+delete\\s+(?:catalog|systemstatebackup)", 70, "Backup catalog deletion" },
+        { "(?i)bcdedit(\\.exe)?\\s+.*(?:recoveryenabled\\s+no|ignoreallfailures)", 70, "Boot recovery disabling" },
+        { "(?i)cipher(\\.exe)?\\s+/w:",                       50, "Unallocated drive space wiping" },
+
+        // Credential dumping / LSASS tampering (Mimikatz, comsvcs, procdump)
+        { "(?i)sekurlsa::logonpasswords",                     85, "Mimikatz credential dumping" },
+        { "(?i)lsadump::(?:sam|secrets|dcsync)",              85, "LSASS/SAM dumping pattern" },
+        { "(?i)privilege::debug",                             45, "SeDebugPrivilege escalation" },
+        { "(?i)comsvcs\\.dll.*MiniDump",                      80, "comsvcs.dll LSASS MiniDump abuse" },
+        { "(?i)rundll32(\\.exe)?\\s+.*comsvcs.*#24",          80, "rundll32 comsvcs MiniDump export" },
+        { "(?i)procdump(\\.exe)?\\s+.*lsass",                 80, "ProcDump targeting LSASS" },
+        { "(?i)Invoke-Mimikatz",                              80, "PowerShell Invoke-Mimikatz" },
+        { "(?i)Invoke-Shellcode",                             75, "PowerShell reflective shellcode injector" },
     };
 
     int score = 0;
