@@ -9,6 +9,7 @@
 #include <QVector>
 #include "../core/Scanner.h"
 #include "../core/SystemEnum.h"
+#include "../core/LicenseManager.h"
 
 class QMenu;
 class QAction;
@@ -200,6 +201,8 @@ private:
     QCheckBox   *m_selectAll      = nullptr;
     QComboBox   *m_bulkActionCombo = nullptr;
     QPushButton *m_bulkApplyBtn   = nullptr;
+
+    QString      m_activeScanPhase;
 };
 
 } // namespace verax

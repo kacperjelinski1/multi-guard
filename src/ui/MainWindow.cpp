@@ -287,8 +287,6 @@ void MainWindow::wireUi()
     if (ui->cbContextMenu)         ui->cbContextMenu->setChecked(s.contextMenuIntegration());
     if (ui->cbMinimizeToTray)      ui->cbMinimizeToTray->setChecked(s.minimizeToTrayOnClose());
     if (ui->cbShowNotifications)   ui->cbShowNotifications->setChecked(s.showNotifications());
-    if (ui->cbRealTimeShield)      ui->cbRealTimeShield->setChecked(s.realTimeProtection());
-    if (ui->cbWebShield)           ui->cbWebShield->setChecked(s.webShield());
     if (ui->cbScanUsbOnInsert)     ui->cbScanUsbOnInsert->setChecked(s.scanUsbOnInsert());
     if (ui->cbAutoUpdateSignatures)ui->cbAutoUpdateSignatures->setChecked(s.autoUpdateSignatures());
     // if (ui->editUpdateUrl)         ui->editUpdateUrl->setText(s.updateUrl());
@@ -827,7 +825,7 @@ void MainWindow::onRealTimeThreatDetected(const verax::ThreatInfo &info)
         info.detectionName,
         info.path,
         [info]{
-            Quarantine::instance().quarantineFile(info.path, info.detectionName, info.family);
+            Quarantine::instance().moveToVault(info.path, info.sha256, info.detectionName);
         },
         [this]{
             show();
@@ -1479,8 +1477,6 @@ void MainWindow::onSettingsSaved()
     if (ui->cbContextMenu)         s.setContextMenuIntegration(ui->cbContextMenu->isChecked());
     if (ui->cbMinimizeToTray)      s.setMinimizeToTrayOnClose(ui->cbMinimizeToTray->isChecked());
     if (ui->cbShowNotifications)   s.setShowNotifications(ui->cbShowNotifications->isChecked());
-    if (ui->cbRealTimeShield)      s.setRealTimeProtection(ui->cbRealTimeShield->isChecked());
-    if (ui->cbWebShield)           s.setWebShield(ui->cbWebShield->isChecked());
     if (ui->cbScanUsbOnInsert)     s.setScanUsbOnInsert(ui->cbScanUsbOnInsert->isChecked());
     if (ui->cbAutoUpdateSignatures)s.setAutoUpdateSignatures(ui->cbAutoUpdateSignatures->isChecked());
     // if (ui->editUpdateUrl)         s.setUpdateUrl(ui->editUpdateUrl->text());
@@ -1678,7 +1674,7 @@ void MainWindow::onInstallNow()
             if (ui->lblLicenseStatusHint) {
                 ui->lblLicenseStatusHint->setText(tr("<font color='#f87171'><b>Błąd:</b> Wprowadź klucz licencyjny przed rozpoczęciem instalacji.</font>"));
             }
-            Toaster::show(this, tr("Wymagany jest ważny klucz licencyjny KeyGate."), Toaster::Warning);
+            Toaster::show(this, tr("Wymagany jest ważny klucz licencyjny KeyGate."), Toaster::Warn);
             return;
         }
 
@@ -1845,7 +1841,6 @@ void MainWindow::setupTrayIcon()
     connect(aToggleRt, &QAction::toggled, this, [this](bool v){
         Settings::instance().setRealTimeProtection(v);
         RealTimeShield::instance().setEnabled(v);
-        if (ui->cbRealTimeShield) ui->cbRealTimeShield->setChecked(v);
         NotificationAlert::showInfo(tr("Multi-Guard"), v ? tr("Ochrona w czasie rzeczywistym została włączona.") : tr("Ochrona w czasie rzeczywistym została wyłączona."));
     });
 
@@ -1855,7 +1850,6 @@ void MainWindow::setupTrayIcon()
     connect(aToggleWeb, &QAction::toggled, this, [this](bool v){
         Settings::instance().setWebShield(v);
         WebShield::instance().setEnabled(v);
-        if (ui->cbWebShield) ui->cbWebShield->setChecked(v);
     });
 
     menu->addSeparator();
@@ -2539,7 +2533,7 @@ void MainWindow::initScheduler()
 void MainWindow::onScheduledTimerTick()
 {
     const QString sched = Settings::instance().scheduledScan();
-    if (sched == "off" || Scanner::instance().isRunning()) return;
+    if (sched == "off" || ShieldEngine::instance().scanner()->isRunning()) return;
 
     const QTime now = QTime::currentTime();
     const QTime target = QTime::fromString(Settings::instance().scheduledTime(), "HH:mm");
@@ -2749,7 +2743,7 @@ void MainWindow::onChangeLicenseKeyClicked()
     if (!ui->editNewLicenseKey) return;
     QString key = ui->editNewLicenseKey->text().trimmed();
     if (key.isEmpty()) {
-        Toaster::show(this, tr("Wprowadź nowy klucz licencyjny."), Toaster::Warning);
+        Toaster::show(this, tr("Wprowadź nowy klucz licencyjny."), Toaster::Warn);
         return;
     }
     restartWithNewLicense(key);
@@ -2780,7 +2774,7 @@ void MainWindow::onActivateLockedKeyClicked()
         if (ui->lblLockedStatus) {
             ui->lblLockedStatus->setText(tr("<font color='#f87171'>Wprowadź klucz licencyjny.</font>"));
         }
-        Toaster::show(this, tr("Wprowadź klucz licencyjny."), Toaster::Warning);
+        Toaster::show(this, tr("Wprowadź klucz licencyjny."), Toaster::Warn);
         return;
     }
     restartWithNewLicense(key);
