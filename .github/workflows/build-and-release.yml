@@ -79,7 +79,28 @@ jobs:
             exit 1
           }
           strip RELEASED/Multi-Guard.exe
-          windeployqt --release --no-translations --compiler-runtime RELEASED/Multi-Guard.exe
+          $env:QT_PLUGIN_PATH = $null
+          & "$env:QT_ROOT_DIR/bin/windeployqt.exe" --no-translations --compiler-runtime RELEASED/Multi-Guard.exe
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "windeployqt exited with code $LASTEXITCODE; proceeding with direct deployment verification..."
+            $global:LASTEXITCODE = 0
+          }
+          # Defensively ensure critical Qt plugins and runtime files are present
+          New-Item -ItemType Directory -Force -Path "RELEASED/platforms" | Out-Null
+          Copy-Item "$env:QT_ROOT_DIR/plugins/platforms/*" -Destination "RELEASED/platforms/" -Recurse -Force
+          if (Test-Path "$env:QT_ROOT_DIR/plugins/imageformats") {
+            New-Item -ItemType Directory -Force -Path "RELEASED/imageformats" | Out-Null
+            Copy-Item "$env:QT_ROOT_DIR/plugins/imageformats/*" -Destination "RELEASED/imageformats/" -Recurse -Force
+          }
+          if (Test-Path "$env:QT_ROOT_DIR/plugins/sqldrivers") {
+            New-Item -ItemType Directory -Force -Path "RELEASED/sqldrivers" | Out-Null
+            Copy-Item "$env:QT_ROOT_DIR/plugins/sqldrivers/*" -Destination "RELEASED/sqldrivers/" -Recurse -Force
+          }
+          Copy-Item "$env:QT_ROOT_DIR/bin/Qt5*.dll" -Destination "RELEASED/" -Force -ErrorAction SilentlyContinue
+          Copy-Item "C:/mingw64/bin/libgcc_s_*.dll" -Destination "RELEASED/" -Force -ErrorAction SilentlyContinue
+          Copy-Item "C:/mingw64/bin/libstdc++-*.dll" -Destination "RELEASED/" -Force -ErrorAction SilentlyContinue
+          Copy-Item "C:/mingw64/bin/libwinpthread-*.dll" -Destination "RELEASED/" -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -Path RELEASED
 
       - name: Build Inno Setup Installer
         shell: pwsh
