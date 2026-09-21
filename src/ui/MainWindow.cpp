@@ -2631,7 +2631,7 @@ void MainWindow::applyLicenseGating()
     // 7. Update banner with tier & days remaining
     if (ui->lblAppNameVersion) {
         ui->lblAppNameVersion->setText(QStringLiteral("%1 v%2\n[%3 • %4]")
-                                           .arg(APP_NAME, APP_VERSION_STR, lm.tierDisplayName(), lm.daysRemainingText()));
+                                           .arg(APP_NAME, APP_VERSION_STR, lm.tierName(), lm.daysRemainingText()));
     }
 
     if (ui->dashRing) {

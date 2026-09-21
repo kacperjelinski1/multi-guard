@@ -2438,9 +2438,125 @@
                     </layout>
                    </widget>
                   </item>
-                  
-                   <item>
-                    <widget class="QLabel" name="lblExclusionsSubtitle">
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="verax::SurfaceCard" name="cardScanning">
+                 <layout class="QVBoxLayout" name="cardScanningLayout">
+                  <item>
+                   <widget class="QLabel" name="lblScanningTitle">
+                    <property name="text">
+                     <string>Skanowanie i ochrona</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QCheckBox" name="cbScanUsbOnInsert">
+                    <property name="text">
+                     <string>Skanuj pamięci USB po podłączeniu</string>
+                    </property>
+                    <property name="checked">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QCheckBox" name="cbRansomwareProtection">
+                    <property name="text">
+                     <string>Ochrona folderów przed Ransomware (Canary Guard)</string>
+                    </property>
+                    <property name="checked">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QCheckBox" name="cbContextMenu">
+                    <property name="text">
+                     <string>Dodaj 'Skanuj z Multi-Guard' do menu kontekstowego Windows</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QWidget" name="rowSchedule" native="true">
+                    <layout class="QHBoxLayout" name="rowScheduleLayout">
+                     <item>
+                      <widget class="QLabel" name="lblScheduleHeader">
+                       <property name="text">
+                        <string>Zaplanowane skanowanie:</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QComboBox" name="comboScheduledScan">
+                       <item>
+                        <property name="text">
+                         <string>Wyłączone</string>
+                        </property>
+                       </item>
+                       <item>
+                        <property name="text">
+                         <string>Codziennie</string>
+                        </property>
+                       </item>
+                       <item>
+                        <property name="text">
+                         <string>Cotygodniowo</string>
+                        </property>
+                       </item>
+                       <item>
+                        <property name="text">
+                         <string>Comiesięcznie</string>
+                        </property>
+                       </item>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QLabel" name="lblScheduleAt">
+                       <property name="text">
+                        <string>o godzinie</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QTimeEdit" name="editScheduledTime">
+                       <property name="displayFormat">
+                        <string notr="true">HH:mm</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="schedSp">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>0</width>
+                         <height>0</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                    </layout>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="verax::SurfaceCard" name="cardExclusions">
+                 <layout class="QVBoxLayout" name="cardExclusionsLayout">
+                  <item>
+                   <widget class="QLabel" name="lblExclusionsTitle">
+                    <property name="text">
+                     <string>Zaufane pliki i foldery (Biała lista wykluczeń)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="lblExclusionsSubtitle">
                      <property name="text">
                       <string>Elementy dodane do tej listy są pomijane podczas skanowania i ochrony w czasie rzeczywistym.</string>
                      </property>
