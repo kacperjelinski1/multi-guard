@@ -11,6 +11,10 @@
 #include <QFileInfo>
 #include <cmath>
 
+#ifdef Q_OS_WIN
+#include <qt_windows.h>
+#endif
+
 namespace verax {
 
 RansomwareShield& RansomwareShield::instance()
@@ -90,7 +94,7 @@ void RansomwareShield::setupWatchers()
 void RansomwareShield::seedCanaryFiles()
 {
     const QByteArray canarySeed = "MULTI_GUARD_CANARY_SENTINEL_DATA_VALIDATION_TOKEN_9918237";
-    const QString canaryHash = HashUtils::sha256(canarySeed);
+    const QString canaryHash = HashUtils::sha256Hex(canarySeed);
 
     for (const auto &folder : m_protectedFolders) {
         const QString canaryPath = folder + QDir::separator() + QStringLiteral(".multi_guard_canary.dat");
@@ -164,16 +168,16 @@ void RansomwareShield::onFileChanged(const QString &path)
         if (!QFile::exists(path)) {
             QString msg = tr("Wykryto usunięcie pliku-pułapki (Canary File) w folderze: %1").arg(path);
             Logger::error(QStringLiteral("RansomwareShield ALERT: Canary file deleted: %1").arg(path));
-            NotificationAlert::showThreat(tr("Ransomware Shield"), tr("Wykryto usunięcie pliku-pułapki!"), path);
+            NotificationAlert::showThreat(tr("Ransomware Shield"), tr("Wykryto usunięcie pliku-pułapki: %1").arg(path));
             emit ransomwareActivityDetected(path, msg);
             return;
         }
 
-        const QString currentHash = HashUtils::sha256File(path);
+        const QString currentHash = HashUtils::sha256Hex(path);
         if (currentHash != m_canaryHashes.value(path)) {
             QString msg = tr("Wykryto nieautoryzowaną modyfikację/szyfrowanie pliku-pułapki: %1").arg(path);
             Logger::error(QStringLiteral("RansomwareShield ALERT: Canary modified: %1").arg(path));
-            NotificationAlert::showThreat(tr("Ransomware Shield"), tr("Wykryto próbę szyfrowania plików!"), path);
+            NotificationAlert::showThreat(tr("Ransomware Shield"), tr("Wykryto próbę szyfrowania plików: %1").arg(path));
             emit ransomwareActivityDetected(path, msg);
             return;
         }
@@ -204,7 +208,7 @@ void RansomwareShield::onDirectoryChanged(const QString &dirPath)
             if (hasRansomwareExtension(absPath)) {
                 QString desc = tr("Wykryto plik o podejrzanym rozszerzeniu ransomware: %1").arg(info.fileName());
                 Logger::error(QStringLiteral("RansomwareShield: Extension detected %1").arg(absPath));
-                NotificationAlert::showThreat(tr("Ransomware Shield"), tr("Zablokowano atak Ransomware!"), absPath);
+                NotificationAlert::showThreat(tr("Ransomware Shield"), tr("Zablokowano atak Ransomware: %1").arg(absPath));
                 emit ransomwareActivityDetected(dirPath, desc);
                 history.clear();
                 return;
@@ -216,7 +220,7 @@ void RansomwareShield::onDirectoryChanged(const QString &dirPath)
                 if (ent >= 7.93) { // Highly encrypted
                     QString desc = tr("Wykryto gwałtowne szyfrowanie (Entropia: %1) pliku: %2").arg(QString::number(ent, 'f', 2), info.fileName());
                     Logger::error(QStringLiteral("RansomwareShield: High entropy encryption detected: %1 (%2)").arg(absPath, QString::number(ent)));
-                    NotificationAlert::showThreat(tr("Ransomware Shield"), tr("Zablokowano próbę szyfrowania!"), absPath);
+                    NotificationAlert::showThreat(tr("Ransomware Shield"), tr("Zablokowano próbę szyfrowania: %1").arg(absPath));
                     emit ransomwareActivityDetected(dirPath, desc);
                     history.clear();
                     return;
