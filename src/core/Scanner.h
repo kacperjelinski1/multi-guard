@@ -120,8 +120,8 @@ private:
     bool       m_cloudErrorWarned   = false; // log only the first network error
     QList<ByteSig> m_byteSignatures; // loaded once per scan
 
-    static QMutex                 s_cloudMutex;
-    static QHash<QString, SigHit> s_cloudCache;
+    static QMutex                     s_cloudMutex;
+    static QHash<QString, ThreatInfo> s_cloudCache;
 };
 
 } // namespace verax

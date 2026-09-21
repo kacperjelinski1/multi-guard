@@ -41,7 +41,7 @@
 namespace verax {
 
 QMutex                 Scanner::s_cloudMutex;
-QHash<QString, SigHit> Scanner::s_cloudCache;
+QHash<QString, ThreatInfo> Scanner::s_cloudCache;
 
 bool Scanner::verifyAuthenticode(const QString &path) const
 {
