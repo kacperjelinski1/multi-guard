@@ -137,7 +137,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(&RansomwareShield::instance(), &RansomwareShield::ransomwareActivityDetected,
             this, [this](const QString &folder, const QString &desc){
         AuditLogger::instance().logEvent(QStringLiteral("RansomwareBlocked"), desc, folder, 3);
-        NotificationAlert::showThreat(tr("Ransomware Shield"), desc, folder);
+        NotificationAlert::showThreat(tr("Ransomware Shield"), QStringLiteral("%1: %2").arg(desc, folder));
     });
 
     initScheduler();
@@ -382,9 +382,7 @@ void MainWindow::wireSignals()
     }
 
     if (ui->btnQuickScan)        connect(ui->btnQuickScan, &QPushButton::clicked, this, &MainWindow::onQuickScan);
-    if (ui->btnDeepScan)         connect(ui->btnDeepScan,  &QPushButton::clicked, this, &MainWindow::onDeepScan);
-    if (ui->btnScanMemory)       connect(ui->btnScanMemory,&QPushButton::clicked, this, &MainWindow::onScanMemory);
-    if (ui->btnCustomScan)       connect(ui->btnCustomScan,&QPushButton::clicked, this, &MainWindow::onCustomScan);
+    if (ui->btnFullScan)         connect(ui->btnFullScan,  &QPushButton::clicked, this, &MainWindow::onFullScan);
 
     // Tools Page - System Cleaner
     if (ui->btnScanClean) connect(ui->btnScanClean, &QPushButton::clicked, this, &MainWindow::onScanCleanClicked);
