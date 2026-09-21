@@ -17,7 +17,7 @@ public:
     void install(const QString &code);
 
     QString currentLanguage() const { return m_current; }
-    bool    isRtl() const           { return m_current == QStringLiteral("ar"); }
+    bool    isRtl() const           { return false; }
 
 signals:
     void localeChanged(const QString &code);
@@ -27,7 +27,7 @@ private:
 
     QTranslator *m_appTr = nullptr;
     QTranslator *m_qtTr  = nullptr;
-    QString      m_current = QStringLiteral("en");
+    QString      m_current = QStringLiteral("pl");
 };
 
 } // namespace verax

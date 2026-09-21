@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>830</width>
-    <height>632</height>
+    <width>1024</width>
+    <height>680</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -59,13 +59,13 @@
         <widget class="QFrame" name="sidebar">
          <property name="minimumSize">
           <size>
-           <width>220</width>
+           <width>240</width>
            <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>240</width>
+           <width>260</width>
            <height>16777215</height>
           </size>
          </property>
@@ -74,13 +74,13 @@
            <number>6</number>
           </property>
           <property name="leftMargin">
-           <number>16</number>
+           <number>8</number>
           </property>
           <property name="topMargin">
            <number>20</number>
           </property>
           <property name="rightMargin">
-           <number>16</number>
+           <number>8</number>
           </property>
           <property name="bottomMargin">
            <number>20</number>
@@ -193,7 +193,7 @@
           <item>
            <widget class="QLabel" name="lblBrandLabel">
             <property name="text">
-             <string>By Ali Sakkaf</string>
+             <string>Multi-Servis Security</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -372,19 +372,7 @@
                    </property>
                   </widget>
                  </item>
-               <item>
-                <widget class="verax::SurfaceCard" name="cardLicenseDays">
-                 <layout class="QVBoxLayout" name="cardLicenseDaysLayout">
-                  <property name="spacing">
-                   <number>4</number>
-                  </property>
-                  <item>
-                   <widget class="QLabel" name="lblLicenseDaysHeader">
-                    <property name="text">
-                     <string>🔑 Ważność licencji</string>
-                    </property>
-                   </widget>
-                  </item>
+               
                   <item>
                    <widget class="QLabel" name="lblLicenseDaysValue">
                     <property name="text">
@@ -398,6 +386,19 @@
                  </layout>
                 </widget>
                </item>
+               <item>
+                <widget class="verax::SurfaceCard" name="cardLicenseDays">
+                 <layout class="QVBoxLayout" name="cardLicenseDaysLayout">
+                  <property name="spacing">
+                   <number>4</number>
+                  </property>
+                  <item>
+                   <widget class="QLabel" name="lblLicenseDaysHeader">
+                    <property name="text">
+                     <string>🔑 Ważność licencji</string>
+                    </property>
+                   </widget>
+                  </item>
                  <item>
                   <widget class="QLabel" name="lblSignaturesInfo">
                    <property name="text">
@@ -795,7 +796,7 @@
            <item>
             <widget class="QLabel" name="lblScanTitle">
              <property name="text">
-              <string>Scan Progress</string>
+              <string>Postęp skanowania</string>
              </property>
             </widget>
            </item>
@@ -830,21 +831,21 @@
                  <item>
                   <widget class="QLabel" name="lblScanCount">
                    <property name="text">
-                    <string>Files scanned: 0</string>
+                    <string>Przeskanowano: 0</string>
                    </property>
                   </widget>
                  </item>
                  <item>
                   <widget class="QLabel" name="lblScanThreats">
                    <property name="text">
-                    <string>Threats: 0</string>
+                    <string>Zagrożenia: 0</string>
                    </property>
                   </widget>
                  </item>
                  <item>
                   <widget class="QLabel" name="lblScanCurrentHeader">
                    <property name="text">
-                    <string>Current file:</string>
+                    <string>Bieżący plik:</string>
                    </property>
                   </widget>
                  </item>
@@ -877,7 +878,7 @@
                     <item>
                      <widget class="QPushButton" name="btnPauseScan">
                       <property name="text">
-                       <string>Pause</string>
+                       <string>Pauza</string>
                       </property>
                       <property name="checkable">
                        <bool>true</bool>
@@ -887,7 +888,7 @@
                     <item>
                      <widget class="QPushButton" name="btnStopScan">
                       <property name="text">
-                       <string>Stop</string>
+                       <string>Zatrzymaj</string>
                       </property>
                       <property name="property" stdset="0">
                        <string notr="true">danger</string>
@@ -1022,7 +1023,7 @@
               <item>
                <widget class="QPushButton" name="btnQRefresh">
                 <property name="text">
-                 <string>Refresh</string>
+                 <string>Odśwież</string>
                 </property>
                </widget>
               </item>
@@ -1592,14 +1593,14 @@
             <item>
              <widget class="QLabel" name="lblToolsTitle">
               <property name="text">
-               <string>Tools &amp; System Performance</string>
+               <string>Narzędzia</string>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QLabel" name="lblToolsSubtitle">
               <property name="text">
-               <string>Monitor hardware, clean unnecessary files, manage startup and shred files.</string>
+               <string>Monitorowanie sprzętu, optymalizacja dysku i zarządzanie autostartem.</string>
               </property>
              </widget>
             </item>
@@ -1748,7 +1749,7 @@
                 <item>
                  <widget class="QLabel" name="lblCleanInfo">
                   <property name="text">
-                   <string>Clean temporary files, browser cache and Recycle Bin safely.</string>
+                   <string>Bezpieczne czyszczenie plików tymczasowych, pamięci podręcznej i kosza.</string>
                   </property>
                  </widget>
                 </item>
@@ -1757,14 +1758,14 @@
                   <item>
                    <widget class="QPushButton" name="btnScanClean">
                     <property name="text">
-                     <string>Scan Cleanable Files</string>
+                     <string>Szukaj zbędnych plików</string>
                     </property>
                    </widget>
                   </item>
                   <item>
                    <widget class="QPushButton" name="btnDoClean">
                     <property name="text">
-                     <string>Clean Now</string>
+                     <string>Oczyść teraz</string>
                     </property>
                    </widget>
                   </item>
@@ -1789,7 +1790,7 @@
                 <item>
                  <widget class="QLabel" name="lblCleanStatus">
                   <property name="text">
-                   <string>Ready to analyze system.</string>
+                   <string>Gotowy do analizy systemu.</string>
                   </property>
                  </widget>
                 </item>
@@ -1820,21 +1821,21 @@
                   <item>
                    <widget class="QPushButton" name="btnRefreshStartup">
                     <property name="text">
-                     <string>Refresh</string>
+                     <string>Odśwież</string>
                     </property>
                    </widget>
                   </item>
                   <item>
                    <widget class="QPushButton" name="btnToggleStartup">
                     <property name="text">
-                     <string>Enable / Disable</string>
+                     <string>Włącz / Wyłącz</string>
                     </property>
                    </widget>
                   </item>
                   <item>
                    <widget class="QPushButton" name="btnDeleteStartup">
                     <property name="text">
-                     <string>Delete Entry</string>
+                     <string>Usuń wpis</string>
                     </property>
                    </widget>
                   </item>
@@ -2437,193 +2438,7 @@
                     </layout>
                    </widget>
                   </item>
-                  <item>
-                   <widget class="QWidget" name="rowLanguage" native="true">
-                    <layout class="QHBoxLayout" name="rowLanguageLayout">
-                     <item>
-                      <widget class="QLabel" name="lblLanguageHeader">
-                       <property name="text">
-                        <string>Language:</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="verax::FlagIcon" name="flagPl" native="true">
-                       <property name="minimumSize">
-                        <size>
-                         <width>32</width>
-                         <height>22</height>
-                        </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="verax::FlagIcon" name="flagEn" native="true">
-                       <property name="minimumSize">
-                        <size>
-                         <width>32</width>
-                         <height>22</height>
-                        </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="verax::FlagIcon" name="flagAr" native="true">
-                       <property name="minimumSize">
-                        <size>
-                         <width>32</width>
-                         <height>22</height>
-                        </size>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QComboBox" name="comboLanguage">
-                       <item>
-                        <property name="text">
-                         <string>English</string>
-                        </property>
-                       </item>
-                       <item>
-                        <property name="text">
-                         <string>العربية</string>
-                        </property>
-                       </item>
-                      </widget>
-                     </item>
-                     <item>
-                      <spacer name="langSp">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>0</width>
-                         <height>0</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-               </item>
-               <item>
-                <widget class="verax::SurfaceCard" name="cardScanning">
-                 <layout class="QVBoxLayout" name="cardScanningLayout">
-                  <item>
-                   <widget class="QLabel" name="lblScanningTitle">
-                    <property name="text">
-                     <string>Scanning</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QCheckBox" name="cbScanUsbOnInsert">
-                    <property name="text">
-                     <string>Offer to scan USB devices when inserted</string>
-                    </property>
-                    <property name="checked">
-                     <bool>true</bool>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QCheckBox" name="cbRansomwareProtection">
-                    <property name="text">
-                     <string>Ochrona folderów przed Ransomware (Canary Guard)</string>
-                    </property>
-                    <property name="checked">
-                     <bool>true</bool>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QCheckBox" name="cbContextMenu">
-                    <property name="text">
-                     <string>Add 'Scan with Multi-Guard' to Windows context menu</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QWidget" name="rowSchedule" native="true">
-                    <layout class="QHBoxLayout" name="rowScheduleLayout">
-                     <item>
-                      <widget class="QLabel" name="lblScheduleHeader">
-                       <property name="text">
-                        <string>Scheduled scan:</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QComboBox" name="comboScheduledScan">
-                       <item>
-                        <property name="text">
-                         <string>Off</string>
-                        </property>
-                       </item>
-                       <item>
-                        <property name="text">
-                         <string>Daily</string>
-                        </property>
-                       </item>
-                       <item>
-                        <property name="text">
-                         <string>Weekly</string>
-                        </property>
-                       </item>
-                       <item>
-                        <property name="text">
-                         <string>Monthly</string>
-                        </property>
-                       </item>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="lblScheduleAt">
-                       <property name="text">
-                        <string>at</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QTimeEdit" name="editScheduledTime">
-                       <property name="displayFormat">
-                        <string notr="true">HH:mm</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <spacer name="schedSp">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>0</width>
-                         <height>0</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                    </layout>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-               </item>
-               <item>
-                 <widget class="verax::SurfaceCard" name="cardExclusions">
-                  <layout class="QVBoxLayout" name="cardExclusionsLayout">
-                   <item>
-                    <widget class="QLabel" name="lblExclusionsTitle">
-                     <property name="text">
-                      <string>Zaufane pliki i foldery (Biała lista wykluczeń)</string>
-                     </property>
-                    </widget>
-                   </item>
+                  
                    <item>
                     <widget class="QLabel" name="lblExclusionsSubtitle">
                      <property name="text">
@@ -2864,7 +2679,7 @@
                  <item>
                   <widget class="QLabel" name="lblAboutVendor">
                    <property name="text">
-                    <string>&lt;a href=&quot;https://alisakkaf.com&quot; style=&quot;color:#2563EB; text-decoration:none; font-weight:700;&quot;&gt;By Ali Sakkaf&lt;/a&gt;</string>
+                    <string>&lt;a href=&quot;https://multi-servis.pl&quot; style=&quot;color:#2563EB; text-decoration:none; font-weight:700;&quot;&gt;By Ali Sakkaf&lt;/a&gt;</string>
                    </property>
                    <property name="textFormat">
                     <enum>Qt::RichText</enum>
@@ -2894,7 +2709,7 @@
                  <item>
                   <widget class="QLabel" name="lblAboutHomepage">
                    <property name="text">
-                    <string>https://alisakkaf.com</string>
+                    <string>https://multi-servis.pl</string>
                    </property>
                    <property name="openExternalLinks">
                     <bool>true</bool>
@@ -3025,7 +2840,7 @@
               <item>
                <widget class="QLabel" name="lblAboutCopyright">
                 <property name="text">
-                 <string>Copyright © 2026 Ali Sakkaf</string>
+                 <string>Copyright © 2026 Multi-Servis</string>
                 </property>
                </widget>
               </item>
@@ -3057,221 +2872,7 @@
            </item>
           </layout>
          </widget>
-         <widget class="QWidget" name="pageInstaller">
-          <layout class="QVBoxLayout" name="installerLayout">
-           <property name="spacing">
-            <number>16</number>
-           </property>
-           <property name="leftMargin">
-            <number>32</number>
-           </property>
-           <property name="topMargin">
-            <number>32</number>
-           </property>
-           <property name="rightMargin">
-            <number>32</number>
-           </property>
-           <property name="bottomMargin">
-            <number>32</number>
-           </property>
-           <item>
-            <widget class="verax::SurfaceCard" name="cardInstaller">
-             <layout class="QVBoxLayout" name="installerCardLayout">
-              <property name="spacing">
-               <number>14</number>
-              </property>
-              <item>
-               <widget class="QLabel" name="lblInstallerTitle">
-                <property name="text">
-                 <string>Witamy w Instalatorze Multi-Guard</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="lblInstallerSubtitle">
-                <property name="text">
-                 <string>Multi-Guard zabezpiecza system przed zagrożeniami, ransomware i kradzieżą danych. Kliknij Zainstaluj, aby wdrożyć zaawansowaną ochronę.</string>
-                </property>
-                <property name="wordWrap">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QWidget" name="rowCurrentPath" native="true">
-                <layout class="QHBoxLayout" name="rowCurrentPathLayout">
-                 <item>
-                  <widget class="QLabel" name="lblCurrentPathHeader">
-                   <property name="text">
-                    <string>Currently running from:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLineEdit" name="editCurrentPath">
-                   <property name="readOnly">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-              <item>
-               <widget class="QWidget" name="rowLicenseKey" native="true">
-                <layout class="QVBoxLayout" name="rowLicenseKeyLayout">
-                 <property name="spacing">
-                  <number>4</number>
-                 </property>
-                 <property name="leftMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="topMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="rightMargin">
-                  <number>0</number>
-                 </property>
-                 <property name="bottomMargin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QLabel" name="lblLicenseKeyHeader">
-                   <property name="text">
-                    <string>Klucz licencyjny KeyGate (Wymagany do instalacji):</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLineEdit" name="editLicenseKey">
-                   <property name="placeholderText">
-                    <string>Wklej swój klucz licencyjny KeyGate...</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="lblLicenseStatusHint">
-                   <property name="text">
-                    <string>Licencja zostanie zweryfikowana i aktywowana na tym urządzeniu przed zakończeniem instalacji.</string>
-                   </property>
-                   <property name="wordWrap">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-              <item>
-               <widget class="QWidget" name="rowInstallPath" native="true">
-                <layout class="QHBoxLayout" name="rowInstallPathLayout">
-                 <item>
-                  <widget class="QLabel" name="lblInstallPathHeader">
-                   <property name="text">
-                    <string>Install to:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLineEdit" name="editInstallPath"/>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="btnInstallBrowse">
-                   <property name="text">
-                    <string>Browse…</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-              <item>
-               <widget class="QCheckBox" name="cbInstallDesktop">
-                <property name="text">
-                 <string>Create desktop shortcut</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QCheckBox" name="cbInstallStartMenu">
-                <property name="text">
-                 <string>Create Start Menu shortcut</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QCheckBox" name="cbInstallStartup">
-                <property name="text">
-                 <string>Start with Windows</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QWidget" name="rowInstallerButtons" native="true">
-                <layout class="QHBoxLayout" name="rowInstallerButtonsLayout">
-                 <item>
-                  <spacer name="instSp">
-                   <property name="orientation">
-                    <enum>Qt::Horizontal</enum>
-                   </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>0</width>
-                     <height>0</height>
-                    </size>
-                   </property>
-                  </spacer>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="btnInstallCancel">
-                   <property name="text">
-                    <string>Cancel</string>
-                   </property>
-                   <property name="property" stdset="0">
-                    <string notr="true">ghost</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QPushButton" name="btnInstallNow">
-                   <property name="text">
-                    <string>Install</string>
-                   </property>
-                   <property name="property" stdset="0">
-                    <string notr="true">primary</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <spacer name="installerBottomSp">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </widget>
+         
           <widget class="QWidget" name="pageLicenseLocked">
            <layout class="QVBoxLayout" name="lockedLayout">
             <property name="spacing">
@@ -3434,11 +3035,7 @@
    <extends>QWidget</extends>
    <header>src/widgets/ProgressRing.h</header>
   </customwidget>
-  <customwidget>
-   <class>verax::FlagIcon</class>
-   <extends>QWidget</extends>
-   <header>src/widgets/FlagIcon.h</header>
-  </customwidget>
+  
   <customwidget>
    <class>verax::SurfaceCard</class>
    <extends>QFrame</extends>

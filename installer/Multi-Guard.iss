@@ -2,7 +2,7 @@
 ; Developed by Multi-Servis (https://multi-servis.pl)
 
 #define MyAppName "Multi-Guard"
-#define MyAppVersion "1.1.2.0"
+#define MyAppVersion "1.1.3.0"
 #define MyAppPublisher "Multi-Servis"
 #define MyAppURL "https://multi-servis.pl"
 #define MyAppExeName "Multi-Guard.exe"
@@ -26,6 +26,8 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
 ArchitecturesInstallIn64BitMode=x64compatible
+CloseApplications=yes
+RestartApplications=no
 UninstallDisplayIcon={app}\{#MyAppExeName}
 VersionInfoVersion={#MyAppVersion}
 VersionInfoCompany={#MyAppPublisher}
@@ -34,7 +36,6 @@ VersionInfoCopyright=Copyright (C) 2026 Multi-Servis
 
 [Languages]
 Name: "polish"; MessagesFile: "compiler:Languages\Polish.isl"
-Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
@@ -61,16 +62,36 @@ Filename: "{app}\{#MyAppExeName}"; Parameters: "--uninstall"; Flags: runhidden
 var
   LicensePage: TInputQueryWizardPage;
 
+function InitializeSetup(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  Result := True;
+  // Kill running Multi-Guard so files are not locked
+  Exec('taskkill.exe', '/F /IM Multi-Guard.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec('taskkill.exe', '/F /IM VeraxCore.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+function InitializeUninstall(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  Result := True;
+  // Kill running Multi-Guard so files can be cleanly removed
+  Exec('taskkill.exe', '/F /IM Multi-Guard.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec('taskkill.exe', '/F /IM VeraxCore.exe /T', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
 procedure InitializeWizard;
 begin
   LicensePage := CreateInputQueryPage(
     wpSelectDir,
-    'Aktywacja licencji Multi-Guard',
-    'Wymagana weryfikacja licencji',
-    'Wprowadź swój klucz licencyjny otrzymany od Multi-Servis (kontakt: 505 012 914).' + #13#10 +
-    'Bez aktywnego klucza instalacja nie może być kontynuowana:'
+    'Aktywacja licencji Multi-Guard (opcjonalnie)',
+    'Wprowadź swój klucz licencyjny',
+    'Jeśli posiadasz klucz licencyjny Multi-Servis (kontakt: 505 012 914), możesz wprowadzić go poniżej.' + #13#10 +
+    'Możesz także pozostawić to pole puste i aktywować program bezpośrednio po instalacji:'
   );
-  LicensePage.Add('Klucz licencyjny:', False);
+  LicensePage.Add('Klucz licencyjny (opcjonalnie):', False);
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -80,9 +101,10 @@ begin
   Result := True;
   if CurPageID = LicensePage.ID then begin
     Key := Trim(LicensePage.Values[0]);
-    if (Length(Key) < 8) then begin
-      MsgBox('Wprowadź poprawny klucz licencyjny Multi-Guard, aby kontynuować instalację.' + #13#10 +
-             'W celu zakupu lub przedłużenia licencji skontaktuj się z Multi-Servis pod numerem 505 012 914.', mbError, MB_OK);
+    // Only validate if user actually entered something
+    if (Key <> '') and (Length(Key) < 8) then begin
+      MsgBox('Wprowadzony klucz licencyjny jest za krótki (min. 8 znaków).' + #13#10 +
+             'Jeśli nie masz jeszcze klucza, pozostaw pole puste i kliknij Dalej (kontakt: 505 012 914).', mbError, MB_OK);
       Result := False;
     end;
   end;
@@ -102,6 +124,7 @@ begin
     Key := Trim(LicensePage.Values[0]);
     if Key <> '' then begin
       RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Multi-Guard', 'LicenseKey', Key);
+      RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Multi-Guard', 'LicenseKey', Key);
       KeyDir := ExpandConstant('{commonappdata}\Multi-Guard');
       ForceDirectories(KeyDir);
       SaveStringToFile(KeyDir + '\license.key', Key, False);

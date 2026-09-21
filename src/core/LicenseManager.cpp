@@ -502,6 +502,9 @@ void LicenseManager::updateCapabilities()
         m_activeCapabilities.insert(LicenseCapability::UsbScanning);
         m_activeCapabilities.insert(LicenseCapability::SignaturesAndUpdates);
         m_activeCapabilities.insert(LicenseCapability::Exclusions);
+        m_activeCapabilities.insert(LicenseCapability::HardwareMonitor);
+        m_activeCapabilities.insert(LicenseCapability::DiskCleaner);
+        m_activeCapabilities.insert(LicenseCapability::StartupManager);
         break;
 
     case LicenseTier::Secure:
@@ -512,6 +515,9 @@ void LicenseManager::updateCapabilities()
         m_activeCapabilities.insert(LicenseCapability::UsbScanning);
         m_activeCapabilities.insert(LicenseCapability::SignaturesAndUpdates);
         m_activeCapabilities.insert(LicenseCapability::Exclusions);
+        m_activeCapabilities.insert(LicenseCapability::HardwareMonitor);
+        m_activeCapabilities.insert(LicenseCapability::DiskCleaner);
+        m_activeCapabilities.insert(LicenseCapability::StartupManager);
         // Additional security modules
         m_activeCapabilities.insert(LicenseCapability::RansomwareProtection);
         m_activeCapabilities.insert(LicenseCapability::WebProtection);
@@ -577,6 +583,21 @@ void LicenseManager::updateCapabilities()
 
 bool LicenseManager::hasCapability(LicenseCapability cap) const
 {
+    if (m_license.tier == LicenseTier::AdminFull)
+        return true;
+    if (isLicensed()) {
+        if (cap == LicenseCapability::BasicScanning ||
+            cap == LicenseCapability::QuarantineAndRepair ||
+            cap == LicenseCapability::RealTimeProtection ||
+            cap == LicenseCapability::SignaturesAndUpdates ||
+            cap == LicenseCapability::UsbScanning ||
+            cap == LicenseCapability::Exclusions ||
+            cap == LicenseCapability::HardwareMonitor ||
+            cap == LicenseCapability::DiskCleaner ||
+            cap == LicenseCapability::StartupManager) {
+            return true;
+        }
+    }
     return m_activeCapabilities.contains(cap);
 }
 
@@ -733,6 +754,7 @@ bool LicenseManager::saveKey(const QString &key)
 
 QString LicenseManager::loadSavedKey() const
 {
+    // 1) User AppData
     QString dirPath = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + "/Multi-Guard";
     QString filePath = dirPath + "/license.key";
     QFile file(filePath);
@@ -744,11 +766,29 @@ QString LicenseManager::loadSavedKey() const
         }
     }
 
+    // 2) ProgramData (written by Inno Setup installer)
+    QFile commonFile(QStringLiteral("C:/ProgramData/Multi-Guard/license.key"));
+    if (commonFile.open(QIODevice::ReadOnly)) {
+        QString k = QString::fromUtf8(commonFile.readAll()).trimmed();
+        commonFile.close();
+        if (!k.isEmpty()) {
+            return k;
+        }
+    }
+
 #ifdef Q_OS_WIN
+    // 3) Native HKLM
     QSettings reg("HKEY_LOCAL_MACHINE\\SOFTWARE\\Multi-Guard", QSettings::NativeFormat);
     QString k = reg.value("LicenseKey").toString().trimmed();
     if (!k.isEmpty()) {
         return k;
+    }
+
+    // 4) WOW6432Node HKLM
+    QSettings regWow("HKEY_LOCAL_MACHINE\\SOFTWARE\\WOW6432Node\\Multi-Guard", QSettings::NativeFormat);
+    QString kWow = regWow.value("LicenseKey").toString().trimmed();
+    if (!kWow.isEmpty()) {
+        return kWow;
     }
 #endif
 

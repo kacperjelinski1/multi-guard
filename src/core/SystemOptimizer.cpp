@@ -40,7 +40,7 @@ qint64 SystemOptimizer::getDirSize(const QString &path, int &fileCount)
     QDir dir(path);
     if (!dir.exists()) return 0;
 
-    QDirIterator it(path, QDir::Files | QDir::NoSymLinks, QDirIterator::Subdirectories);
+    QDirIterator it(path, QDir::Files | QDir::Hidden | QDir::System | QDir::NoSymLinks, QDirIterator::Subdirectories);
     while (it.hasNext()) {
         it.next();
         total += it.fileInfo().size();
@@ -84,24 +84,38 @@ QList<CleanItem> SystemOptimizer::scanSystem()
     {
         CleanItem browserCache;
         browserCache.id = "browser_cache";
-        browserCache.name = QObject::tr("Pamięć podręczna przeglądarek (Chrome / Edge / Firefox)");
+        browserCache.name = QObject::tr("Pamięć podręczna przeglądarek (Chrome / Edge / Firefox / Opera)");
         browserCache.description = QObject::tr("Pobrane miniaturki, skrypty i obrazy z przeglądanych stron WWW");
 
-        QString localAppData = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-        QString localAppBase = QDir::cleanPath(localAppData + "/../..");
+        QString localAppBase = qEnvironmentVariable("LOCALAPPDATA");
+        if (localAppBase.isEmpty()) {
+            localAppBase = QDir::cleanPath(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/../..");
+        }
 
         QStringList cachePaths = {
-            localAppBase + "/Google/Chrome/User Data/Default/Cache/Cache_Data",
-            localAppBase + "/Microsoft/Edge/User Data/Default/Cache/Cache_Data"
+            localAppBase + "/Google/Chrome/User Data/Default/Cache",
+            localAppBase + "/Google/Chrome/User Data/Default/Code Cache",
+            localAppBase + "/Google/Chrome/User Data/Default/GPUCache",
+            localAppBase + "/Microsoft/Edge/User Data/Default/Cache",
+            localAppBase + "/Microsoft/Edge/User Data/Default/Code Cache",
+            localAppBase + "/Microsoft/Edge/User Data/Default/GPUCache",
+            localAppBase + "/BraveSoftware/Brave-Browser/User Data/Default/Cache",
+            localAppBase + "/Opera Software/Opera Stable/Cache"
         };
 
-        // Firefox cache
-        QString ffProfiles = localAppBase + "/Mozilla/Firefox/Profiles";
-        QDir ffDir(ffProfiles);
-        if (ffDir.exists()) {
-            const QStringList dirs = ffDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-            for (const QString &d : dirs) {
-                cachePaths.append(ffProfiles + "/" + d + "/cache2");
+        // Firefox cache (stored in %LOCALAPPDATA%/Mozilla/Firefox/Profiles or %APPDATA%)
+        QStringList ffBases = {
+            localAppBase + "/Mozilla/Firefox/Profiles",
+            qEnvironmentVariable("APPDATA") + "/Mozilla/Firefox/Profiles"
+        };
+        for (const QString &ffBase : ffBases) {
+            QDir ffDir(ffBase);
+            if (ffDir.exists()) {
+                const QStringList dirs = ffDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+                for (const QString &d : dirs) {
+                    cachePaths.append(ffBase + "/" + d + "/cache2");
+                    cachePaths.append(ffBase + "/" + d + "/startupCache");
+                }
             }
         }
 
@@ -139,8 +153,11 @@ QList<CleanItem> SystemOptimizer::scanSystem()
         thumbs.id = "thumb_cache";
         thumbs.name = QObject::tr("Pamięć podręczna miniaturek Eksploratora Windows");
         thumbs.description = QObject::tr("Zbuforowane miniatury zdjęć i filmów w Eksploratorze (thumbcache_*.db)");
-        QString localAppData = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-        QString explorerDir = QDir::cleanPath(localAppData + "/../../Microsoft/Windows/Explorer");
+        QString localAppBase = qEnvironmentVariable("LOCALAPPDATA");
+        if (localAppBase.isEmpty()) {
+            localAppBase = QDir::cleanPath(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/../..");
+        }
+        QString explorerDir = localAppBase + "/Microsoft/Windows/Explorer";
         QDir expDir(explorerDir);
         if (expDir.exists()) {
             const auto entries = expDir.entryInfoList({"thumbcache_*.db", "iconcache_*.db"}, QDir::Files);
@@ -152,7 +169,28 @@ QList<CleanItem> SystemOptimizer::scanSystem()
         items.append(thumbs);
     }
 
-    // 6. DNS Resolver Cache
+    // 6. Crash Dumps & Diagnostics
+    {
+        CleanItem dumps;
+        dumps.id = "crash_dumps";
+        dumps.name = QObject::tr("Zrzuty pamięci i raporty awarii (Crash Dumps)");
+        dumps.description = QObject::tr("Automatycznie generowane raporty z błędów aplikacji w systemie");
+        QString localAppBase = qEnvironmentVariable("LOCALAPPDATA");
+        QStringList dumpPaths = {
+            localAppBase + "/CrashDumps",
+            "C:/Windows/Minidump"
+        };
+        int count = 0;
+        qint64 total = 0;
+        for (const QString &dp : dumpPaths) {
+            total += getDirSize(dp, count);
+        }
+        dumps.byteCount = total;
+        dumps.fileCount = count;
+        items.append(dumps);
+    }
+
+    // 7. DNS Resolver Cache
     {
         CleanItem dns;
         dns.id = "dns_cache";
@@ -172,13 +210,21 @@ qint64 SystemOptimizer::cleanDir(const QString &path)
     QDir dir(path);
     if (!dir.exists()) return 0;
 
-    QFileInfoList entries = dir.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot, QDir::DirsLast);
+    QFileInfoList entries = dir.entryInfoList(QDir::Files | QDir::Dirs | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot, QDir::DirsLast);
     for (const QFileInfo &fi : entries) {
         if (fi.isDir()) {
             freed += cleanDir(fi.absoluteFilePath());
+#ifdef Q_OS_WIN
+            SetFileAttributesW(reinterpret_cast<LPCWSTR>(fi.absoluteFilePath().utf16()), FILE_ATTRIBUTE_NORMAL);
+#endif
             dir.rmdir(fi.fileName());
         } else if (fi.isFile()) {
             qint64 sz = fi.size();
+#ifdef Q_OS_WIN
+            SetFileAttributesW(reinterpret_cast<LPCWSTR>(fi.absoluteFilePath().utf16()), FILE_ATTRIBUTE_NORMAL);
+#else
+            QFile::setPermissions(fi.absoluteFilePath(), QFile::ReadOwner | QFile::WriteOwner);
+#endif
             if (QFile::remove(fi.absoluteFilePath())) {
                 freed += sz;
             }
@@ -189,8 +235,8 @@ qint64 SystemOptimizer::cleanDir(const QString &path)
 
 qint64 SystemOptimizer::cleanItems(const QStringList &categoryIds)
 {
-    if (!LicenseManager::instance().hasCapability(LicenseCapability::DiskCleaner)) {
-        Logger::warn("SystemOptimizer: Pominięto czyszczenie — brak uprawnień licencyjnych.");
+    if (!LicenseManager::instance().isValid()) {
+        Logger::warn("SystemOptimizer: Pominięto czyszczenie — brak aktywnej licencji.");
         return 0;
     }
 
@@ -212,20 +258,34 @@ qint64 SystemOptimizer::cleanItems(const QStringList &categoryIds)
     }
 
     if (categoryIds.contains("browser_cache")) {
-        QString localAppData = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-        QString localAppBase = QDir::cleanPath(localAppData + "/../..");
+        QString localAppBase = qEnvironmentVariable("LOCALAPPDATA");
+        if (localAppBase.isEmpty()) {
+            localAppBase = QDir::cleanPath(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/../..");
+        }
 
         QStringList cachePaths = {
-            localAppBase + "/Google/Chrome/User Data/Default/Cache/Cache_Data",
-            localAppBase + "/Microsoft/Edge/User Data/Default/Cache/Cache_Data"
+            localAppBase + "/Google/Chrome/User Data/Default/Cache",
+            localAppBase + "/Google/Chrome/User Data/Default/Code Cache",
+            localAppBase + "/Google/Chrome/User Data/Default/GPUCache",
+            localAppBase + "/Microsoft/Edge/User Data/Default/Cache",
+            localAppBase + "/Microsoft/Edge/User Data/Default/Code Cache",
+            localAppBase + "/Microsoft/Edge/User Data/Default/GPUCache",
+            localAppBase + "/BraveSoftware/Brave-Browser/User Data/Default/Cache",
+            localAppBase + "/Opera Software/Opera Stable/Cache"
         };
 
-        QString ffProfiles = localAppBase + "/Mozilla/Firefox/Profiles";
-        QDir ffDir(ffProfiles);
-        if (ffDir.exists()) {
-            const QStringList dirs = ffDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
-            for (const QString &d : dirs) {
-                cachePaths.append(ffProfiles + "/" + d + "/cache2");
+        QStringList ffBases = {
+            localAppBase + "/Mozilla/Firefox/Profiles",
+            qEnvironmentVariable("APPDATA") + "/Mozilla/Firefox/Profiles"
+        };
+        for (const QString &ffBase : ffBases) {
+            QDir ffDir(ffBase);
+            if (ffDir.exists()) {
+                const QStringList dirs = ffDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+                for (const QString &d : dirs) {
+                    cachePaths.append(ffBase + "/" + d + "/cache2");
+                    cachePaths.append(ffBase + "/" + d + "/startupCache");
+                }
             }
         }
 
@@ -247,18 +307,30 @@ qint64 SystemOptimizer::cleanItems(const QStringList &categoryIds)
     }
 
     if (categoryIds.contains("thumb_cache")) {
-        QString localAppData = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
-        QString explorerDir = QDir::cleanPath(localAppData + "/../../Microsoft/Windows/Explorer");
+        QString localAppBase = qEnvironmentVariable("LOCALAPPDATA");
+        if (localAppBase.isEmpty()) {
+            localAppBase = QDir::cleanPath(QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/../..");
+        }
+        QString explorerDir = localAppBase + "/Microsoft/Windows/Explorer";
         QDir expDir(explorerDir);
         if (expDir.exists()) {
             const auto entries = expDir.entryInfoList({"thumbcache_*.db", "iconcache_*.db"}, QDir::Files);
             for (const auto &e : entries) {
                 qint64 s = e.size();
+#ifdef Q_OS_WIN
+                SetFileAttributesW(reinterpret_cast<LPCWSTR>(e.absoluteFilePath().utf16()), FILE_ATTRIBUTE_NORMAL);
+#endif
                 if (QFile::remove(e.absoluteFilePath())) {
                     totalFreed += s;
                 }
             }
         }
+    }
+
+    if (categoryIds.contains("crash_dumps")) {
+        QString localAppBase = qEnvironmentVariable("LOCALAPPDATA");
+        totalFreed += cleanDir(localAppBase + "/CrashDumps");
+        totalFreed += cleanDir("C:/Windows/Minidump");
     }
 
     if (categoryIds.contains("dns_cache")) {

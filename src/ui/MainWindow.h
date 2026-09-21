@@ -41,7 +41,6 @@ public:
         PageRemoteRepair,
         PageSettings,
         PageAbout,
-        PageInstaller,
         PageLicenseLocked
     };
     Q_ENUM(PageIndex)
@@ -49,11 +48,12 @@ public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow() override;
 
-    static bool isInstalledPath();
-    void showInstaller();
+    static bool isInstalledPath() { return true; }
+    void showInstaller() { show(); }
     void startInTray();
     void runSilentScanAndExit();
     void scanCustomTargets(const QStringList &targets);
+    QSystemTrayIcon* trayIcon() const { return m_tray; }
 
 public slots:
     void onRealTimeThreatDetected(const verax::ThreatInfo &info);
@@ -69,7 +69,6 @@ protected:
 #endif
 private slots:
     void onNavClicked();
-    void onLanguageChanged(const QString &code);
 
     // Dashboard
     void onQuickScan();
@@ -110,16 +109,10 @@ private slots:
     void onSettingsSaved();
     void onSettingsReset();
     void onCheckUpdatesNow();
-    void onLanguageSelectionChanged(int idx);
 
     // About
     void onSelfTest();
     void onBrandClicked(int kind);   // BrandIcon::Kind
-
-    // Installer
-    void onInstallNow();
-    void onInstallBrowse();
-    void onInstallCancel();
 
     // Tray
     void onTrayActivated(QSystemTrayIcon::ActivationReason r);

@@ -9,6 +9,7 @@
 #include "src/core/Translator.h"
 #include "src/core/Logger.h"
 #include "src/core/LicenseManager.h"
+#include "src/core/WindowsSecurityIntegration.h"
 #include "src/ui/MainWindow.h"
 #include "src/utils/ThemeManager.h"
 
@@ -18,13 +19,87 @@
 #include <QFile>
 #include <QFontDatabase>
 #include <QDir>
-#include <QMessageBox>
-#include <QPushButton>
+#include <QFileInfo>
 #include <QRegularExpression>
+#include <QLocalServer>
+#include <QLocalSocket>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
 #include <tlhelp32.h>
+
+// Sweep the Windows notification tray to eliminate ghost tray icons from terminated processes
+static void refreshSystemTray()
+{
+    auto sweepToolbar = [](HWND hWnd) {
+        if (!hWnd) return;
+        RECT rc;
+        if (GetClientRect(hWnd, &rc)) {
+            for (int x = 1; x < rc.right; x += 8) {
+                for (int y = 1; y < rc.bottom; y += 8) {
+                    SendMessageA(hWnd, WM_MOUSEMOVE, 0, MAKELPARAM(x, y));
+                }
+            }
+        }
+    };
+
+    // 1) Main taskbar tray
+    HWND hShell = FindWindowA("Shell_TrayWnd", NULL);
+    if (hShell) {
+        HWND hNotify = FindWindowExA(hShell, NULL, "TrayNotifyWnd", NULL);
+        if (hNotify) {
+            HWND hSysPager = FindWindowExA(hNotify, NULL, "SysPager", NULL);
+            HWND hTb = FindWindowExA(hSysPager ? hSysPager : hNotify, NULL, "ToolbarWindow32", NULL);
+            sweepToolbar(hTb);
+        }
+    }
+
+    // 2) Overflow notification area (the chevron ^ popup)
+    HWND hOverflow = FindWindowA("NotifyIconOverflowWindow", NULL);
+    if (hOverflow) {
+        HWND hTbOverflow = FindWindowExA(hOverflow, NULL, "ToolbarWindow32", NULL);
+        sweepToolbar(hTbOverflow);
+    }
+}
+
+// Kill any other running Multi-Guard / VeraxCore instances immediately
+static void terminateOtherInstances()
+{
+    DWORD myPid = GetCurrentProcessId();
+    QString myExeName = QFileInfo(QCoreApplication::applicationFilePath()).fileName();
+    bool killedAny = false;
+
+    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hSnap != INVALID_HANDLE_VALUE) {
+        PROCESSENTRY32W pe32;
+        pe32.dwSize = sizeof(PROCESSENTRY32W);
+        if (Process32FirstW(hSnap, &pe32)) {
+            do {
+                if (pe32.th32ProcessID != myPid && pe32.th32ProcessID > 4) {
+                    QString exeName = QString::fromWCharArray(pe32.szExeFile);
+                    if (exeName.compare(myExeName, Qt::CaseInsensitive) == 0 ||
+                        exeName.compare(QString::fromLatin1(APP_BIN_NAME), Qt::CaseInsensitive) == 0 ||
+                        exeName.compare(QStringLiteral("Multi-Guard.exe"), Qt::CaseInsensitive) == 0 ||
+                        exeName.compare(QStringLiteral("VeraxCore.exe"), Qt::CaseInsensitive) == 0) {
+                        HANDLE hProc = OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, FALSE, pe32.th32ProcessID);
+                        if (hProc) {
+                            TerminateProcess(hProc, 0);
+                            WaitForSingleObject(hProc, 500);
+                            CloseHandle(hProc);
+                            killedAny = true;
+                        }
+                    }
+                }
+            } while (Process32NextW(hSnap, &pe32));
+        }
+        CloseHandle(hSnap);
+    }
+
+    if (killedAny) {
+        Sleep(150);
+        refreshSystemTray();
+    }
+}
 #endif
 
 int main(int argc, char *argv[])
@@ -73,7 +148,6 @@ int main(int argc, char *argv[])
         QStringLiteral(":/fonts/Inter-Regular.ttf"),
         QStringLiteral(":/fonts/Inter-SemiBold.ttf"),
         QStringLiteral(":/fonts/Inter-Bold.ttf"),
-        QStringLiteral(":/fonts/NotoNaskhArabic-Bold.ttf"),
     };
     for (const QString &p : fontPaths) {
         if (QFile::exists(p))
@@ -100,77 +174,67 @@ int main(int argc, char *argv[])
         QObject::tr("Run silent scan and exit"));
     QCommandLineOption optTray(QStringList{"t","tray"},
         QObject::tr("Start minimized to system tray"));
+    QCommandLineOption optUninstall(QStringList{"uninstall"},
+        QObject::tr("Perform silent uninstallation cleanup and exit"));
     parser.addOption(optScan);
     parser.addOption(optTray);
+    parser.addOption(optUninstall);
     parser.process(a);
 
+    if (parser.isSet(optUninstall)) {
+        verax::Logger::info("main: unregistering antivirus due to --uninstall");
+        verax::WindowsSecurityIntegration::unregisterAntivirus();
+        verax::WindowsSecurityIntegration::restoreDefenderMonitoring();
+        return 0;
+    }
+
 #ifdef Q_OS_WIN
-    // 7.5) Single Instance check
-    HANDLE hMutex = CreateMutexA(NULL, FALSE, "MultiGuard_SingleInstance_Mutex");
-    if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        // Bring existing window to front
-        HWND hWnd = FindWindowA(NULL, APP_NAME);
-        if (hWnd) {
-            ShowWindow(hWnd, SW_RESTORE);
-            SetForegroundWindow(hWnd);
-        }
-
-        // Show elegant dialog
-        QMessageBox msgBox;
-        msgBox.setIconPixmap(QPixmap(":/assets/logo.png").scaled(64, 64, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-        msgBox.setWindowTitle(QString::fromLatin1(APP_NAME));
-        
-        bool isAr = (verax::Settings::instance().language() == "ar");
-        if (isAr) {
-            msgBox.setLayoutDirection(Qt::RightToLeft);
-            msgBox.setText(QString::fromUtf8("البرنامج قيد التشغيل بالفعل.\nهل تريد إغلاق النسخة الحالية وإعادة فتح البرنامج؟"));
-            msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-            msgBox.setButtonText(QMessageBox::Yes, QString::fromUtf8("نعم، أعد الفتح"));
-            msgBox.setButtonText(QMessageBox::No, QString::fromUtf8("لا، تراجع"));
-        } else {
-            msgBox.setText(QObject::tr("The program is already running.\nDo you want to close the existing instance and reopen it?"));
-            msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
-            msgBox.setButtonText(QMessageBox::Yes, QObject::tr("Yes"));
-            msgBox.setButtonText(QMessageBox::No, QObject::tr("No"));
-        }
-        msgBox.setDefaultButton(QMessageBox::No);
-
-        if (msgBox.exec() == QMessageBox::Yes) {
-            // Kill existing instances
-            DWORD myPid = GetCurrentProcessId();
-            HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-            if (hSnap != INVALID_HANDLE_VALUE) {
-                PROCESSENTRY32W pe32;
-                pe32.dwSize = sizeof(PROCESSENTRY32W);
-                if (Process32FirstW(hSnap, &pe32)) {
-                    do {
-                        if (pe32.th32ProcessID != myPid) {
-                            QString exeName = QString::fromWCharArray(pe32.szExeFile);
-                            if (exeName.compare(QString::fromLatin1(APP_BIN_NAME), Qt::CaseInsensitive) == 0) {
-                                HANDLE hProc = OpenProcess(PROCESS_TERMINATE, FALSE, pe32.th32ProcessID);
-                                if (hProc) {
-                                    TerminateProcess(hProc, 0);
-                                    CloseHandle(hProc);
-                                }
-                            }
-                        }
-                    } while (Process32NextW(hSnap, &pe32));
-                }
-                CloseHandle(hSnap);
-            }
-            Sleep(1000); // Give OS time to fully terminate and release mutexes
-        } else {
-            return 0; // Exit cleanly
+    // 7.5) Single Instance check:
+    // A new launch (e.g. from desktop) closes any existing instance cleanly,
+    // sweeps dead tray icons from Windows Explorer, and starts fresh with a single tray icon.
+    const QString ipcName = QStringLiteral("MultiGuard_SingleInstance_IPC");
+    {
+        QLocalSocket socket;
+        socket.connectToServer(ipcName);
+        if (socket.waitForConnected(300)) {
+            socket.write("QUIT\n");
+            socket.flush();
+            socket.waitForBytesWritten(300);
+            socket.waitForDisconnected(600);
         }
     }
+
+    // Terminate any leftover instances of Multi-Guard
+    terminateOtherInstances();
+
+    // Refresh Windows taskbar notification area to eliminate ghost tray icons
+    refreshSystemTray();
 #endif
 
     // 8) Build main window
     verax::Logger::info("main: about to construct MainWindow");
     verax::MainWindow w;
-    verax::Logger::info("main: MainWindow constructed");
-    const bool installed = verax::MainWindow::isInstalledPath();
-    verax::Logger::info(QStringLiteral("main: installed=%1").arg(installed ? "yes" : "no"));
+
+#ifdef Q_OS_WIN
+    // Listen for future launches so they can request clean exit
+    QLocalServer::removeServer(ipcName);
+    QLocalServer *ipcServer = new QLocalServer(&a);
+    if (ipcServer->listen(ipcName)) {
+        QObject::connect(ipcServer, &QLocalServer::newConnection, [ipcServer, &w]() {
+            QLocalSocket *client = ipcServer->nextPendingConnection();
+            if (!client) return;
+            QObject::connect(client, &QLocalSocket::readyRead, [client, &w]() {
+                QByteArray msg = client->readAll();
+                if (msg.contains("QUIT")) {
+                    if (w.trayIcon()) {
+                        w.trayIcon()->hide();
+                    }
+                    qApp->quit();
+                }
+            });
+        });
+    }
+#endif
 
     const QStringList positionalArgs = parser.positionalArguments();
     if (!positionalArgs.isEmpty()) {
@@ -179,8 +243,19 @@ int main(int argc, char *argv[])
     }
     else if (parser.isSet(optScan))      w.runSilentScanAndExit();
     else if (parser.isSet(optTray))      w.startInTray();
-    else if (!installed)                 w.showInstaller();
     else                                 w.show();
+
+#ifdef Q_OS_WIN
+    if (!parser.isSet(optScan) && !parser.isSet(optTray)) {
+        w.raise();
+        w.activateWindow();
+        HWND hWnd = (HWND)w.winId();
+        if (hWnd) {
+            ShowWindow(hWnd, SW_RESTORE);
+            SetForegroundWindow(hWnd);
+        }
+    }
+#endif
     verax::Logger::info("main: window shown, entering exec()");
 
     return a.exec();

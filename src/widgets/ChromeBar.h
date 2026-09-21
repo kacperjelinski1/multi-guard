@@ -33,7 +33,6 @@ private:
     QLabel       *m_title     = nullptr;
     QLabel       *m_status    = nullptr;
     QPushButton  *m_btnMin    = nullptr;
-    QPushButton  *m_btnMax    = nullptr;
     QPushButton  *m_btnClose  = nullptr;
 
     QPoint        m_dragOrigin;

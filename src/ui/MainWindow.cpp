@@ -33,7 +33,7 @@
 #include "../widgets/Toaster.h"
 #include "../widgets/NotificationAlert.h"
 #include "../widgets/BrandIcon.h"
-#include "../widgets/FlagIcon.h"
+
 #include "../widgets/ProgressRing.h"
 #include "../widgets/SurfaceCard.h"
 #include "../utils/FileOps.h"
@@ -99,14 +99,15 @@ MainWindow::MainWindow(QWidget *parent)
     Logger::info("MainWindow: ctor begin");
     ui->setupUi(this);
 
-    setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowMinMaxButtonsHint);
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowMinimizeButtonHint | Qt::WindowCloseButtonHint);
     setAttribute(Qt::WA_TranslucentBackground, false);
     setMinimumSize(960, 640);
+    resize(1024, 680);
 
 #ifdef Q_OS_WIN
     HWND hwnd = (HWND)winId();
     LONG style = GetWindowLong(hwnd, GWL_STYLE);
-    SetWindowLong(hwnd, GWL_STYLE, style | WS_MINIMIZEBOX | WS_CAPTION | CS_DBLCLKS);
+    SetWindowLong(hwnd, GWL_STYLE, (style | WS_MINIMIZEBOX | WS_CAPTION) & ~WS_MAXIMIZEBOX);
 #endif
 
     setWindowTitle(QString::fromLatin1(APP_NAME));
@@ -217,6 +218,9 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+    if (m_tray) {
+        m_tray->hide();
+    }
     if (m_drivesWatcher) {
         m_drivesWatcher->disconnect(this);
         m_drivesWatcher->cancel();
@@ -228,18 +232,6 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-bool MainWindow::isInstalledPath()
-{
-    const QString here   = QDir(QCoreApplication::applicationDirPath()).absolutePath();
-    const QString want   = QDir(QString::fromLatin1(APP_INSTALL_DIR)).absolutePath();
-    return here.compare(want, Qt::CaseInsensitive) == 0;
-}
-
-void MainWindow::showInstaller()
-{
-    setActiveNav(PageInstaller);
-    show();
-}
 
 void MainWindow::startInTray()
 {
@@ -278,9 +270,7 @@ void MainWindow::wireUi()
         lay->addWidget(web);
     }
 
-    if (ui->flagPl) ui->flagPl->setCode("pl");
-    if (ui->flagEn) ui->flagEn->setCode("en");
-    if (ui->flagAr) ui->flagAr->setCode("ar");
+
 
     Settings &s = Settings::instance();
     if (ui->cbStartWithWindows)    ui->cbStartWithWindows->setChecked(s.startWithWindows());
@@ -306,18 +296,7 @@ void MainWindow::wireUi()
     if (ui->cbExtDocuments  && !ui->cbExtDocuments->isChecked())  ui->cbExtDocuments->setChecked(true);
     if (ui->cbExtArchives   && !ui->cbExtArchives->isChecked())   ui->cbExtArchives->setChecked(true);
 
-    if (ui->comboLanguage) {
-        ui->comboLanguage->setStyleSheet(
-            "QComboBox::drop-down { border: none; background: transparent; width: 0px; }\n"
-            "QComboBox::down-arrow { image: none; }"
-        );
-        ui->comboLanguage->blockSignals(true);
-        int langIdx = 0;
-        if (s.language() == "en") langIdx = 1;
-        else if (s.language() == "ar") langIdx = 2;
-        ui->comboLanguage->setCurrentIndex(langIdx);
-        ui->comboLanguage->blockSignals(false);
-    }
+
 
     if (ui->comboTheme) {
         ui->comboTheme->blockSignals(true);
@@ -355,13 +334,23 @@ void MainWindow::wireUi()
         }
     }
 
-    if (ui->editInstallPath)
-        ui->editInstallPath->setText(QString::fromLatin1(APP_INSTALL_DIR));
-    if (ui->editCurrentPath)
-        ui->editCurrentPath->setText(QCoreApplication::applicationDirPath());
 
-    if (ui->lblAppNameVersion)
+    if (ui->lblAppNameVersion) {
         ui->lblAppNameVersion->setText(QStringLiteral("%1 v%2").arg(APP_NAME, APP_VERSION_STR));
+        ui->lblAppNameVersion->setWordWrap(true);
+    }
+
+    if (ui->dashRing) {
+        if (LicenseManager::instance().isValid()) {
+            ui->dashRing->setMode("done");
+            ui->dashRing->setValue(1.0);
+            ui->dashRing->setCenterText(tr("Bezpieczny"));
+        } else {
+            ui->dashRing->setMode("threat");
+            ui->dashRing->setValue(1.0);
+            ui->dashRing->setCenterText(tr("Wymagana aktywacja"));
+        }
+    }
 
     initToolsPage();
 }
@@ -369,10 +358,6 @@ void MainWindow::wireUi()
 void MainWindow::wireSignals()
 {
     connect(ui->chromeBar, &ChromeBar::minimizeClicked, this, &MainWindow::showMinimized);
-    connect(ui->chromeBar, &ChromeBar::maximizeClicked, this, [this]() {
-        if (isMaximized()) showNormal();
-        else showMaximized();
-    });
     connect(ui->chromeBar, &ChromeBar::closeClicked,    this, &MainWindow::close);
 
     const QList<QPushButton*> navButtons = ui->sidebar->findChildren<QPushButton*>();
@@ -452,8 +437,7 @@ void MainWindow::wireSignals()
     if (ui->cbShowNotifications)   connect(ui->cbShowNotifications,   &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->cbScanUsbOnInsert)     connect(ui->cbScanUsbOnInsert,     &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->cbAutoUpdateSignatures)connect(ui->cbAutoUpdateSignatures,&QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
-    if (ui->comboLanguage)         connect(ui->comboLanguage, QOverload<int>::of(&QComboBox::currentIndexChanged),
-                                           this, &MainWindow::onLanguageSelectionChanged);
+
     if (ui->comboTheme) {
         connect(ui->comboTheme, QOverload<int>::of(&QComboBox::currentIndexChanged),
                 this, [this](int idx){
@@ -483,9 +467,6 @@ void MainWindow::wireSignals()
 
     if (ui->btnSelfTest)           connect(ui->btnSelfTest, &QPushButton::clicked, this, &MainWindow::onSelfTest);
 
-    if (ui->btnInstallNow)    connect(ui->btnInstallNow,    &QPushButton::clicked, this, &MainWindow::onInstallNow);
-    if (ui->btnInstallBrowse) connect(ui->btnInstallBrowse, &QPushButton::clicked, this, &MainWindow::onInstallBrowse);
-    if (ui->btnInstallCancel) connect(ui->btnInstallCancel, &QPushButton::clicked, this, &MainWindow::onInstallCancel);
 
     // Licensing buttons (Settings & Lock screen)
     if (ui->btnChangeLicenseKey)   connect(ui->btnChangeLicenseKey,   &QPushButton::clicked, this, &MainWindow::onChangeLicenseKeyClicked);
@@ -507,11 +488,7 @@ void MainWindow::wireSignals()
         }
     });
 
-    connect(&Translator::instance(), &Translator::localeChanged, this, &MainWindow::onLanguageChanged);
 
-    if (ui->flagPl) connect(ui->flagPl, &FlagIcon::clicked, this, []{ Translator::instance().install("pl"); });
-    if (ui->flagEn) connect(ui->flagEn, &FlagIcon::clicked, this, []{ Translator::instance().install("en"); });
-    if (ui->flagAr) connect(ui->flagAr, &FlagIcon::clicked, this, []{ Translator::instance().install("ar"); });
 
     if (ui->cbEngineSigDb)      connect(ui->cbEngineSigDb, &QCheckBox::toggled, this, [](bool v){ Settings::instance().setUseSignatureDb(v); });
     if (ui->cbEnginePe)         connect(ui->cbEnginePe, &QCheckBox::toggled, this, [](bool v){ Settings::instance().setUsePeInspection(v); });
@@ -569,17 +546,7 @@ void MainWindow::retranslateRuntime()
     applyLicenseGating();
 }
 
-void MainWindow::onLanguageChanged(const QString &code)
-{
-    if (ui->comboLanguage) {
-        const QSignalBlocker block(ui->comboLanguage);
-        int idx = 0;
-        if (code == "en") idx = 1;
-        else if (code == "ar") idx = 2;
-        ui->comboLanguage->setCurrentIndex(idx);
-    }
-    if (m_tray) m_tray->setToolTip(QString::fromLatin1(APP_NAME));
-}
+
 
 void MainWindow::onNavClicked()
 {
@@ -625,6 +592,9 @@ void MainWindow::setActiveNav(PageIndex idx)
     if (idx == PageTools) {
         onRefreshHardwareStats();
         onRefreshStartupClicked();
+        if (ui->listCleanItems && ui->listCleanItems->count() == 0) {
+            onScanCleanClicked();
+        }
         if (m_hwTimer && !m_hwTimer->isActive()) {
             m_hwTimer->start();
         }
@@ -713,16 +683,12 @@ static ScanRequest buildQuickDefaults()
     QStringList qs;
     qs << QStandardPaths::writableLocation(QStandardPaths::TempLocation)
        << QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)
-       << QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
-       << QStandardPaths::writableLocation(QStandardPaths::AppDataLocation)
-       << QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
        << QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 #ifdef _WIN32
-    qs << qEnvironmentVariable("APPDATA")
-       << qEnvironmentVariable("LOCALAPPDATA")
-       << qEnvironmentVariable("ProgramData")
-       << qEnvironmentVariable("USERPROFILE") + "\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
-       << qEnvironmentVariable("ProgramData") + "\\Microsoft\\Windows\\Start Menu\\Programs\\Startup";
+    qs << qEnvironmentVariable("USERPROFILE") + "\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
+       << qEnvironmentVariable("ProgramData") + "\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
+       << qEnvironmentVariable("WINDIR") + "\\System32\\Tasks"
+       << qEnvironmentVariable("WINDIR") + "\\Temp";
 #endif
     QSet<QString> seen;
     for (QString p : qs) {
@@ -768,19 +734,26 @@ void MainWindow::primeScanUi(const QString &phaseLabel)
     if (ui->scanRing) {
         ui->scanRing->setMode("scanning");
         ui->scanRing->setValue(0.0);
-        ui->scanRing->setCenterText(tr("Starting"));
+        ui->scanRing->setCenterText("");
     }
     if (ui->lblScanCurrent) ui->lblScanCurrent->setText(phaseLabel);
-    if (ui->lblScanCount)   ui->lblScanCount->setText(tr("Files scanned: 0"));
-    if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Threats: 0"));
-    ui->scanRing->setCenterText(tr(""));
-    updateChromeStatus("scanning", tr("Scanning..."));
+    if (ui->lblScanCount)   ui->lblScanCount->setText(tr("Przeskanowano: 0"));
+    if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Zagrożenia: 0"));
+    updateChromeStatus("scanning", tr("Skanowanie..."));
     QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 }
 
 void MainWindow::scanCustomTargets(const QStringList &targets)
 {
     if (targets.isEmpty()) return;
+    if (!LicenseManager::instance().isValid()) {
+        show();
+        setActiveNav(PageLicenseLocked);
+        raise();
+        activateWindow();
+        Toaster::show(this, tr("Wymagana aktywna licencja do uruchomienia skanowania."), Toaster::Warn);
+        return;
+    }
     ScanRequest req;
     req.targets    = targets;
     req.useSigDb   = Settings::instance().useSignatureDb();
@@ -896,24 +869,16 @@ void MainWindow::onQuickScan()
         Toaster::show(this, tr("Wymagana aktywna licencja do uruchomienia skanowania."), Toaster::Warn);
         return;
     }
+    show();
+    raise();
+    activateWindow();
     Logger::info("Quick scan requested");
     ScanRequest req = buildQuickDefaults();
 
-    ScanOptionsDialog dlg(ScanOptionsDialog::Quick, req, this);
-    if (dlg.exec() != QDialog::Accepted) {
-        Logger::info("Quick scan cancelled at options dialog");
-        return;
-    }
-    req = dlg.result();
-    if (req.targets.isEmpty()) {
-        Toaster::show(this, tr("No paths selected — scan aborted"), Toaster::Warn);
-        return;
-    }
-
     Logger::info(QStringLiteral("Quick scan launching with %1 path(s), action=%2")
                  .arg(req.targets.size()).arg(req.action));
-    primeScanUi(tr("Enumerating files..."));
-    Toaster::show(this, tr("Quick scan started"), Toaster::Info);
+    primeScanUi(tr("Wyszukiwanie plików..."));
+    Toaster::show(this, tr("Rozpoczęto szybkie skanowanie"), Toaster::Info);
     ShieldEngine::instance().startScan(req);
 }
 
@@ -927,24 +892,16 @@ void MainWindow::onFullScan()
         Toaster::show(this, tr("Wymagana aktywna licencja do uruchomienia skanowania."), Toaster::Warn);
         return;
     }
+    show();
+    raise();
+    activateWindow();
     Logger::info("Full scan requested");
     ScanRequest req = buildFullDefaults();
 
-    ScanOptionsDialog dlg(ScanOptionsDialog::Full, req, this);
-    if (dlg.exec() != QDialog::Accepted) {
-        Logger::info("Full scan cancelled at options dialog");
-        return;
-    }
-    req = dlg.result();
-    if (req.targets.isEmpty()) {
-        Toaster::show(this, tr("No paths selected — scan aborted"), Toaster::Warn);
-        return;
-    }
-
     Logger::info(QStringLiteral("Full scan launching with %1 path(s), action=%2")
                  .arg(req.targets.size()).arg(req.action));
-    primeScanUi(tr("Mapping filesystems..."));
-    Toaster::show(this, tr("Full scan started"), Toaster::Info);
+    primeScanUi(tr("Wyszukiwanie plików na dyskach..."));
+    Toaster::show(this, tr("Rozpoczęto pełne skanowanie"), Toaster::Info);
     ShieldEngine::instance().startScan(req);
 }
 
@@ -969,6 +926,14 @@ void MainWindow::onAddFile()
 
 void MainWindow::onStartScanFromConfig()
 {
+    if (!LicenseManager::instance().isValid()) {
+        show();
+        setActiveNav(PageLicenseLocked);
+        raise();
+        activateWindow();
+        Toaster::show(this, tr("Wymagana aktywna licencja do uruchomienia skanowania."), Toaster::Warn);
+        return;
+    }
     const ScanRequest req = buildScanRequest();
     if (req.targets.isEmpty()) {
         Toaster::show(this, tr("Select at least one drive, folder or file"), Toaster::Warn);
@@ -988,28 +953,29 @@ void MainWindow::onStopScan()
     if (ui->scanRing) {
         ui->scanRing->setMode("idle");
         ui->scanRing->setValue(0.0);
-        ui->scanRing->setCenterText(tr("Aborted"));
+        ui->scanRing->setCenterText(tr("Przerwano"));
     }
-    if (ui->lblScanCurrent) ui->lblScanCurrent->setText(tr("Scan cancelled by user. Everything clean."));
-    if (ui->lblScanCount) ui->lblScanCount->setText(tr("Files scanned: 0"));
-    if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Threats: 0"));
-    updateChromeStatus("idle", tr("Cancelled"));
+    if (ui->lblScanCurrent) ui->lblScanCurrent->setText(tr("Skanowanie zostało przerwane przez użytkownika."));
+    if (ui->lblScanCount)   ui->lblScanCount->setText(tr("Przeskanowano: 0"));
+    if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Zagrożenia: 0"));
+    updateChromeStatus("idle", tr("Przerwano"));
 }
 
 void MainWindow::onPauseToggled(bool paused) {
     ShieldEngine::instance().pauseScan(paused);
-    if (ui->btnPauseScan) ui->btnPauseScan->setText(paused ? tr("Resume") : tr("Pause"));
+    if (ui->btnPauseScan) ui->btnPauseScan->setText(paused ? tr("Wznów") : tr("Pauza"));
 }
 
 void MainWindow::onScannerStarted()
 {
-    updateChromeStatus("scanning", tr("Scanning..."));
+    updateChromeStatus("scanning", tr("Skanowanie..."));
     if (ui->scanRing) {
         ui->scanRing->setMode("scanning");
         ui->scanRing->setValue(0.0);
+        ui->scanRing->setCenterText("");
     }
-    if (ui->lblScanCount)   ui->lblScanCount->setText(tr("Files scanned: 0"));
-    if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Threats: 0"));
+    if (ui->lblScanCount)   ui->lblScanCount->setText(tr("Przeskanowano: 0"));
+    if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Zagrożenia: 0"));
     m_lastScanThreats = 0;
     m_pendingReport.clear();
     m_threatCards.clear();
@@ -1028,21 +994,36 @@ void MainWindow::onScannerStarted()
 
 void MainWindow::onScannerProgress(int pct, qint64 done, qint64 total)
 {
-    if (ui->scanRing) ui->scanRing->setValue(pct / 100.0);
-    if (ui->lblScanCount)
-        ui->lblScanCount->setText(tr("Files scanned: %1 / %2").arg(done).arg(total));
+    if (ui->scanRing) {
+        if (total > 0) {
+            ui->scanRing->setValue(pct / 100.0);
+            ui->scanRing->setCenterText(QString::number(pct) + "%");
+        } else {
+            ui->scanRing->setValue(0.0);
+            ui->scanRing->setCenterText(QStringLiteral("%1").arg(done));
+        }
+    }
+    if (ui->lblScanCount) {
+        if (total > 0) {
+            ui->lblScanCount->setText(tr("Przeskanowano: %1 z %2").arg(done).arg(total));
+        } else {
+            ui->lblScanCount->setText(tr("Wyszukiwanie plików: %1").arg(done));
+        }
+    }
 }
 
 void MainWindow::onScannerFileScanned(const QString &path)
 {
-    if (ui->lblScanCurrent) ui->lblScanCurrent->setText(path);
+    if (!ui->lblScanCurrent) return;
+    const int maxW = qMax(200, ui->scanCounters ? ui->scanCounters->width() - 30 : 380);
+    ui->lblScanCurrent->setText(ui->lblScanCurrent->fontMetrics().elidedText(path, Qt::ElideMiddle, maxW));
 }
 
 void MainWindow::onScannerThreatFound(ThreatInfo info)
 {
     ++m_lastScanThreats;
     if (ui->lblScanThreats)
-        ui->lblScanThreats->setText(tr("Threats: %1").arg(m_lastScanThreats));
+        ui->lblScanThreats->setText(tr("Zagrożenia: %1").arg(m_lastScanThreats));
 
     Logger::warn(QStringLiteral("UI threat: %1 [%2] score=%3")
                  .arg(info.path, info.detectionName).arg(info.score));
@@ -1154,31 +1135,30 @@ void MainWindow::onScannerFinished(ScanReport report)
     // Force set compilation status properties based on calculation metrics
     updateChromeStatus(report.threatsFound > 0 ? QStringLiteral("threat") : QStringLiteral("done"),
                        report.threatsFound > 0
-                           ? tr("Threats: %1").arg(report.threatsFound)
-                           : tr("Clean"));
+                           ? tr("Zagrożenia: %1").arg(report.threatsFound)
+                           : tr("Bezpiecznie"));
 
     if (ui->scanRing) {
         ui->scanRing->setMode(report.threatsFound > 0 ? QStringLiteral("threat") : QStringLiteral("done"));
         ui->scanRing->setValue(1.0);
         ui->scanRing->setCenterText(report.threatsFound > 0
-                                        ? tr("%n threat(s)", "", report.threatsFound)
-                                        : tr("Success"));
+                                        ? tr("Zagrożenia: %1").arg(report.threatsFound)
+                                        : tr("Bezpiecznie"));
     }
 
     SignatureDb::instance().pushHistory(report.startedAt, report.finishedAt, report.filesScanned, report.threatsFound, QString());
 
     if (ui->lblLastScan) {
-        auto makeRow = [](const QString &color, const QString &label, QString value) {
-            value.replace(" ","_");
+        auto makeRow = [](const QString &color, const QString &label, const QString &value) {
             return QStringLiteral(
                        "<tr>"
                        "<td style='vertical-align: middle; width: 10px; padding: 2px 0;'>"
                        "<div style='width: 2px; height: 12px; border-radius: 2px; background-color: %1;'></div>"
                        "</td>"
-                       "<td dir='ltr' style='vertical-align: middle; padding: 2px 6px; font-size: 8pt; color: #64748B; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; text-transform: capitalize; white-space: nowrap; min-width: 85px; text-align: left;'>"
+                       "<td dir='ltr' style='vertical-align: middle; padding: 2px 6px; font-size: 8pt; color: #94A3B8; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; text-transform: capitalize; white-space: nowrap; min-width: 85px; text-align: left;'>"
                        "%2"
                        "</td>"
-                       "<td dir='ltr' style='vertical-align: middle; padding: 2px 0; font-size: 8pt; color: #0F172A; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; white-space: nowrap; text-align: left;'>"
+                       "<td dir='ltr' style='vertical-align: middle; padding: 2px 0; font-size: 8pt; color: #F1F5F9; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; white-space: nowrap; text-align: left;'>"
                        "%3"
                        "</td>"
                        "</tr>"
@@ -1187,16 +1167,15 @@ void MainWindow::onScannerFinished(ScanReport report)
 
         QString html;
         html += QStringLiteral("<table style='border-collapse: collapse; width: 100%; margin: 0; padding: 0;'>");
-        html.toUtf8();
         if (report.finishedAt > 0) {
             QString scanTime = QDateTime::fromSecsSinceEpoch(report.finishedAt).toString("yyyy-MM-dd HH:mm");
-            html += makeRow(QStringLiteral("#F97316"), tr("Last Scan"), scanTime);
-            html += makeRow(QStringLiteral("#F59E0B"), tr("Files Scanned"), QString::number(report.filesScanned));
-            html += makeRow(QStringLiteral("#EF4444"), tr("Threats Found"), QString::number(report.threatsFound));
+            html += makeRow(QStringLiteral("#F97316"), tr("Ostatnie"), scanTime);
+            html += makeRow(QStringLiteral("#F59E0B"), tr("Pliki"), QString::number(report.filesScanned));
+            html += makeRow(QStringLiteral("#EF4444"), tr("Zagrożenia"), QString::number(report.threatsFound));
         } else {
-            html += QStringLiteral("<tr><td style='padding: 2px 0; font-size: 8pt; color: #0F172A; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; text-align: left;'>")
-            + tr("No scans yet")
-                + QStringLiteral("</td></tr>");
+            html += QStringLiteral("<tr><td style='padding: 2px 0; font-size: 8pt; color: #94A3B8; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; text-align: left;'>")
+                 + tr("Brak wcześniejszych skanowań")
+                 + QStringLiteral("</td></tr>");
         }
 
         html += QStringLiteral("</table>");
@@ -1204,7 +1183,7 @@ void MainWindow::onScannerFinished(ScanReport report)
     }
 
     if (ui->lblScanCurrent) {
-        ui->lblScanCurrent->setText(tr("Scan completed execution loop. System secure."));
+        ui->lblScanCurrent->setText(tr("Skanowanie zakończone. System jest bezpieczny."));
     }
 
     // Write a JSON report file for EVERY scan (audit trail). Path:
@@ -1528,12 +1507,7 @@ void MainWindow::onCheckUpdatesNow()
 
 }
 
-void MainWindow::onLanguageSelectionChanged(int idx)
-{
-    if (idx == 0)      Translator::instance().install("pl");
-    else if (idx == 1) Translator::instance().install("en");
-    else if (idx == 2) Translator::instance().install("ar");
-}
+
 
 QString MainWindow::signaturesInfoHtml() const
 {
@@ -1664,165 +1638,6 @@ void MainWindow::onSelfTest()
     ShieldEngine::instance().startScan(req);
 }
 
-void MainWindow::onInstallBrowse()
-{
-    const QString d = QFileDialog::getExistingDirectory(this, tr("Choose install folder"));
-    if (!d.isEmpty() && ui->editInstallPath) ui->editInstallPath->setText(d);
-}
-
-void MainWindow::onInstallCancel() { close(); }
-
-void MainWindow::onInstallNow()
-{
-    // 0) License Key validation via KeyGate
-    if (ui->editLicenseKey) {
-        const QString licenseKey = ui->editLicenseKey->text().trimmed();
-        if (licenseKey.isEmpty()) {
-            if (ui->lblLicenseStatusHint) {
-                ui->lblLicenseStatusHint->setText(tr("<font color='#f87171'><b>Błąd:</b> Wprowadź klucz licencyjny przed rozpoczęciem instalacji.</font>"));
-            }
-            Toaster::show(this, tr("Wymagany jest ważny klucz licencyjny KeyGate."), Toaster::Warn);
-            return;
-        }
-
-        if (ui->lblLicenseStatusHint) {
-            ui->lblLicenseStatusHint->setText(tr("<font color='#60a5fa'>Weryfikacja i aktywacja klucza w KeyGate...</font>"));
-        }
-        QCoreApplication::processEvents();
-
-        auto actRes = LicenseManager::instance().activateKey(licenseKey);
-        if (!actRes.success) {
-            if (ui->lblLicenseStatusHint) {
-                ui->lblLicenseStatusHint->setText(tr("<font color='#f87171'><b>Błąd aktywacji:</b> %1 (%2)</font>")
-                                                      .arg(actRes.errorMessage, actRes.errorCode));
-            }
-            QMessageBox::critical(this, tr("Błąd aktywacji licencji"),
-                                  tr("Nie można ukończyć instalacji bez aktywnej licencji.\n\nPowód: %1\nKod błędu: %2")
-                                      .arg(actRes.errorMessage, actRes.errorCode));
-            return;
-        }
-
-        if (ui->lblLicenseStatusHint) {
-            ui->lblLicenseStatusHint->setText(tr("<font color='#4ade80'><b>Aktywowano pomyślnie:</b> %1</font>")
-                                                  .arg(LicenseManager::instance().tierName()));
-        }
-    }
-
-    const QString src    = QCoreApplication::applicationFilePath();
-    const QString target = (ui->editInstallPath && !ui->editInstallPath->text().isEmpty())
-        ? ui->editInstallPath->text()
-        : QString::fromLatin1(APP_INSTALL_DIR);
-
-    if (!QDir().mkpath(target)) {
-        Toaster::show(this,
-            tr("Cannot create install folder: %1\nTry running as Administrator.").arg(target),
-            Toaster::Error);
-        return;
-    }
-    const QString dst = QDir(target).absoluteFilePath(QString::fromLatin1(APP_BIN_NAME));
-
-    // ── If the target file already exists (re-install / upgrade), it may
-    //    be locked by a running instance. Atomically rename it aside then
-    //    delete on success; if the rename fails we report a clear error
-    //    and ask the user to close the running copy.
-    if (QFile::exists(dst)) {
-        const QString sidelined = dst + QStringLiteral(".old.")
-            + QString::number(QDateTime::currentSecsSinceEpoch());
-        if (!QFile::rename(dst, sidelined)) {
-            QMessageBox::warning(this,
-                tr("%1 is currently running").arg(QString::fromLatin1(APP_NAME)),
-                tr("The destination file is locked because %1 is already running.\n\n"
-                   "Please close all running instances and click Install again.")
-                    .arg(QString::fromLatin1(APP_NAME)));
-            return;
-        }
-        // Best-effort cleanup of the renamed file (will succeed once the
-        // OS releases the handle, otherwise we simply leave a .old.* alongside)
-        QFile::remove(sidelined);
-    }
-
-    if (!QFile::copy(src, dst)) {
-        Toaster::show(this, tr("Failed to copy executable to %1").arg(dst), Toaster::Error);
-        return;
-    }
-
-    // ── Add/Remove Programs registration ─────────────────────────────────
-    const QString uninstKey = QStringLiteral(
-        "HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\")
-        + QString::fromLatin1(APP_NAME);
-    QSettings unreg(uninstKey, QSettings::NativeFormat);
-    unreg.setValue("DisplayName",     QString::fromLatin1(APP_NAME));
-    unreg.setValue("DisplayVersion",  QString::fromLatin1(APP_VERSION_STR));
-    unreg.setValue("Publisher",       QString::fromLatin1(APP_VENDOR));
-    unreg.setValue("InstallLocation", target);
-    unreg.setValue("UninstallString", QStringLiteral("\"%1\" --uninstall").arg(dst));
-    unreg.setValue("DisplayIcon",     dst);
-    unreg.setValue("URLInfoAbout",    QString::fromLatin1(APP_HOMEPAGE));
-    unreg.setValue("NoModify", 1);
-    unreg.setValue("NoRepair", 1);
-
-    if (ui->cbInstallStartup && ui->cbInstallStartup->isChecked())
-        Settings::instance().setStartWithWindows(true);
-
-    // ── Shortcut creation via Windows Scripting Host (no extra deps) ─────
-    auto createShortcut = [&](const QString &lnkPath){
-        const QString ps = QStringLiteral(
-            "$WshShell = New-Object -ComObject WScript.Shell; "
-            "$lnk = $WshShell.CreateShortcut('%1'); "
-            "$lnk.TargetPath = '%2'; "
-            "$lnk.WorkingDirectory = '%3'; "
-            "$lnk.IconLocation = '%2,0'; "
-            "$lnk.Description = '%4'; "
-            "$lnk.Save();")
-            .arg(QDir::toNativeSeparators(lnkPath))
-            .arg(QDir::toNativeSeparators(dst))
-            .arg(QDir::toNativeSeparators(target))
-            .arg(QString::fromLatin1(APP_DESCRIPTION));
-        QProcess p;
-#ifdef _WIN32
-        p.setCreateProcessArgumentsModifier(
-            [](QProcess::CreateProcessArguments *a){
-                a->flags |= 0x08000000; /* CREATE_NO_WINDOW */
-            });
-#endif
-        p.start("powershell.exe",
-                {"-NoProfile", "-WindowStyle", "Hidden", "-Command", ps});
-        p.waitForFinished(8000);
-    };
-
-    if (ui->cbInstallDesktop && ui->cbInstallDesktop->isChecked()) {
-        const QString desktop = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-        if (!desktop.isEmpty()) {
-            const QString lnk = desktop + QLatin1Char('/')
-                              + QString::fromLatin1(APP_NAME) + QStringLiteral(".lnk");
-            createShortcut(lnk);
-            Logger::info(QStringLiteral("Desktop shortcut: %1").arg(lnk));
-        }
-    }
-
-    if (ui->cbInstallStartMenu && ui->cbInstallStartMenu->isChecked()) {
-        const QString programs = QStandardPaths::writableLocation(
-            QStandardPaths::ApplicationsLocation);
-        if (!programs.isEmpty()) {
-            const QString folder = programs + QLatin1Char('/')
-                                 + QString::fromLatin1(APP_NAME);
-            QDir().mkpath(folder);
-            const QString lnk = folder + QLatin1Char('/')
-                              + QString::fromLatin1(APP_NAME) + QStringLiteral(".lnk");
-            createShortcut(lnk);
-            Logger::info(QStringLiteral("Start Menu shortcut: %1").arg(lnk));
-        }
-    }
-
-    Toaster::show(this, tr("Installed to %1").arg(target), Toaster::Success);
-    Logger::info(QStringLiteral("Install complete: %1").arg(dst));
-
-    // Register Multi-Guard in Windows Security Center & configure Defender yield
-    WindowsSecurityIntegration::registerAntivirus(target, dst);
-
-    QProcess::startDetached(dst, { });
-    QCoreApplication::quit();
-}
 
 void MainWindow::setupTrayIcon()
 {
@@ -2045,48 +1860,48 @@ void MainWindow::buildThreatFilterToolbar()
     tbLay->setSpacing(8);
 
     // Select All
-    m_selectAll = new QCheckBox(tr("Select All"), toolbar);
+    m_selectAll = new QCheckBox(tr("Zaznacz wszystko"), toolbar);
     m_selectAll->setObjectName("ThreatSelectAll");
     connect(m_selectAll, &QCheckBox::toggled, this, &MainWindow::onSelectAllThreats);
 
     // Severity filter
-    auto *lblSev = new QLabel(tr("Severity:"), toolbar);
+    auto *lblSev = new QLabel(tr("Poziom:"), toolbar);
     m_filterSeverity = new QComboBox(toolbar);
     m_filterSeverity->setObjectName("FilterSeverity");
-    m_filterSeverity->addItem(tr("All"), "all");
-    m_filterSeverity->addItem(tr("High"), "high");
-    m_filterSeverity->addItem(tr("Medium"), "medium");
-    m_filterSeverity->addItem(tr("Low"), "low");
+    m_filterSeverity->addItem(tr("Wszystkie"), "all");
+    m_filterSeverity->addItem(tr("Wysoki"), "high");
+    m_filterSeverity->addItem(tr("Średni"), "medium");
+    m_filterSeverity->addItem(tr("Niski"), "low");
     connect(m_filterSeverity, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::applyThreatFilters);
 
     // Family filter
-    auto *lblFam = new QLabel(tr("Family:"), toolbar);
+    auto *lblFam = new QLabel(tr("Rodzina:"), toolbar);
     m_filterFamily = new QComboBox(toolbar);
     m_filterFamily->setObjectName("FilterFamily");
-    m_filterFamily->addItem(tr("All"), "all");
+    m_filterFamily->addItem(tr("Wszystkie"), "all");
     connect(m_filterFamily, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::applyThreatFilters);
 
     // Repairable filter
-    auto *lblRep = new QLabel(tr("Repairable:"), toolbar);
+    auto *lblRep = new QLabel(tr("Możliwa naprawa:"), toolbar);
     m_filterRepairable = new QComboBox(toolbar);
     m_filterRepairable->setObjectName("FilterRepairable");
-    m_filterRepairable->addItem(tr("All"), "all");
-    m_filterRepairable->addItem(tr("Yes"), "yes");
-    m_filterRepairable->addItem(tr("No"), "no");
+    m_filterRepairable->addItem(tr("Wszystkie"), "all");
+    m_filterRepairable->addItem(tr("Tak"), "yes");
+    m_filterRepairable->addItem(tr("Nie"), "no");
     connect(m_filterRepairable, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::applyThreatFilters);
 
     // Bulk action
     m_bulkActionCombo = new QComboBox(toolbar);
     m_bulkActionCombo->setObjectName("BulkAction");
-    m_bulkActionCombo->addItem(tr("Bulk Action..."), "none");
-    m_bulkActionCombo->addItem(tr("Quarantine All"), "quarantine");
-    m_bulkActionCombo->addItem(tr("Delete All"), "delete");
-    m_bulkActionCombo->addItem(tr("Repair All"), "repair");
+    m_bulkActionCombo->addItem(tr("Działanie masowe..."), "none");
+    m_bulkActionCombo->addItem(tr("Kwarantanna dla wszystkich"), "quarantine");
+    m_bulkActionCombo->addItem(tr("Usuń wszystkie"), "delete");
+    m_bulkActionCombo->addItem(tr("Napraw wszystkie"), "repair");
 
-    m_bulkApplyBtn = new QPushButton(tr("Apply"), toolbar);
+    m_bulkApplyBtn = new QPushButton(tr("Zastosuj"), toolbar);
     m_bulkApplyBtn->setObjectName("BulkApplyBtn");
     m_bulkApplyBtn->setProperty("kind", "primary");
     connect(m_bulkApplyBtn, &QPushButton::clicked, this, &MainWindow::onBulkAction);
@@ -2355,6 +2170,9 @@ void MainWindow::onScanCleanClicked()
     if (!ui->listCleanItems) return;
     ui->listCleanItems->clear();
     if (ui->lblCleanStatus) ui->lblCleanStatus->setText(tr("Analizowanie zbędnych plików..."));
+    if (ui->btnDoClean) ui->btnDoClean->setEnabled(false);
+    if (ui->btnScanClean) ui->btnScanClean->setEnabled(false);
+    QCoreApplication::processEvents();
 
     QList<CleanItem> items = SystemOptimizer::instance().scanSystem();
     qint64 totalBytes = 0;
@@ -2368,6 +2186,9 @@ void MainWindow::onScanCleanClicked()
         listItem->setCheckState(item.byteCount > 0 ? Qt::Checked : Qt::Unchecked);
     }
 
+    if (ui->btnDoClean) ui->btnDoClean->setEnabled(true);
+    if (ui->btnScanClean) ui->btnScanClean->setEnabled(true);
+
     if (ui->lblCleanStatus) {
         ui->lblCleanStatus->setText(tr("Zidentyfikowano do odzyskania: %1").arg(SystemOptimizer::formatBytes(totalBytes)));
     }
@@ -2375,6 +2196,15 @@ void MainWindow::onScanCleanClicked()
 
 void MainWindow::onDoCleanClicked()
 {
+    if (!LicenseManager::instance().isValid()) {
+        show();
+        setActiveNav(PageLicenseLocked);
+        raise();
+        activateWindow();
+        Toaster::show(this, tr("Wymagana aktywna licencja do czyszczenia systemu."), Toaster::Warn);
+        return;
+    }
+
     if (!ui->listCleanItems) return;
     QStringList ids;
     for (int i = 0; i < ui->listCleanItems->count(); ++i) {
@@ -2388,12 +2218,27 @@ void MainWindow::onDoCleanClicked()
         return;
     }
 
-    if (ui->lblCleanStatus) ui->lblCleanStatus->setText(tr("Czyszczenie w toku..."));
+    if (ui->lblCleanStatus) ui->lblCleanStatus->setText(tr("Czyszczenie w toku... Proszę czekać."));
+    if (ui->btnDoClean) ui->btnDoClean->setEnabled(false);
+    if (ui->btnScanClean) ui->btnScanClean->setEnabled(false);
+    QCoreApplication::processEvents();
+
     qint64 freed = SystemOptimizer::instance().cleanItems(ids);
-    if (ui->lblCleanStatus) {
-        ui->lblCleanStatus->setText(tr("Pomyślnie oczyszczono! Zwolniono %1 miejsca na dysku.").arg(SystemOptimizer::formatBytes(freed)));
+
+    if (ui->btnDoClean) ui->btnDoClean->setEnabled(true);
+    if (ui->btnScanClean) ui->btnScanClean->setEnabled(true);
+
+    if (freed > 0) {
+        if (ui->lblCleanStatus) {
+            ui->lblCleanStatus->setText(tr("Pomyślnie oczyszczono! Zwolniono %1 miejsca na dysku.").arg(SystemOptimizer::formatBytes(freed)));
+        }
+        Toaster::show(this, tr("Zwolniono %1 miejsca").arg(SystemOptimizer::formatBytes(freed)), Toaster::Success);
+    } else {
+        if (ui->lblCleanStatus) {
+            ui->lblCleanStatus->setText(tr("Wybrane elementy są czyste lub pliki są aktualnie używane przez uruchomione programy."));
+        }
+        Toaster::show(this, tr("Wybrane elementy są czyste lub zablokowane"), Toaster::Info);
     }
-    Toaster::show(this, tr("Zwolniono %1 miejsca").arg(SystemOptimizer::formatBytes(freed)));
     onScanCleanClicked();
 }
 
@@ -2669,8 +2514,8 @@ void MainWindow::applyLicenseGating()
             }
         }
 
-        // Switch to the locked screen if not running the installer
-        if (m_currentPage != PageInstaller && m_currentPage != PageLicenseLocked) {
+        // Switch to the locked screen if unlicensed
+        if (m_currentPage != PageLicenseLocked) {
             setActiveNav(PageLicenseLocked);
         }
 
@@ -2683,12 +2528,18 @@ void MainWindow::applyLicenseGating()
 
         if (ui->lblAppNameVersion) {
             ui->lblAppNameVersion->setText(isExpired
-                ? QStringLiteral("%1 v%2  [⚠️ Licencja wygasła - 505 012 914]").arg(APP_NAME, APP_VERSION_STR)
-                : QStringLiteral("%1 v%2  [Wymagana aktywacja - 505 012 914]").arg(APP_NAME, APP_VERSION_STR));
+                ? QStringLiteral("%1 v%2\n[⚠️ Licencja wygasła - 505 012 914]").arg(APP_NAME, APP_VERSION_STR)
+                : QStringLiteral("%1 v%2\n[Wymagana aktywacja - 505 012 914]").arg(APP_NAME, APP_VERSION_STR));
         }
 
         if (ui->lblLicenseDaysValue) {
             ui->lblLicenseDaysValue->setText(isExpired ? tr("Wygasła (0 dni)") : tr("Brak aktywacji (0 dni)"));
+        }
+
+        if (ui->dashRing) {
+            ui->dashRing->setMode("threat");
+            ui->dashRing->setValue(1.0);
+            ui->dashRing->setCenterText(isExpired ? tr("Wygasła") : tr("Wymagana aktywacja"));
         }
 
         WindowsSecurityIntegration::updateProductState(false);
@@ -2696,12 +2547,12 @@ void MainWindow::applyLicenseGating()
         return;
     }
 
-    // Register Multi-Guard in Windows Security Center once active and installed
+    // Register Multi-Guard in Windows Security Center once active and licensed
     static bool s_wscRegistered = false;
-    if (!s_wscRegistered && isInstalledPath()) {
+    if (!s_wscRegistered) {
         s_wscRegistered = true;
         WindowsSecurityIntegration::registerAntivirus();
-    } else if (isInstalledPath()) {
+    } else {
         WindowsSecurityIntegration::updateProductState(true);
     }
 
@@ -2779,8 +2630,14 @@ void MainWindow::applyLicenseGating()
 
     // 7. Update banner with tier & days remaining
     if (ui->lblAppNameVersion) {
-        ui->lblAppNameVersion->setText(QStringLiteral("%1 v%2  [%3 • %4]")
-                                           .arg(APP_NAME, APP_VERSION_STR, lm.tierName(), lm.daysRemainingText()));
+        ui->lblAppNameVersion->setText(QStringLiteral("%1 v%2\n[%3 • %4]")
+                                           .arg(APP_NAME, APP_VERSION_STR, lm.tierDisplayName(), lm.daysRemainingText()));
+    }
+
+    if (ui->dashRing) {
+        ui->dashRing->setMode("done");
+        ui->dashRing->setValue(1.0);
+        ui->dashRing->setCenterText(tr("Bezpieczny"));
     }
     updateTrayLicenseState();
 }

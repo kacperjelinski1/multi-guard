@@ -74,7 +74,6 @@ SOURCES += \
     src/widgets/DriveTile.cpp \
     src/widgets/Toaster.cpp \
     src/widgets/NotificationAlert.cpp \
-    src/widgets/FlagIcon.cpp \
     src/widgets/BrandIcon.cpp \
     src/widgets/SurfaceCard.cpp \
     src/widgets/ChromeBar.cpp \
@@ -121,7 +120,6 @@ HEADERS += \
     src/widgets/DriveTile.h \
     src/widgets/Toaster.h \
     src/widgets/NotificationAlert.h \
-    src/widgets/FlagIcon.h \
     src/widgets/BrandIcon.h \
     src/widgets/SurfaceCard.h \
     src/widgets/ChromeBar.h \
@@ -145,9 +143,7 @@ FORMS   += src/ui/mainwindow.ui
 RESOURCES += Verax.qrc
 
 # ─── Translations ─────────────────────────────────────────────────────
-TRANSLATIONS += i18n/verax_en.ts \
-                i18n/verax_ar.ts \
-                i18n/verax_pl.ts
+TRANSLATIONS += i18n/verax_pl.ts
 
 # ─── Windows-specific ─────────────────────────────────────────────────
 win32 {

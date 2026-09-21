@@ -21,19 +21,13 @@ Translator::Translator(QObject *parent) : QObject(parent) {}
 
 void Translator::install(const QString &codeIn)
 {
-    const QString code = codeIn.isEmpty() ? QStringLiteral("en") : codeIn.toLower();
+    Q_UNUSED(codeIn);
+    const QString code = QStringLiteral("pl");
 
-    // Idempotent: a repeated call with the same code is a no-op. This is
-    // critical because flag-click + combo currentIndexChanged + Settings
-    // change can otherwise trigger install() up to four times per switch,
-    // each one queuing populate cascades that race and crash the UI.
-    if (code == m_current) {
-        Logger::info(QStringLiteral("Translator::install skip (already %1)").arg(code));
+    if (code == m_current && m_appTr) {
         return;
     }
 
-    // Persist BEFORE applying so any signal/event handler firing during
-    // installTranslator() observes the committed value.
     Settings::instance().setLanguage(code);
 
     if (m_appTr) {
@@ -47,9 +41,9 @@ void Translator::install(const QString &codeIn)
         m_qtTr = nullptr;
     }
 
-    // Always install Qt's own translations (for standard dialogs etc.)
+    // Always install Qt's own Polish translations (for standard dialogs etc.)
     m_qtTr = new QTranslator(qApp);
-    if (m_qtTr->load(QStringLiteral("qt_") + code,
+    if (m_qtTr->load(QStringLiteral("qt_pl"),
                      QLibraryInfo::location(QLibraryInfo::TranslationsPath)))
     {
         qApp->installTranslator(m_qtTr);
@@ -57,19 +51,16 @@ void Translator::install(const QString &codeIn)
 
     // App translations from qrc
     m_appTr = new QTranslator(qApp);
-    if (m_appTr->load(QStringLiteral(":/i18n/verax_") + code + QStringLiteral(".qm"))) {
+    if (m_appTr->load(QStringLiteral(":/i18n/verax_pl.qm"))) {
         qApp->installTranslator(m_appTr);
     } else {
-        // Falls back to source strings (English)
-        Logger::warn(QStringLiteral("Translation file not found for: %1").arg(code));
+        Logger::warn(QStringLiteral("Translation file not found for: pl"));
     }
 
-    qApp->setLayoutDirection(code == QStringLiteral("ar")
-                             ? Qt::RightToLeft : Qt::LeftToRight);
+    qApp->setLayoutDirection(Qt::LeftToRight);
 
     m_current = code;
-    Logger::info(QStringLiteral("Locale set: %1 (RTL=%2)")
-                 .arg(code).arg(isRtl() ? "yes" : "no"));
+    Logger::info(QStringLiteral("Locale set: Polish (pl)"));
     emit localeChanged(code);
 }
 

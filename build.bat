@@ -15,8 +15,6 @@ if exist .qrc  rmdir /s /q .qrc  >nul 2>&1
 if exist .ui   rmdir /s /q .ui   >nul 2>&1
 
 echo [1/4] Generating translations...
-if exist i18n\verax_ar.ts lrelease.exe i18n\verax_ar.ts -qm i18n\verax_ar.qm
-if exist i18n\verax_en.ts lrelease.exe i18n\verax_en.ts -qm i18n\verax_en.qm
 if exist i18n\verax_pl.ts lrelease.exe i18n\verax_pl.ts -qm i18n\verax_pl.qm
 
 echo [2/4] Running qmake...

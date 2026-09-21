@@ -17,10 +17,10 @@ on:
         type: boolean
         default: false
       release_tag:
-        description: 'Tag name for manual release (e.g. v1.1.2.0)'
+        description: 'Tag name for manual release (e.g. v1.1.3.0)'
         required: false
         type: string
-        default: 'v1.1.2.0'
+        default: 'v1.1.3.0'
 
 permissions:
   contents: write
@@ -61,8 +61,6 @@ jobs:
       - name: Compile Translations
         shell: pwsh
         run: |
-          if (Test-Path i18n/verax_ar.ts) { lrelease i18n/verax_ar.ts -qm i18n/verax_ar.qm }
-          if (Test-Path i18n/verax_en.ts) { lrelease i18n/verax_en.ts -qm i18n/verax_en.qm }
           if (Test-Path i18n/verax_pl.ts) { lrelease i18n/verax_pl.ts -qm i18n/verax_pl.qm }
 
       - name: Build Multi-Guard

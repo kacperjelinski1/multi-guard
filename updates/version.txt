@@ -1,10 +1,12 @@
-1.1.2.0
+1.1.3.0
 Changelog=>
-Multi-Guard Endpoint Security 1.1.2.0:
-- Pełna obsługa bibliotek OpenSSL 1.1.1 TLS (eliminacja błędu TLS initialization failed przy aktywacji KeyGate)
-- Wymóg wprowadzenia klucza licencyjnego w instalatorze (brak możliwości instalacji bez klucza)
-- Automatyczna aktywacja licencji wprowadzonej w instalatorze przy pierwszym uruchomieniu
-- Eliminacja fałszywych alarmów Windows Defender (usunięcie zbędnych modyfikacji rejestru)
-- Uruchamianie bez uciążliwego pytania UAC administratora przy każdym starcie (asInvoker)
-- Poprawki interfejsu użytkownika (skrócenie etykiety paska bocznego do "Narzędzia")
+Multi-Guard Endpoint Security 1.1.3:
+- Nowa architektura pojedynczej instancji (automatyczne zamykanie starej instancji i czyszczenie zasobnika systemowego)
+- Usunięcie przycisku zmiany rozmiaru okna i zablokowanie maksymalizacji
+- Całkowite usunięcie języka angielskiego i arabskiego – interfejs w 100% po polsku
+- Poszerzony pasek boczny z eliminacją ucinania tekstów
+- Płynny, nowoczesny wygląd z ambientowym podświetleniem tarczy na Pulpicie
+- Naprawione i zoptymalizowane czyszczenie systemu
+- Nowy instalator z opcjonalnym wprowadzaniem klucza i zamykaniem procesów w tle
+- Weryfikacja licencji przed skanowaniem i pełna integracja z KeyGate
 

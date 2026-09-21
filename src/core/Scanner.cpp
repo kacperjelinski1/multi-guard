@@ -103,9 +103,11 @@ void Scanner::enumerate(const QString &target, QStringList &out, const QStringLi
     if (!info.isDir()) return;
 
     QDirIterator it(target, QDir::Files | QDir::NoDotAndDotDot | QDir::System | QDir::Hidden, QDirIterator::Subdirectories);
+    int checkedCount = 0;
     while (it.hasNext()) {
         if (m_stop.loadAcquire()) return;
         const QString p = it.next();
+        ++checkedCount;
 
         QFileInfo fi(p);
         if (fi.isSymLink() || !fi.isReadable()) continue;
@@ -118,9 +120,9 @@ void Scanner::enumerate(const QString &target, QStringList &out, const QStringLi
         }
         
         // Send UI feedback during enumeration to prevent "stuck" state
-        if (out.size() % 500 == 0) {
+        if (checkedCount % 50 == 0) {
             emit progress(0, out.size(), 0);
-            emit fileScanned(QStringLiteral("Enumerating: ") + p);
+            emit fileScanned(QStringLiteral("Wyszukiwanie: ") + fi.fileName());
         }
         
         if (out.size() > 500000) return;
@@ -171,6 +173,10 @@ void Scanner::runOn(const ScanRequest &req)
             return;
         }
 
+        qint64 lastUiUpdateMs = 0;
+        QElapsedTimer uiTimer;
+        uiTimer.start();
+
         for (const QString &p : all) {
             if (m_stop.loadAcquire()) {
                 qDebug() << "Scanner Central Engine: Stop command verified and executed.";
@@ -211,10 +217,13 @@ void Scanner::runOn(const ScanRequest &req)
 
             ++done;
             ++report.filesScanned;
-            emit fileScanned(p);
 
-            // Continuous feedback loop to force UI Progress Ring update
-            emit progress(int((done * 100) / total), done, total);
+            const qint64 now = uiTimer.elapsed();
+            if (now - lastUiUpdateMs >= 35 || done == total) {
+                lastUiUpdateMs = now;
+                emit fileScanned(p);
+                emit progress(int((done * 100) / total), done, total);
+            }
         }
 
         if (done == total) emit progress(100, done, total);
