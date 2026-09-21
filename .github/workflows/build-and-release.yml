@@ -68,9 +68,8 @@ jobs:
       - name: Build Multi-Guard
         shell: pwsh
         run: |
-          $cpuCount = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
           qmake Verax.pro "CONFIG+=release"
-          mingw32-make -j$cpuCount release
+          mingw32-make -j$env:NUMBER_OF_PROCESSORS release
 
       - name: Deploy Qt Runtime & Plugins (windeployqt)
         shell: pwsh
