@@ -1,0 +1,9 @@
+1.1.1.0
+Changelog=>
+Multi-Guard Endpoint Security 1.1.1.0:
+- Pełna integracja systemu licencjonowania KeyGate (podpisy kryptograficzne Ed25519)
+- Bezpośrednia rejestracja w Windows Security Center (root\SecurityCenter2)
+- Kooperacyjne wygaszanie monitorowania Microsoft Defender (brak konfliktów i podwójnego obciążenia)
+- Tarcza Ransomware Sentinel (Canary Guard) i ochrona sieciowa WebShield
+- Nowe moduły: Naprawa Windows, Monitor sprzętu, Niszczarka plików DoD 5220.22-M
+- Smart System Tray i minimalizacja do paska zadań Windows

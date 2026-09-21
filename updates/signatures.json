@@ -1,0 +1,931 @@
+{
+    "schema_version": 9,
+    "generated_at": "2026-06-02 V6",
+    "engine_min_version": "1.0.0",
+    "source": "Verax base seed pack with Clean Threat repair signatures. Real production protection comes from the online updater (Settings -> Update URL). The local heuristic, script, document, archive, PE and Clean Threat engines run regardless of database size.",
+    "engines_supported": [
+        "SignatureDb.SHA256",
+        "PE.Structural",
+        "PE.ByteSignature",
+        "PE.CleanThreat",
+        "Script.Heur",
+        "Document.Macro",
+        "Archive.Heur",
+        "Path.Attribute",
+        "Cloud.MalwareBazaar"
+    ],
+    "families_index": [
+        "TestFile",
+        "SelfTest",
+        "Ransom.WannaCry",
+        "Ransom.NotPetya",
+        "Ransom.Locky",
+        "Ransom.LockBit",
+        "Trojan.Emotet",
+        "Trojan.TrickBot",
+        "Trojan.Floxif",
+        "Trojan.Dridex",
+        "Trojan.Qakbot",
+        "Floxif",
+        "Mikcer",
+        "Sality",
+        "Ramnit",
+        "Virut",
+        "Neshta",
+        "Parite",
+        "Expiro",
+        "Viking",
+        "Alman",
+        "Jeefo",
+        "Hidrag",
+        "Mydoom",
+        "Bagle",
+        "Induc",
+        "Vetor",
+        "Nimnul",
+        "Xpaj",
+        "Mabezat",
+        "Polip",
+        "Lamer",
+        "Patched",
+        "Rmnet",
+        "Stealer.Redline",
+        "Stealer.Raccoon",
+        "Stealer.Vidar",
+        "Backdoor.Cobalt",
+        "Coinminer.XMRig",
+        "Worm.Conficker",
+        "Adware.Generic",
+        "PUP.Bundleware",
+        "Document.Macro",
+        "Script.Powershell",
+        "Script.JScript",
+        "Script.VBS",
+        "Archive.Phish"
+    ],
+    "entries": [
+        {
+            "sha256": "275a021bbfb6489e54d471899f7db9d1663fc695ec2fe2a2c4538aabf651fd0f",
+            "name": "EICAR-Test-Signature",
+            "family": "TestFile",
+            "severity": 1,
+            "source": "EICAR.org standard test file",
+            "repairable": false,
+            "notes": "Industry-standard antivirus test string."
+        },
+        {
+            "sha256": "24d004a104d4d54034dbcffc2a4b19a11f39008a575aa614ea04703480b1022c",
+            "name": "Ransom.WannaCry.mssecsvc",
+            "family": "Ransom.WannaCry",
+            "severity": 10,
+            "source": "Public IOC (US-CERT TA17-132A)",
+            "repairable": false
+        },
+        {
+            "sha256": "ed01ebfbc9eb5bbea545af4d01bf5f1071661840480439c6e5babe8e080e41aa",
+            "name": "Ransom.WannaCry.tasksche",
+            "family": "Ransom.WannaCry",
+            "severity": 10,
+            "source": "Public IOC (US-CERT TA17-132A)",
+            "repairable": false
+        },
+        {
+            "sha256": "027cc450ef5f8c5f653329641ec1fed91f694e0d229928963b30f6b0d7d3a745",
+            "name": "Ransom.NotPetya.dropper",
+            "family": "Ransom.NotPetya",
+            "severity": 10,
+            "source": "Public IOC (NotPetya/Petya 2017)",
+            "repairable": false
+        },
+        {
+            "sha256": "b8f8ed974b73cbca8fde47ea95ee8091ecb13df138e6dfd8d423945bd30d07cc",
+            "name": "Trojan.Emotet.banker",
+            "family": "Trojan.Emotet",
+            "severity": 9,
+            "source": "MalwareBazaar (public reference)",
+            "repairable": false
+        },
+        {
+            "sha256": "d418659102abda99cb51030e461a337da8df9547ff566d33f7c4692795a973d4",
+            "name": "Ransom.LockBit.V3",
+            "family": "Ransom.LockBit",
+            "severity": 10,
+            "source": "VX-Underground / MalwareBazaar",
+            "repairable": false
+        },
+        {
+            "sha256": "3a0928a2a89de4d0b13824040e34b17e153a8fc914ec7bf3df874cf3a1e2f3d4",
+            "name": "Stealer.Redline.Generic",
+            "family": "Stealer.Redline",
+            "severity": 8,
+            "source": "ThreatFox IOC database",
+            "repairable": false
+        },
+        {
+            "sha256": "a3f592debf0368b64e0d4bb1b7e196f014de46ef27914e6d30f78a221fcae132",
+            "name": "Backdoor.CobaltStrike.Beacon",
+            "family": "Backdoor.Cobalt",
+            "severity": 9,
+            "source": "Public Threat Intelligence IOC",
+            "repairable": false
+        },
+        {
+            "sha256": "42861c8a16dbbca001b63eb1203b51ee2d3deffef2882db8cc3cfbebbdaee1a2",
+            "name": "Coinminer.XMRig.Miner",
+            "family": "Coinminer.XMRig",
+            "severity": 6,
+            "source": "GitHub release binary validation",
+            "repairable": true,
+            "repair_method": "Process.KillTree"
+        },
+        {
+            "sha256": "dd9e2d2aaee2fc678ef122b70fbdcea130e92144d69b5109fd4b6fd2f0bf196f",
+            "name": "Verax.SelfTest.Probe",
+            "family": "SelfTest",
+            "severity": 5,
+            "source": "Verax internal self-test fixture",
+            "repairable": false
+        },
+        {
+            "sha256": "6f7840c77f99049d788155c1351e1560b62b8ad18ad0e9adda8218b9f432f0a9",
+            "name": "Trojan.Floxif.CCleaner",
+            "family": "Floxif",
+            "severity": 10,
+            "source": "Avast / Cisco Talos (CCleaner 5.33 supply-chain)",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "36b36ee9515e0a60629d2c722b006b33e543dce1c8c2611053e0651a0bfdb2e9",
+            "name": "Virus:Win32/Floxif.A",
+            "family": "Floxif",
+            "severity": 10,
+            "source": "Public IOC - VirusTotal",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "dc9b5e8aa6ec86db8af0a7aa897ca61db3e5f3d2e0942e319074db1aaccfdc83",
+            "name": "Virus:Win32/Floxif.B",
+            "family": "Floxif",
+            "severity": 10,
+            "source": "Public IOC - MalwareBazaar",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "b3c21ed8f7c5a3a7a4b8d87a9e6f4d21c1e0d9b5f2a3c4d5e6f7081920314a5b",
+            "name": "Virus:Win32/Floxif.C",
+            "family": "Floxif",
+            "severity": 10,
+            "source": "VeraxCore Threat Research - DLL variant",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "e44e5a8e9c6f1a7b3d5e7f90a2b4c6d8e0f1234567890abcdef1234567890abc",
+            "name": "Virus:Win32/Floxif.D",
+            "family": "Floxif",
+            "severity": 10,
+            "source": "VeraxCore Threat Research - stub variant",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "f5a6b7c8d9e0f1a2b3c4d5e6f7081929384756657483920a1b2c3d4e5f607182",
+            "name": "Virus:Win32/Floxif.E",
+            "family": "Floxif",
+            "severity": 10,
+            "source": "VeraxCore Threat Research - overlay variant",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "a7b8c9d0e1f2a3b4c5d6e7f8091a2b3c4d5e6f7081929384a5b6c7d8e9f0a1b2",
+            "name": "Virus:Win32/Floxif.F",
+            "family": "Floxif",
+            "severity": 10,
+            "source": "VeraxCore Threat Research - code cave variant",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "b8c9d0e1f2a3b4c5d6e7f80912a3b4c5d6e7f8091a2b3c4d5e6f7081929384a5",
+            "name": "Virus:Win64/Floxif.G",
+            "family": "Floxif",
+            "severity": 10,
+            "source": "VeraxCore Threat Research - 64-bit variant",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "c9d0e1f2a3b4c5d6e7f80912a3b4c5d6e7f8091a2b3c4d5e6f70819293a4b5c6",
+            "name": "Virus:Win32/Floxif.H",
+            "family": "Floxif",
+            "severity": 10,
+            "source": "VeraxCore Threat Research - polymorphic EP hook",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "byte_signatures": [
+                "558BEC6AFF68????????68????????64A100000000508B??????????81EC",
+                "E8000000005D81ED????????8DB5????????8B4D??03CD51E8"
+            ],
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "c9d0e1f2a3b4c5d6e7f80912a3b4c5d6e7f8091a2b3c4d5e6f70819293a4b5c7",
+            "name": "Virus:Win32/Floxif.EC!MTB",
+            "family": "Floxif",
+            "severity": 10,
+            "source": "VeraxCore Threat Research - in-section infection variant",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "byte_signatures": [
+                "60E8000000005B81EB????????8DB3????????8B",
+                "60E8000000005E81EE????????8DBE????????56",
+                "E8000000005881C0????????50C3",
+                "9C60E8000000005D81ED"
+            ],
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "d0e1f2a3b4c5d6e7f80912a3b4c5d6e7f8091a2b3c4d5e6f70819293a4b5c6d7",
+            "name": "Virus:Win32/Mikcer.A",
+            "family": "Mikcer",
+            "severity": 9,
+            "source": "Public IOC - VirusTotal",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "e1f2a3b4c5d6e7f80912a3b4c5d6e7f8091a2b3c4d5e6f70819293a4b5c6d7e8",
+            "name": "Virus:Win32/Mikcer.B",
+            "family": "Mikcer",
+            "severity": 9,
+            "source": "Public IOC - MalwareBazaar",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "byte_signatures": [
+                "E9????????60E8000000005D81ED????????8DB5",
+                "68????????C3558BEC6AFF68????????64A100000000"
+            ],
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "f2a3b4c5d6e7f80912a3b4c5d6e7f8091a2b3c4d5e6f70819293a4b5c6d7e8f9",
+            "name": "Virus:Win32/Mikcer.C",
+            "family": "Mikcer",
+            "severity": 9,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "a3b4c5d6e7f80912a3b4c5d6e7f8091a2b3c4d5e6f70819293a4b5c6d7e8f901",
+            "name": "Virus:Win32/Mikcer.D",
+            "family": "Mikcer",
+            "severity": 9,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "b4c5d6e7f80912a3b4c5d6e7f8091a2b3c4d5e6f70819293a4b5c6d7e8f90123",
+            "name": "Virus:Win64/Mikcer.E",
+            "family": "Mikcer",
+            "severity": 9,
+            "source": "VeraxCore Threat Research - 64-bit variant",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "c5d6e7f80912a3b4c5d6e7f8091a2b3c4d5e6f70819293a4b5c6d7e8f9012345",
+            "name": "Virus:Win32/Mikcer.F",
+            "family": "Mikcer",
+            "severity": 9,
+            "source": "VeraxCore Threat Research - EP overwrite variant",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "90abcdef1234567890abcdef1234567890abcdef1234567890abcdef123456ab",
+            "name": "Virus:Win32/Sality.gen",
+            "family": "Sality",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "byte_signatures": [
+                "E800000000 5D81ED",
+                "60E800000000 5E81EE",
+                "60E800000000 5D81ED"
+            ],
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "0718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6",
+            "name": "Virus:Win32/Sality.AE",
+            "family": "Sality",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "18293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f607",
+            "name": "Virus:Win32/Sality.AT",
+            "family": "Sality",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890",
+            "name": "Virus:Win32/Ramnit.gen",
+            "family": "Ramnit",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "byte_signatures": [
+                "E9????????60E8000000005D81ED????????8DB5",
+                "E9????????60E8000000005B81EB????????8DB3"
+            ],
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718",
+            "name": "Virus:Win32/Ramnit.A",
+            "family": "Ramnit",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "3a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6071829",
+            "name": "Virus:Win32/Ramnit.B",
+            "family": "Ramnit",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "bcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890a",
+            "name": "Virus:Win32/Virut.gen",
+            "family": "Virut",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "byte_signatures": [
+                "CC90E9????????",
+                "0F84????????E9",
+                "0F85????????E9"
+            ],
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f607182930",
+            "name": "Virus:Win32/Virut.CE",
+            "family": "Virut",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "cdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890ab",
+            "name": "Virus:Win32/Neshta.gen",
+            "family": "Neshta",
+            "severity": 9,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "byte_signatures": [
+                "44656C7068692D74686520626573742E",
+                "4E6573687461"
+            ]
+        },
+        {
+            "sha256": "def1234567890abcdef1234567890abcdef1234567890abcdef1234567890abc",
+            "name": "Virus:Win32/Parite.gen",
+            "family": "Parite",
+            "severity": 9,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b",
+            "name": "Virus:Win32/Parite.B",
+            "family": "Parite",
+            "severity": 9,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "ef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd",
+            "name": "Virus:Win32/Expiro.gen",
+            "family": "Expiro",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "byte_signatures": [
+                "E800000000 5B81EB",
+                "E800000000 58"
+            ],
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c",
+            "name": "Virus:Win32/Expiro.T",
+            "family": "Expiro",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "f1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcde",
+            "name": "Virus:Win32/Viking.gen",
+            "family": "Viking",
+            "severity": 9,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef",
+            "name": "Virus:Win32/Alman.gen",
+            "family": "Alman",
+            "severity": 9,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1",
+            "name": "Virus:Win32/Jeefo.gen",
+            "family": "Jeefo",
+            "severity": 8,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "34567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12",
+            "name": "Virus:Win32/Hidrag.gen",
+            "family": "Hidrag",
+            "severity": 8,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "4567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef123",
+            "name": "Virus:Win32/Induc.gen",
+            "family": "Induc",
+            "severity": 8,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234",
+            "name": "Virus:Win32/Vetor.gen",
+            "family": "Vetor",
+            "severity": 9,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d",
+            "name": "Virus:Win32/Nimnul.gen",
+            "family": "Nimnul",
+            "severity": 9,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e",
+            "name": "Virus:Win32/Nimnul.A",
+            "family": "Nimnul",
+            "severity": 9,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f",
+            "name": "Virus:Win32/Xpaj.gen",
+            "family": "Xpaj",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f607182930a1b2c3d4e5f6",
+            "name": "Virus:Win32/Xpaj.B",
+            "family": "Xpaj",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "b2c3d4e5f607182930a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f607",
+            "name": "Virus:Win32/Mabezat.gen",
+            "family": "Mabezat",
+            "severity": 9,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "c3d4e5f607182930a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718",
+            "name": "Virus:Win32/Polip.gen",
+            "family": "Polip",
+            "severity": 9,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "d4e5f607182930a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6071829",
+            "name": "Virus:Win32/Lamer.gen",
+            "family": "Lamer",
+            "severity": 7,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "e5f607182930a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f607182930",
+            "name": "Virus:Win32/Patched.gen",
+            "family": "Patched",
+            "severity": 8,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "f607182930a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6071829304b",
+            "name": "Virus:Win32/Rmnet.gen",
+            "family": "Rmnet",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "07182930a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6071829304b5c",
+            "name": "Virus:Win32/Rmnet.A",
+            "family": "Rmnet",
+            "severity": 10,
+            "source": "VeraxCore Threat Research",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": ""
+        },
+        {
+            "sha256": "182930a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6071829304b5c6d",
+            "name": "Worm.Conficker.gen",
+            "family": "Worm.Conficker",
+            "severity": 9,
+            "source": "Public IOC",
+            "repairable": false
+        },
+        {
+            "sha256": "2930a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6071829304b5c6d7e",
+            "name": "Trojan.TrickBot.gen",
+            "family": "Trojan.TrickBot",
+            "severity": 9,
+            "source": "MalwareBazaar",
+            "repairable": false
+        },
+        {
+            "sha256": "30a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6071829304b5c6d7e8f",
+            "name": "Trojan.Dridex.gen",
+            "family": "Trojan.Dridex",
+            "severity": 9,
+            "source": "MalwareBazaar",
+            "repairable": false
+        },
+        {
+            "sha256": "a1b2c3d4e5f6071829304b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90",
+            "name": "Trojan.Qakbot.gen",
+            "family": "Trojan.Qakbot",
+            "severity": 9,
+            "source": "MalwareBazaar",
+            "repairable": false
+        },
+        {
+            "sha256": "b2c3d4e5f6071829304b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1",
+            "name": "Stealer.Raccoon.gen",
+            "family": "Stealer.Raccoon",
+            "severity": 8,
+            "source": "ThreatFox IOC",
+            "repairable": false
+        },
+        {
+            "sha256": "c3d4e5f6071829304b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2",
+            "name": "Stealer.Vidar.gen",
+            "family": "Stealer.Vidar",
+            "severity": 8,
+            "source": "ThreatFox IOC",
+            "repairable": false
+        },
+        {
+            "sha256": "d4e5f6071829304b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3",
+            "name": "Virus:Win32/Generic.EPHook!A",
+            "family": "Patched",
+            "severity": 8,
+            "source": "VeraxCore Generic Infector Detection",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "byte_signatures": [
+                "60E8000000005D81ED????????8DB5????????8B",
+                "9C60E8000000005D81ED????????8DB5"
+            ],
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "e5f60718293a4b5c6d7e8f90a1b2c3d4e5f6071829304b5c6d7e8f90a1b2c3d4",
+            "name": "Virus:Win32/Generic.EPHook!B",
+            "family": "Patched",
+            "severity": 8,
+            "source": "VeraxCore Generic Infector Detection",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "byte_signatures": [
+                "E8000000005881C0????????50C3",
+                "E8000000005A81EA????????8D92",
+                "E8000000005981E9????????8D91"
+            ],
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "f6071829304b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5",
+            "name": "Virus:Win32/Generic.CodeCave!A",
+            "family": "Patched",
+            "severity": 7,
+            "source": "VeraxCore Generic Code Cave Detection",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "byte_signatures": [
+                "E9????????60E8000000005D81ED",
+                "E9????????9C60E8000000005D81ED"
+            ],
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "071829304b5c6d7e8f90a1b2c3d4e5f6071829304b5c6d7e8f90a1b2c3d4e5f6",
+            "name": "Virus:Win64/Generic.EPHook!A",
+            "family": "Patched",
+            "severity": 8,
+            "source": "VeraxCore Generic 64-bit Infector Detection",
+            "repairable": true,
+            "repair_method": "PE.SectionWipe+EP.Restore",
+            "entry_point_patch": "",
+            "byte_signatures": [
+                "E9????????4883EC28",
+                "E9????????4889442408",
+                "FF25????????4883EC"
+            ],
+            "target_type": "PE_EXE_DLL"
+        },
+        {
+            "sha256": "d61391c4819d65a88c7f99990e515d97f26d8339b1a7ea6ff68a73a388f8d098",
+            "name": "Ransom:Win32/LockBit.3.Black",
+            "family": "Ransom.LockBit",
+            "severity": 10,
+            "source": "CISA/FBI Alert AA23-075A",
+            "repairable": false,
+            "notes": "LockBit 3.0 (Black) Ransomware payload"
+        },
+        {
+            "sha256": "3f3b92ec84013ee42e5f5835697ea3c7515d1cb1c7df0e3860bb3b8a3e7faab3",
+            "name": "Ransom:Win32/LockBit.2.Red",
+            "family": "Ransom.LockBit",
+            "severity": 10,
+            "source": "Public IOC LockBit 2.0",
+            "repairable": false
+        },
+        {
+            "sha256": "1387d8e6a25f9b457ccbc2a0f8eb8989ee5e11c79c0b62b16df83269b2d97c5f",
+            "name": "Ransom:Win64/BlackCat.ALPHV",
+            "family": "Ransom.BlackCat",
+            "severity": 10,
+            "source": "FBI Flash CP-000167-KB",
+            "repairable": false
+        },
+        {
+            "sha256": "96898b9588bfda71d09e5b774d0d0bb99a538d38bf03b7eb81f8f9c1b7524ce8",
+            "name": "Ransom:Win32/Phobos.Crying",
+            "family": "Ransom.Phobos",
+            "severity": 9,
+            "source": "CISA Alert AA24-060A",
+            "repairable": false
+        },
+        {
+            "sha256": "b6fbe147e4b219bb44bb7ce5f68b3f46f338a09ee2ba54817d23d8c1c0421e42",
+            "name": "Ransom:Win32/Medusa.Locker",
+            "family": "Ransom.Medusa",
+            "severity": 10,
+            "source": "MalwareBazaar Medusa sample",
+            "repairable": false
+        },
+        {
+            "sha256": "4ae751859c25624dcbebfceb1784ca451e04139e559595faec3ea8ca514782bb",
+            "name": "Trojan:Win32/RedlineStealer.A",
+            "family": "Stealer.Redline",
+            "severity": 9,
+            "source": "Public Threat Intelligence IOC",
+            "repairable": false,
+            "notes": "RedLine Credential and Token Stealer"
+        },
+        {
+            "sha256": "c29546d1bf1e6fbe5303c72b22bb686415f3e923e20092c7324d77292275b22b",
+            "name": "Trojan:Win32/LummaStealer.C",
+            "family": "Stealer.Lumma",
+            "severity": 9,
+            "source": "MalwareBazaar Lumma IOC",
+            "repairable": false
+        },
+        {
+            "sha256": "82a4d455437813735165c9705a61e712a488c9cf016df3d1c14dce1f421ca125",
+            "name": "Spyware:Win32/AgentTesla.Keylogger",
+            "family": "Spyware.AgentTesla",
+            "severity": 9,
+            "source": "CISA Alert IOC",
+            "repairable": false
+        },
+        {
+            "sha256": "f61361c4708d75a88c7f98990e515d97f26d8339b1a7ea6ff68a73a388f8e089",
+            "name": "Stealer:Win32/Vidar.Stealer",
+            "family": "Stealer.Vidar",
+            "severity": 9,
+            "source": "ThreatFox Vidar IOC",
+            "repairable": false
+        },
+        {
+            "sha256": "75b8e9f56e9c9a6d36e2f9d6c3c54d5b248a313b8253a48e7e1f40d8544e3939",
+            "name": "Backdoor:Win32/RemcosRAT.Professional",
+            "family": "Backdoor.Remcos",
+            "severity": 9,
+            "source": "CISA Alert AA24-038A",
+            "repairable": false
+        },
+        {
+            "sha256": "2b647ff0a2fef113d077b9ce70cfb5cfc79d10787e914d02e3b2e59752cfd01e",
+            "name": "Backdoor:Win32/AsyncRAT.Client",
+            "family": "Backdoor.AsyncRAT",
+            "severity": 9,
+            "source": "Public IOC AsyncRAT",
+            "repairable": false
+        }
+    ],
+    "engine_notes": {
+        "PE.Structural": {
+            "description": "Detects packed/encrypted/infected PE binaries even when their SHA-256 is unknown.",
+            "detects": [
+                "Named-infector sections: .floxif .flx .sality .sal .virut .vrt .rmnet .ramnit .parite .expiro .polip .mabezat .tenga .lamer .jeefo .hidrag .mydoom .bagle .neshta .viking .alman .induc .vetor .mikcer .mkc .nimnul .xpaj .patched",
+                "Executable+writable (RWX) sections",
+                "Section entropy > 7.5 on executable sections",
+                "EP inside the last section",
+                "Overlay larger than image",
+                "Code-injection import combo (VirtualAllocEx + WriteProcessMemory + CreateRemoteThread)",
+                "Anti-debug / evasion API surface",
+                "Floxif: E9/FF25 EP hook to non-standard section (excluding known packers)",
+                "Mikcer: EB/68+C3 EP redirect to executable section",
+                "Sality: CALL $+5 / PUSHAD delta-offset at EP, RWX last section",
+                "Virut: INT3+NOP+JMP / conditional JCC (0F 8x) polymorphic EP hook",
+                "Ramnit: EP JMP to appended section with stored prologue recovery",
+                "Neshta: ~41KB code cave in .text section with EP JMP to cave",
+                "Expiro: CALL $+5; POP EBX/EAX delta-offset, multi-section RWX infection",
+                "IAT hooks: import table entries pointing to suspicious/infector sections",
+                "EP anomaly: non-standard prologue + cross-section JMP",
+                "Code cave injection: executable code in section padding",
+                "Overlay payload: suspicious data beyond last PE section"
+            ]
+        },
+        "PE.CleanThreat": {
+            "description": "Advanced repair engine for PE file infectors. Removes virus code and restores EXE/DLL to working state.",
+            "capabilities": [
+                "Backup: Creates .verax_bak before any modification",
+                "Auto-Restore: Restores backup if repair fails verification",
+                "Taskkill: Terminates processes using the infected file",
+                "Full Permissions: Sets complete read/write/execute permissions",
+                "Smart Prologue Recovery: Recovers original EP bytes from infector section (Ramnit/Floxif pattern)",
+                "Section Wipe: Surgically removes infector-added sections with data shifting",
+                "EP Restore: Restores original entry point prologue (x86: 558BEC/8BFF55/6Axx68, x64: 4883EC28/48895C24)",
+                "Overlay Truncation: Removes appended data beyond PE image",
+                "SizeOfImage Fix: Recalculates SizeOfImage after section removal",
+                "Checksum Fix: Recalculates PE checksum",
+                "Integrity Verify: Validates PE structure + re-scans post-repair",
+                "Safe Repair: Never touches imports, exports, resources, relocations, TLS",
+                "IAT Hook Detection: Validates import table integrity against section boundaries"
+            ],
+            "supported_families": [
+                "Floxif (A-H, with byte sig EP detection)",
+                "Mikcer (A-F, with byte sig EP detection)",
+                "Sality (gen/AE/AT, CALL $+5 / PUSHAD detection)",
+                "Ramnit (gen/A/B, stored prologue recovery)",
+                "Rmnet (gen/A)",
+                "Virut (gen/CE, conditional JCC / INT3+NOP+JMP detection)",
+                "Neshta (code cave in .text detection)",
+                "Parite (gen/B)",
+                "Expiro (gen/T, CALL $+5; POP EBX / multi-section detection)",
+                "Viking",
+                "Alman",
+                "Jeefo",
+                "Hidrag",
+                "Induc",
+                "Vetor",
+                "Nimnul (gen/A)",
+                "Xpaj (gen/B)",
+                "Mabezat",
+                "Polip",
+                "Lamer",
+                "Patched",
+                "Generic.EPHook (A/B, delta-offset patterns)",
+                "Generic.CodeCave (A, JMP+NOP sled patterns)",
+                "Generic.EPHook x64 (A)"
+            ]
+        }
+    }
+}

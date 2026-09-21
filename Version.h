@@ -39,9 +39,9 @@ _VR_S(APP_VERSION_MAJOR) "." _VR_S(APP_VERSION_MINOR) "." \
 #define APP_LOG_SUBDIR      "Logs"
 
 // ─── Network endpoints ─────────────────────────────────────────────────
-#define APP_UPDATE_URL          "https://gist.githubusercontent.com/alisakkaf/01eaea5312e4e583f993b891554666f3/raw/VeraxCore_Antivirus.json"
-#define APP_VERSION_CHECK_URL   "https://pastebin.com/raw/fkhYWEf7"
-#define APP_DOWNLOAD_URL        "https://alisakkaf.com/en/windows-software/download-veraxcore-free-open-source-antivirus-windows"
+#define APP_UPDATE_URL          "https://raw.githubusercontent.com/kacperjelinski1/multi-guard/main/updates/signatures.json"
+#define APP_VERSION_CHECK_URL   "https://raw.githubusercontent.com/kacperjelinski1/multi-guard/main/updates/version.txt"
+#define APP_DOWNLOAD_URL        "https://github.com/kacperjelinski1/multi-guard/releases/latest"
 
 // ─── Theme ────────────────────────────────────────────────────────────
 #define APP_THEME           "Daylight"

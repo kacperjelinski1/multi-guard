@@ -7,7 +7,7 @@
 #-----------------------------------------------------------------------
 
 QT       += core gui widgets network concurrent xml sql svg
-CONFIG   += c++17 qt warn_off resources_big static
+CONFIG   += c++17 qt warn_off resources_big
 TARGET    = Multi-Guard
 TEMPLATE  = app
 DESTDIR   = $$PWD/RELEASED
@@ -20,10 +20,13 @@ QMAKE_CXXFLAGS_RELEASE += -Os -ffunction-sections -fdata-sections \
 QMAKE_CFLAGS_RELEASE   -= -O2
 QMAKE_CFLAGS_RELEASE   += -Os -ffunction-sections -fdata-sections \
                           -fmerge-all-constants -fstack-protector-strong
+static {
+    QMAKE_LFLAGS_RELEASE += -static
+}
 QMAKE_LFLAGS_RELEASE   += -Wl,--gc-sections -s -Wl,--exclude-libs,ALL \
                           -Wl,--build-id=none -Wl,--dynamicbase \
                           -Wl,--nxcompat \
-                          -static -static-libgcc -static-libstdc++
+                          -static-libgcc -static-libstdc++
 
 
 # ─── Fix for Stack Protector (libssp) + Authenticode WinVerifyTrust ─

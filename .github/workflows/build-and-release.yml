@@ -1,0 +1,124 @@
+name: Build & Release Multi-Guard
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Publish as GitHub Release'
+        required: false
+        type: boolean
+        default: false
+      release_tag:
+        description: 'Tag name for manual release (e.g. v1.1.1.0)'
+        required: false
+        type: string
+        default: 'v1.1.1.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows x64 (Installer & Portable)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress
+          echo "C:\Program Files (x86)\Inno Setup 6" >> $env:GITHUB_PATH
+
+      - name: Install Qt 5.15.2 & MinGW
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_mingw81'
+          setup-python: false
+
+      - name: Verify Build Tools
+        shell: pwsh
+        run: |
+          qmake -v
+          g++ --version
+          iscc /? | Select-Object -First 2
+
+      - name: Compile Translations
+        shell: pwsh
+        run: |
+          if (Test-Path i18n/verax_ar.ts) { lrelease i18n/verax_ar.ts -qm i18n/verax_ar.qm }
+          if (Test-Path i18n/verax_en.ts) { lrelease i18n/verax_en.ts -qm i18n/verax_en.qm }
+          if (Test-Path i18n/verax_pl.ts) { lrelease i18n/verax_pl.ts -qm i18n/verax_pl.qm }
+
+      - name: Build Multi-Guard
+        shell: pwsh
+        run: |
+          $cpuCount = (Get-CimInstance Win32_ComputerSystem).NumberOfLogicalProcessors
+          qmake Verax.pro "CONFIG+=release"
+          mingw32-make -j$cpuCount release
+
+      - name: Deploy Qt Runtime & Plugins (windeployqt)
+        shell: pwsh
+        run: |
+          if (-not (Test-Path RELEASED/Multi-Guard.exe)) {
+            Write-Error "RELEASED/Multi-Guard.exe was not created!"
+            exit 1
+          }
+          strip RELEASED/Multi-Guard.exe
+          windeployqt --release --no-translations --compiler-runtime RELEASED/Multi-Guard.exe
+
+      - name: Build Inno Setup Installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path RELEASED_SETUP | Out-Null
+          iscc installer/Multi-Guard.iss
+
+      - name: Package Portable ZIP Archive
+        shell: pwsh
+        run: |
+          Compress-Archive -Path RELEASED\* -DestinationPath RELEASED_SETUP/Multi-Guard-1.1.1.0-win64-portable.zip -Force
+
+      - name: Generate SHA256 Checksums
+        shell: pwsh
+        working-directory: RELEASED_SETUP
+        run: |
+          Get-FileHash -Algorithm SHA256 Multi-Guard-Setup-1.1.1.0.exe, Multi-Guard-1.1.1.0-win64-portable.zip | `
+            ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | `
+            Out-File -Encoding ascii SHA256SUMS.txt
+          Get-Content SHA256SUMS.txt
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Multi-Guard-Windows-x64
+          path: RELEASED_SETUP/*
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs.create_release == true)
+        with:
+          tag_name: ${{ github.ref_name != 'main' && github.ref_name || inputs.release_tag }}
+          name: Multi-Guard ${{ github.ref_name != 'main' && github.ref_name || inputs.release_tag }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          files: |
+            RELEASED_SETUP/Multi-Guard-Setup-1.1.1.0.exe
+            RELEASED_SETUP/Multi-Guard-1.1.1.0-win64-portable.zip
+            RELEASED_SETUP/SHA256SUMS.txt
