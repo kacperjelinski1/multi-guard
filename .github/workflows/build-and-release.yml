@@ -69,7 +69,7 @@ jobs:
         shell: pwsh
         run: |
           qmake Verax.pro "CONFIG+=release"
-          mingw32-make -j$env:NUMBER_OF_PROCESSORS release
+          mingw32-make -j 2 release
 
       - name: Deploy Qt Runtime & Plugins (windeployqt)
         shell: pwsh
