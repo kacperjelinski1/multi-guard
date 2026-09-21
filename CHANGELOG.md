@@ -1,62 +1,39 @@
-# Changelog | سجل التغييرات
+# Changelog — Multi-Guard
 
-All notable changes to VeraxCore Antivirus will be documented in this file.
+Wszystkie istotne zmiany i wydania projektu **Multi-Guard** są dokumentowane w tym pliku.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Format opiera się na [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+a projekt stosuje [SemVer](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-06-02
+---
 
-### 🎉 Initial Release
+## [1.0.0] - 2026-09-21
 
-#### Detection Engines
-- SHA-256 signature database with 65+ built-in signatures
-- Byte-pattern scanner with wildcard support
-- PE structural analysis engine
-- Heuristic scoring engine with configurable thresholds
-- Optional cloud hash lookup
+### 🎉 Oficjalne Wydanie Multi-Guard
 
-#### PE Repair Engine (Clean Threat)
-- Section removal: 25+ known virus section names
-- RWX suspicious section cleanup
-- Inflated section trimming (Floxif technique detection)
-- Overlay virus body removal with Authenticode certificate preservation
-- Smart Entry Point repair (3-case detection)
-- CRT startup pattern scanning for real EP discovery
-- DLL vs EXE aware prologue restoration
-- PE checksum recalculation
-- Backup before repair with auto-restore on failure
+#### Silnik Antywirusowy i Ochrona Endpoint
+- Baza sygnatur SHA-256 z weryfikacją integralności w SQLite/JSON.
+- Skaner wzorców bajtowych (Byte-Pattern Scanner) z obsługą masek.
+- Analiza strukturalna nagłówków Portable Executable (PE).
+- Chirurgiczna naprawa zainfekowanych plików EXE/DLL (PE Repair Engine).
+- Ochrona w czasie rzeczywistym (`RealTimeShield`) monitorująca filesystem.
+- Tarcza Ransomware Sentinel (`RansomwareShield`) z mechanizmem plików-pułapek Canary Guard.
+- Ochrona sieciowa (`WebShield`) z blokowaniem złośliwych domen i audytem pliku `hosts`.
 
-#### Supported Virus Families
-- Floxif (.A–.H, EC!MTB), Sality, Ramnit, Virut, Neshta
-- Mikcer, Parite, Expiro, Mabezat, Viking, Alman
-- Generic CodeCave, TrojanDownloader, and more
+#### Licencjonowanie i Integracja KeyGate
+- Pełna integracja z serwerem **KeyGate** (`https://license.multi-servis.pl`) dla Product ID `9843d5fd-f090-4534-9d32-d66b64999acb`.
+- Kryptograficzna weryfikacja podpisów **Ed25519** (TweetNaCl, bez obcych bibliotek DLL).
+- Obsługa 17 planów produkcyjnych (Multi-Guard AV 3/6/9/12m, Secure 3/6/9/12m, Assist 3/6/9/12m, Assist PRO 3/6/9/12m, ADMIN FULL perpetual).
+- Dynamiczne przeliczanie dni do końca subskrypcji i prezentacja na Pulpicie, w Ustawieniach oraz na pasku tytułowym.
+- Płynna zmiana klucza licencyjnego z modalnym powiadomieniem i automatycznym restartem programu.
+- Blokada po wygaśnięciu licencji (`pageLicenseLocked`) z natychmiastowym odnowieniem online lub telefonicznym (`505 012 914`).
 
-#### Quarantine Vault
-- AES-256-CBC encryption via Windows BCrypt API
-- HWID-derived encryption key
-- 3-pass secure delete (zeros → 0xFF → random)
-- Full management: restore, permanent delete, view
+#### Integracja z Windows Security Center
+- Rejestracja instancji `AntiVirusProduct` w przestrzeni WMI `root\SecurityCenter2`.
+- Integracja z aplikacją Zabezpieczenia Windows (Defender): Multi-Guard jest zgłaszany jako aktywny i włączony dostawca antywirusa.
+- Kooperacyjne wygaszanie podwójnego skanowania Microsoft Defender (`Set-MpPreference -DisableRealtimeMonitoring $true`).
 
-#### Scan Types
-- Quick Scan, Full Scan, Custom Scan, Folder Scan
-- USB auto-scan on device insertion
-
-#### User Interface
-- Modern glassmorphism UI with dark/light themes
-- Multi-language support (English + Arabic)
-- System tray with notifications
-- Real-time scan progress and threat details
-
-#### Data Management
-- Portable UserData directory (next to executable)
-- SQLite database with JSON fallback
-- Rotating log files (5MB, keep 5)
-- JSON scan reports
-- Online signature updates
-
-#### Security Hardening
-- ASLR, DEP, CFG enabled
-- Administrator privileges via UAC manifest
-- Encrypted quarantine vault
-- Secure file deletion
+#### Interfejs Użytkownika i Doświadczenie (UX)
+- Nowoczesny interfejs z motywami ciemnym i jasnym oraz obsługą języka polskiego.
+- Przycisk `X` chowa aplikację do zasobnika systemowego (`system tray`), a `-` minimalizuje do paska zadań.
+- Pakiet narzędzi dodatkowych: Naprawa Windows, Monitor sprzętu, Niszczarka plików (DoD 5220.22-M), Menedżer autostartu, Raporty serwisowe HTML oraz Zdalna pomoc techniczna Multi-Servis.

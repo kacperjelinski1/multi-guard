@@ -1,42 +1,26 @@
-# Code of Conduct | ميثاق السلوك
+# Code of Conduct — Multi-Guard
 
-## Our Pledge | تعهدنا
+## Nasze Zobowiązanie
 
-We as members, contributors, and leaders pledge to make participation in our community a harassment-free experience for everyone, regardless of age, body size, visible or invisible disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, caste, color, religion, or sexual identity and orientation.
+Jako autorzy i opiekunowie projektu **Multi-Guard**, zobowiązujemy się do tworzenia środowiska otwartego, pełnego szacunku i wolnego od nękania dla wszystkich uczestników, bez względu na wiek, płeć, pochodzenie, doświadczenie, narodowość, religię czy status społeczny.
 
-## Our Standards | معاييرنا
+## Standardy Postępowania
 
-### ✅ Examples of behavior that contributes to a positive environment:
+Przykłady zachowań budujących pozytywne środowisko:
+- Używanie życzliwego i włączającego języka
+- Szacunek dla odmiennych opinii i perspektyw technicznych
+- Konstruktywne przyjmowanie i przekazywanie uwag
+- Skupienie na tym, co jest najlepsze dla społeczności użytkowników i bezpieczeństwa projektu
 
-- Using welcoming and inclusive language
-- Being respectful of differing viewpoints and experiences
-- Gracefully accepting constructive criticism
-- Focusing on what is best for the community
-- Showing empathy towards other community members
+Przykłady zachowań niedopuszczalnych:
+- Obelżywy, dyskryminujący lub wulgarny język
+- Ataki osobiste oraz trolling
+- Publikowanie prywatnych informacji innych osób bez ich zgody
+- Wszelkie formy nękania i niestosownego zachowania
 
-### ❌ Examples of unacceptable behavior:
+## Egzekwowanie
 
-- The use of sexualized language or imagery, and sexual attention or advances of any kind
-- Trolling, insulting or derogatory comments, and personal or political attacks
-- Public or private harassment
-- Publishing others' private information without their explicit permission
-- Using this project to create, distribute, or analyze malware for malicious purposes
-- Other conduct which could reasonably be considered inappropriate in a professional setting
+Naruszenia zasad mogą być zgłaszane do zespołu Multi-Servis pod adresem:
+📧 `kontakt@multi-servis.pl` lub telefonicznie: `505 012 914`.
 
-## Enforcement Responsibilities | مسؤوليات التنفيذ
-
-Project maintainers are responsible for clarifying and enforcing our standards of acceptable behavior and will take appropriate and fair corrective action in response to any behavior that they deem inappropriate, threatening, offensive, or harmful.
-
-## Scope | النطاق
-
-This Code of Conduct applies within all community spaces, and also applies when an individual is officially representing the community in public spaces.
-
-## Enforcement | التنفيذ
-
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainer through the contact form at [alisakkaf.com](https://alisakkaf.com).
-
-All complaints will be reviewed and investigated promptly and fairly.
-
-## Attribution | الإسناد
-
-This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org/), version 2.1.
+Wszystkie zgłoszenia będą rozpatrywane poufnie, sprawiedliwie i bezzwłocznie.

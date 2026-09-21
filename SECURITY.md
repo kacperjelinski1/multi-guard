@@ -1,77 +1,55 @@
-# Security Policy | سياسة الأمان
+# Security Policy — Multi-Guard
 
-## Supported Versions | الإصدارات المدعومة
+## Supported Versions
 
 | Version | Supported |
 |---|---|
-| 1.0.x | ✅ Active |
-| < 1.0 | ❌ Not supported |
-
-## Reporting a Vulnerability | الإبلاغ عن ثغرة أمنية
-
-### English
-
-We take the security of VeraxCore Antivirus seriously. If you discover a security vulnerability, please report it responsibly.
-
-**DO NOT** open a public GitHub issue for security vulnerabilities.
-
-#### How to Report
-
-1. **Email**: Send a detailed report to the project maintainer through the contact form at [alisakkaf.com](https://alisakkaf.com)
-2. **Include**:
-   - Description of the vulnerability
-   - Steps to reproduce
-   - Potential impact
-   - Suggested fix (if any)
-
-#### Response Timeline
-
-- **Acknowledgment**: Within 48 hours
-- **Initial Assessment**: Within 7 days
-- **Fix Release**: Within 30 days for critical vulnerabilities
-
-#### What We Consider Security Issues
-
-- Remote code execution through crafted PE files
-- Bypass of quarantine encryption (AES-256-CBC)
-- Privilege escalation through the application
-- Signature database tampering
-- Path traversal in scan or quarantine operations
-- Memory corruption in the PE repair engine
-
-#### What We Do NOT Consider Security Issues
-
-- Denial of service through very large files
-- Issues requiring physical access to the machine
-- Social engineering attacks
-- Issues in third-party dependencies (report to them directly)
-
-#### Safe Harbor
-
-We support responsible disclosure. If you follow this policy, we will:
-- Not take legal action against you
-- Work with you to understand and resolve the issue
-- Credit you in the security advisory (unless you prefer anonymity)
+| 1.0.x | ✅ Active support |
+| < 1.0 | ❌ End of life |
 
 ---
 
-### العربية
+## Reporting a Vulnerability
 
-نأخذ أمان VeraxCore Antivirus على محمل الجد. إذا اكتشفت ثغرة أمنية، يرجى الإبلاغ عنها بشكل مسؤول.
+Bezpieczeństwo stacji roboczych naszych klientów jest dla nas najwyższym priorytetem. Jeśli odkryjesz lukę w zabezpieczeniach aplikacji **Multi-Guard** lub systemu licencjonowania **KeyGate**, prosimy o jej odpowiedzialne zgłoszenie.
 
-**لا تفتح** مشكلة (issue) عامة على GitHub للثغرات الأمنية.
+**PROSIMY NIE ZGŁASZAĆ luk bezpieczeństwa w publicznych issues na GitHub.**
 
-#### كيفية الإبلاغ
+### Jak zgłosić podatność
 
-1. **البريد الإلكتروني**: أرسل تقريراً مفصلاً عبر نموذج التواصل في [alisakkaf.com](https://alisakkaf.com)
-2. **يجب أن يتضمن**:
-   - وصف الثغرة
-   - خطوات إعادة الإنتاج
-   - التأثير المحتمل
-   - الإصلاح المقترح (إن وُجد)
+1. **Kontakt bezpośredni:**
+   - **E-mail:** `kontakt@multi-servis.pl` (z tematem `[SECURITY] Zgłoszenie podatności Multi-Guard`)
+   - **Telefon:** `505 012 914`
+   - **Formularz kontaktowy:** [https://multi-servis.pl](https://multi-servis.pl)
 
-#### جدول الاستجابة
+2. **Zgłoszenie powinno zawierać:**
+   - Dokładny opis podatności i wektora ataku
+   - Kroki do zreplikowania problemu (Proof of Concept)
+   - Potencjalny wpływ na stację roboczą lub środowisko sieciowe
+   - Sugerowane kroki naprawcze (jeśli są znane)
 
-- **التأكيد**: خلال 48 ساعة
-- **التقييم الأولي**: خلال 7 أيام
-- **إصدار الإصلاح**: خلال 30 يوماً للثغرات الحرجة
+### Czas reakcji zespołu Multi-Servis
+
+- **Potwierdzenie przyjęcia zgłoszenia:** do 24–48 godzin roboczych.
+- **Wstępna analiza techniczna:** do 5 dni roboczych.
+- **Wydanie poprawki / aktualizacji:** do 14 dni dla krytycznych podatności.
+
+---
+
+## Zakres zgłoszeń bezpieczeństwa
+
+### Priorytetowe podatności:
+- Możliwość ominięcia kryptograficznej weryfikacji tokena licencyjnego Ed25519
+- Obejście skarbca kwarantanny (AES-256-CBC)
+- Eskalacja uprawnień za pośrednictwem procesów Multi-Guard
+- Podatności typu Remote Code Execution (RCE) w silniku parsowania PE lub skanera
+- Niekontrolowane uszkodzenie pamięci w silniku PE Repair Engine
+
+### Poza zakresem:
+- Ataki wymagające uprzedniego fizycznego dostępu root/SYSTEM do stacji roboczej
+- Inżynieria społeczna
+- DoS wywołany celowospreparowanymi plikami o gigantycznym rozmiarze
+
+---
+
+*Multi-Servis Security Response Team — https://multi-servis.pl*
