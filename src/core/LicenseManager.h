@@ -48,6 +48,16 @@ enum class LicenseStatus {
     NetworkError
 };
 
+inline uint qHash(LicenseCapability key, uint seed = 0) noexcept {
+    return ::qHash(static_cast<uint>(key), seed);
+}
+inline uint qHash(LicenseTier key, uint seed = 0) noexcept {
+    return ::qHash(static_cast<uint>(key), seed);
+}
+inline uint qHash(LicenseStatus key, uint seed = 0) noexcept {
+    return ::qHash(static_cast<uint>(key), seed);
+}
+
 struct LicenseInfo {
     LicenseTier tier = LicenseTier::Unlicensed;
     LicenseStatus status = LicenseStatus::Unlicensed;
