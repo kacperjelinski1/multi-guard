@@ -6,6 +6,7 @@
 #include <QSqlError>
 #include <QDir>
 #include <QDateTime>
+#include <QVariant>
 
 namespace verax {
 
