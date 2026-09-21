@@ -21,6 +21,8 @@ signals:
     void minimizeClicked();
     void maximizeClicked();
     void closeClicked();
+    void updateClicked();
+    void notificationsClicked();
 
 protected:
     void mousePressEvent(QMouseEvent *e) override;
@@ -29,11 +31,13 @@ protected:
     void mouseDoubleClickEvent(QMouseEvent *e) override;
 
 private:
-    QLabel       *m_logo      = nullptr;
-    QLabel       *m_title     = nullptr;
-    QLabel       *m_status    = nullptr;
-    QPushButton  *m_btnMin    = nullptr;
-    QPushButton  *m_btnClose  = nullptr;
+    QLabel       *m_logo             = nullptr;
+    QLabel       *m_title            = nullptr;
+    QLabel       *m_status           = nullptr;
+    QPushButton  *m_btnUpdate        = nullptr;
+    QPushButton  *m_btnNotifications = nullptr;
+    QPushButton  *m_btnMin           = nullptr;
+    QPushButton  *m_btnClose         = nullptr;
 
     QPoint        m_dragOrigin;
     bool          m_dragging = false;

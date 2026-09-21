@@ -141,6 +141,9 @@ private:
     QStringList collectScanTargets() const;
     ScanRequest buildScanRequest() const;
 
+    void onCheckUpdatesClicked();
+    void onNotificationsClicked();
+
     void initToolsPage();
     void onRefreshHardwareStats();
     void onScanCleanClicked();

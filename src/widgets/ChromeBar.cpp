@@ -51,6 +51,20 @@ ChromeBar::ChromeBar(QWidget *parent) : QWidget(parent)
         m_status->setStyleSheet("font-weight: normal;");
     }
 
+    m_btnUpdate = new QPushButton(QStringLiteral("⟳"), this);
+    m_btnUpdate->setObjectName("ChromeBarUpdate");
+    m_btnUpdate->setToolTip(tr("Sprawdź dostępność aktualizacji"));
+    m_btnUpdate->setFlat(true);
+    m_btnUpdate->setCursor(Qt::PointingHandCursor);
+    m_btnUpdate->setFocusPolicy(Qt::NoFocus);
+
+    m_btnNotifications = new QPushButton(QStringLiteral("🔔"), this);
+    m_btnNotifications->setObjectName("ChromeBarNotifications");
+    m_btnNotifications->setToolTip(tr("Powiadomienia"));
+    m_btnNotifications->setFlat(true);
+    m_btnNotifications->setCursor(Qt::PointingHandCursor);
+    m_btnNotifications->setFocusPolicy(Qt::NoFocus);
+
     m_btnMin = new QPushButton("\u2014", this);   // em-dash for minimize
     m_btnMin->setObjectName("ChromeBarMinimize");
     m_btnMin->setFlat(true);
@@ -64,6 +78,8 @@ ChromeBar::ChromeBar(QWidget *parent) : QWidget(parent)
     m_btnClose->setFocusPolicy(Qt::NoFocus);
 
     const int btnSide = fontMetrics().height() + fontMetrics().height() / 2;
+    m_btnUpdate->setFixedSize(btnSide * 2, btnSide);
+    m_btnNotifications->setFixedSize(btnSide * 2, btnSide);
     m_btnMin->setFixedSize(btnSide * 2, btnSide);
     m_btnClose->setFixedSize(btnSide * 2, btnSide);
 
@@ -72,14 +88,18 @@ ChromeBar::ChromeBar(QWidget *parent) : QWidget(parent)
     layout->addStretch(1);
     layout->addWidget(m_status);
     layout->addStretch(1);
+    layout->addWidget(m_btnUpdate);
+    layout->addWidget(m_btnNotifications);
     layout->addWidget(m_btnMin);
     layout->addWidget(m_btnClose);
 
     const int h = fontMetrics().height() * 24 / 10;
     setFixedHeight(h);
 
-    connect(m_btnMin,   &QPushButton::clicked, this, &ChromeBar::minimizeClicked);
-    connect(m_btnClose, &QPushButton::clicked, this, &ChromeBar::closeClicked);
+    connect(m_btnUpdate,        &QPushButton::clicked, this, &ChromeBar::updateClicked);
+    connect(m_btnNotifications, &QPushButton::clicked, this, &ChromeBar::notificationsClicked);
+    connect(m_btnMin,           &QPushButton::clicked, this, &ChromeBar::minimizeClicked);
+    connect(m_btnClose,         &QPushButton::clicked, this, &ChromeBar::closeClicked);
 }
 
 void ChromeBar::setTitle(const QString &t)      { m_title->setText(t); }
@@ -97,8 +117,10 @@ void ChromeBar::updateMaximizeIcon(bool isMaximized) {
 void ChromeBar::mousePressEvent(QMouseEvent *e)
 {
     if (e->button() != Qt::LeftButton) { QWidget::mousePressEvent(e); return; }
-    if (m_btnMin->geometry().contains(e->pos())) return;
-    if (m_btnClose->geometry().contains(e->pos())) return;
+    if (m_btnUpdate && m_btnUpdate->geometry().contains(e->pos())) return;
+    if (m_btnNotifications && m_btnNotifications->geometry().contains(e->pos())) return;
+    if (m_btnMin && m_btnMin->geometry().contains(e->pos())) return;
+    if (m_btnClose && m_btnClose->geometry().contains(e->pos())) return;
     m_dragging = true;
     m_dragOrigin = e->globalPos() - window()->frameGeometry().topLeft();
     e->accept();

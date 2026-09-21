@@ -100,11 +100,16 @@ jobs:
           Copy-Item "C:/mingw64/bin/libwinpthread-*.dll" -Destination "RELEASED/" -Force -ErrorAction SilentlyContinue
 
           # Deploy OpenSSL 1.1.1 x64 TLS runtime for QtNetwork
+          Write-Host "Deploying OpenSSL 1.1.1 x64 runtime DLLs..."
           if (Test-Path "third_party/openssl/libssl-1_1-x64.dll") {
-            Write-Host "Deploying OpenSSL 1.1.1 x64 runtime DLLs..."
             Copy-Item "third_party/openssl/libssl-1_1-x64.dll" -Destination "RELEASED/" -Force
             Copy-Item "third_party/openssl/libcrypto-1_1-x64.dll" -Destination "RELEASED/" -Force
           }
+          if (-not (Test-Path "RELEASED/libssl-1_1-x64.dll") -or -not (Test-Path "RELEASED/libcrypto-1_1-x64.dll")) {
+            Write-Error "CRITICAL: OpenSSL 1.1.1 DLLs missing from RELEASED! TLS network requests will fail."
+            exit 1
+          }
+          Write-Host "OpenSSL 1.1.1 runtime DLLs verified successfully."
           Get-ChildItem -Path RELEASED
 
       - name: Build Inno Setup Installer

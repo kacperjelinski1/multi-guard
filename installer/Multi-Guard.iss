@@ -2,7 +2,7 @@
 ; Developed by Multi-Servis (https://multi-servis.pl)
 
 #define MyAppName "Multi-Guard"
-#define MyAppVersion "1.1.3.0"
+#define MyAppVersion "1.1.4.0"
 #define MyAppPublisher "Multi-Servis"
 #define MyAppURL "https://multi-servis.pl"
 #define MyAppExeName "Multi-Guard.exe"
@@ -86,12 +86,12 @@ procedure InitializeWizard;
 begin
   LicensePage := CreateInputQueryPage(
     wpSelectDir,
-    'Aktywacja licencji Multi-Guard (opcjonalnie)',
+    'Wymagana aktywacja licencji Multi-Guard',
     'Wprowadź swój klucz licencyjny',
-    'Jeśli posiadasz klucz licencyjny Multi-Servis (kontakt: 505 012 914), możesz wprowadzić go poniżej.' + #13#10 +
-    'Możesz także pozostawić to pole puste i aktywować program bezpośrednio po instalacji:'
+    'Do zainstalowania programu Multi-Guard wymagana jest aktywna licencja.' + #13#10 +
+    'Wprowadź klucz licencyjny Multi-Servis (kontakt i zakup: 505 012 914):'
   );
-  LicensePage.Add('Klucz licencyjny (opcjonalnie):', False);
+  LicensePage.Add('Klucz licencyjny (wymagany):', False);
 end;
 
 function NextButtonClick(CurPageID: Integer): Boolean;
@@ -101,10 +101,13 @@ begin
   Result := True;
   if CurPageID = LicensePage.ID then begin
     Key := Trim(LicensePage.Values[0]);
-    // Only validate if user actually entered something
-    if (Key <> '') and (Length(Key) < 8) then begin
-      MsgBox('Wprowadzony klucz licencyjny jest za krótki (min. 8 znaków).' + #13#10 +
-             'Jeśli nie masz jeszcze klucza, pozostaw pole puste i kliknij Dalej (kontakt: 505 012 914).', mbError, MB_OK);
+    if Key = '' then begin
+      MsgBox('Wprowadzenie klucza licencyjnego jest wymagane do kontynuowania instalacji!' + #13#10 + #13#10 +
+             'Jeśli nie posiadasz jeszcze klucza licencyjnego Multi-Guard, skontaktuj się z Multi-Servis pod numerem telefonu: 505 012 914.', mbCriticalError, MB_OK);
+      Result := False;
+    end else if Length(Key) < 8 then begin
+      MsgBox('Wprowadzony klucz licencyjny jest nieprawidłowy (za krótki, min. 8 znaków).' + #13#10 +
+             'Sprawdź poprawność klucza lub skontaktuj się z Multi-Servis (505 012 914).', mbError, MB_OK);
       Result := False;
     end;
   end;

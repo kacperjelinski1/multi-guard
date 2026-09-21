@@ -6,6 +6,7 @@ debug/
 *.obj
 *.exe
 *.dll
+!third_party/openssl/*.dll
 *.pdb
 *.ilk
 *.exp

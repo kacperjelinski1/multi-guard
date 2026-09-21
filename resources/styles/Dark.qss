@@ -46,6 +46,11 @@ QWidget {
     color: #FFFFFF;
 }
 
+#ChromeBarUpdate:hover, #ChromeBarNotifications:hover {
+    background-color: #1E2535;
+    color: #38BDF8;
+}
+
 #ChromeBarClose:hover, #btnClose:hover {
     background-color: #E11D48;
     color: #FFFFFF;

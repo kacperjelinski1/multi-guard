@@ -88,10 +88,10 @@
           <item>
            <widget class="QLabel" name="lblAppNameVersion">
             <property name="text">
-             <string>VeraxCore Antivirus</string>
+             <string>Multi-Guard</string>
             </property>
             <property name="alignment">
-             <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+             <set>Qt::AlignCenter</set>
             </property>
            </widget>
           </item>
@@ -2266,7 +2266,7 @@
                       <item>
                        <widget class="QLabel" name="lblSettingsPlanValue">
                         <property name="text">
-                         <string>Multi-Guard</string>
+                         <string>Brak</string>
                         </property>
                        </widget>
                       </item>

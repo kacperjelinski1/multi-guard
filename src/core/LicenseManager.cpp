@@ -174,6 +174,10 @@ LicenseManager::ActivationResult LicenseManager::activateKey(const QString &lice
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     request.setRawHeader("Accept", "application/json");
 
+    QSslConfiguration sslConf = QSslConfiguration::defaultConfiguration();
+    sslConf.setProtocol(QSsl::TlsV1_2OrLater);
+    request.setSslConfiguration(sslConf);
+
     QEventLoop loop;
     QNetworkReply *reply = nam.post(request, postData);
     connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
@@ -262,6 +266,10 @@ LicenseManager::ActivationResult LicenseManager::verifyOnline(const QString &lic
     QNetworkAccessManager nam;
     QNetworkRequest request(QUrl(QStringLiteral("%1/api/v1/license/verify").arg(KEYGATE_BASE_URL)));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    QSslConfiguration sslConf = QSslConfiguration::defaultConfiguration();
+    sslConf.setProtocol(QSsl::TlsV1_2OrLater);
+    request.setSslConfiguration(sslConf);
 
     QEventLoop loop;
     QNetworkReply *reply = nam.post(request, postData);
