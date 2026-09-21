@@ -29,8 +29,7 @@ QMAKE_LFLAGS_RELEASE   += -Wl,--gc-sections -s -Wl,--exclude-libs,ALL \
                           -static-libgcc -static-libstdc++
 
 
-# ─── Fix for Stack Protector (libssp) + Authenticode WinVerifyTrust ─
-LIBS += -lssp -lwintrust -lcrypt32
+# ─── Stack Protector & Security Flags ─────────────────────────────────
 
 # تمرير أمر الحماية للرابط (Linker) أيضاً لضمان التوافق التام
 QMAKE_LFLAGS_RELEASE += -fstack-protector-strong
@@ -156,7 +155,7 @@ win32 {
     LIBS += -ladvapi32 -lole32 -lshell32 -luuid -lversion -lwbemuuid \
             -lcrypt32 -lws2_32 -luserenv -lpsapi -lnetapi32 -lshlwapi \
             -lwintrust -lsetupapi -lwtsapi32 -lgdi32 -loleaut32 -limm32 \
-            -ldwmapi -luxtheme -lbcrypt -lncrypt -lssp
+            -ldwmapi -luxtheme -lbcrypt -lncrypt
 }
 
 # ─── Build folders ────────────────────────────────────────────────────
