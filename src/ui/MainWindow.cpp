@@ -1753,9 +1753,8 @@ void MainWindow::populateQuarantineTable()
 
         QString html;
         html += QStringLiteral("<table style='border-collapse: collapse; width: 100%; margin: 0; padding: 0;'>");
-        int totalItems = items.size() + defEntries.size();
-        html += makeRow(QStringLiteral("#10B981"), tr("Stan"), totalItems > 0 ? tr("⚠️ Zablokowane zagrożenia") : tr("🟢 Bezpiecznie (Brak)"));
-        html += makeRow(QStringLiteral("#F59E0B"), tr("W kwarantannie"), QStringLiteral("%1 obiektów").arg(totalItems));
+        html += makeRow(QStringLiteral("#10B981"), tr("Stan"), totalCount > 0 ? tr("⚠️ Zablokowane zagrożenia") : tr("🟢 Bezpiecznie (Brak)"));
+        html += makeRow(QStringLiteral("#F59E0B"), tr("W kwarantannie"), QStringLiteral("%1 obiektów").arg(totalCount));
         html += makeRow(QStringLiteral("#6366F1"), tr("Rozmiar danych"), FileOps::humanSize(Quarantine::instance().totalBytes()));
         html += makeRow(QStringLiteral("#38BDF8"), tr("Izolacja"), tr("Microsoft Defender & Skarbiec"));
         html += QStringLiteral("</table>");
