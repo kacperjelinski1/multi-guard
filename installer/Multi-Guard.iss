@@ -57,8 +57,8 @@ Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --tray"; Flags: uninsdeletevalue
 
 [Dirs]
-Name: "{app}"; Permissions: system-full admins-full authusers-r
-Name: "{commonappdata}\Multi-Guard"; Permissions: system-full admins-full authusers-modify
+Name: "{app}"
+Name: "{commonappdata}\Multi-Guard"; Permissions: users-modify
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Parameters: "--tray"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
