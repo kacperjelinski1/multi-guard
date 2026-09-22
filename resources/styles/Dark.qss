@@ -290,21 +290,23 @@ QPushButton[class="subTab"][active="true"] {
 }
 
 /* ── Toggle Switch (QCheckBox) ── */
-QCheckBox[class="toggleSwitch"] {
+QCheckBox[class="toggleSwitch"], QCheckBox.toggleSwitch {
     spacing: 10px;
     font-size: 10pt;
     color: #E2E8F0;
+    font-weight: 600;
 }
-QCheckBox[class="toggleSwitch"]::indicator {
-    width: 42px;
-    height: 22px;
-    border-radius: 11px;
-    background-color: #162436;
-    border: 1px solid #233852;
+QCheckBox[class="toggleSwitch"]::indicator, QCheckBox.toggleSwitch::indicator {
+    width: 44px;
+    height: 24px;
+    background: transparent;
+    border: none;
+    image: url(:/assets/icons/switch_off.svg);
 }
-QCheckBox[class="toggleSwitch"]::indicator:checked {
-    background-color: #00F076;
-    border: 1px solid #00F076;
+QCheckBox[class="toggleSwitch"]::indicator:checked, QCheckBox.toggleSwitch::indicator:checked {
+    background: transparent;
+    border: none;
+    image: url(:/assets/icons/switch_on.svg);
 }
 
 /* Standard CheckBox */
@@ -321,36 +323,46 @@ QCheckBox::indicator {
     background-color: #0C1A2C;
 }
 QCheckBox::indicator:hover {
-    border-color: #198FFD;
+    border-color: #00F076;
 }
 QCheckBox::indicator:checked {
-    background-color: #198FFD;
-    border-color: #198FFD;
+    background-color: #00F076;
+    border-color: #00F076;
     image: url(:/assets/icons/icon_check.svg);
 }
 
 /* ── Tables & Lists ── */
 QTableWidget, QTableView {
-    background-color: transparent;
-    border: none;
-    gridline-color: rgba(28, 54, 88, 0.3);
+    background-color: rgba(10, 24, 42, 0.75);
+    border: 1px solid rgba(28, 54, 88, 0.55);
+    border-radius: 12px;
+    gridline-color: transparent;
     color: #E2E8F0;
     font-size: 9.5pt;
-    selection-background-color: rgba(25, 143, 253, 0.15);
+    selection-background-color: rgba(0, 240, 118, 0.12);
     selection-color: #FFFFFF;
+    outline: none;
+}
+QHeaderView {
+    background-color: transparent;
+    border: none;
 }
 QHeaderView::section {
-    background-color: rgba(14, 28, 48, 0.8);
-    color: #7A92A8;
+    background-color: rgba(14, 28, 48, 0.95);
+    color: #8FA3BF;
     font-size: 8.5pt;
     font-weight: 700;
     text-transform: uppercase;
     border: none;
-    border-bottom: 1px solid rgba(28, 54, 88, 0.6);
-    padding: 8px 12px;
+    border-bottom: 1px solid rgba(28, 54, 88, 0.7);
+    padding: 9px 12px;
+}
+QTableCornerButton::section {
+    background-color: rgba(14, 28, 48, 0.95);
+    border: none;
 }
 QTableWidget::item {
-    padding: 10px 12px;
+    padding: 8px 10px;
     border-bottom: 1px solid rgba(25, 48, 78, 0.3);
 }
 

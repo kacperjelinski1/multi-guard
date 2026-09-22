@@ -2,6 +2,8 @@
 
 #include <QWidget>
 
+class QTimer;
+
 namespace verax {
 
 class ProgressRing : public QWidget {
@@ -27,6 +29,8 @@ private:
     qreal m_displayed = 0.0;
     QString m_centerText;
     QString m_mode = "idle";
+    qreal m_dashAngle = 0.0;
+    QTimer *m_animTimer = nullptr;
 };
 
 } // namespace verax

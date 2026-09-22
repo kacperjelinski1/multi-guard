@@ -5,6 +5,8 @@
 #include <QRadialGradient>
 #include <QPropertyAnimation>
 #include <QSvgRenderer>
+#include <QTimer>
+#include <cmath>
 #include "../core/Settings.h"
 
 namespace verax {
@@ -13,6 +15,14 @@ ProgressRing::ProgressRing(QWidget *parent) : QWidget(parent)
 {
     setObjectName("ProgressRing");
     setMinimumSize(160, 160);
+
+    m_animTimer = new QTimer(this);
+    connect(m_animTimer, &QTimer::timeout, this, [this]() {
+        if (!isVisible()) return;
+        m_dashAngle = std::fmod(m_dashAngle + 0.8, 360.0);
+        update();
+    });
+    m_animTimer->start(35);
 }
 
 QSize ProgressRing::sizeHint() const { return QSize(220, 220); }
@@ -38,26 +48,74 @@ void ProgressRing::paintEvent(QPaintEvent *)
     p.setRenderHint(QPainter::Antialiasing);
 
     // Multi-layer outer glowing aura
-    QRadialGradient glow(box.center(), side * 0.5);
+    QRadialGradient glow(box.center(), side * 0.55);
     if (m_mode == "done" || m_mode == "heroCheck") {
-        glow.setColorAt(0.0, QColor(0, 240, 118, 50));
-        glow.setColorAt(0.55, QColor(0, 240, 118, 15));
+        glow.setColorAt(0.0, QColor(0, 240, 118, 75));
+        glow.setColorAt(0.5, QColor(0, 240, 118, 25));
         glow.setColorAt(1.0, QColor(0, 0, 0, 0));
     } else if (m_mode == "scanning") {
-        glow.setColorAt(0.0, QColor(0, 196, 255, 45));
+        glow.setColorAt(0.0, QColor(0, 196, 255, 55));
         glow.setColorAt(0.55, QColor(0, 240, 118, 20));
         glow.setColorAt(1.0, QColor(0, 0, 0, 0));
     } else if (m_mode == "threat") {
-        glow.setColorAt(0.0, QColor(239, 68, 68, 45));
-        glow.setColorAt(0.65, QColor(239, 68, 68, 10));
+        glow.setColorAt(0.0, QColor(239, 68, 68, 55));
+        glow.setColorAt(0.65, QColor(239, 68, 68, 12));
         glow.setColorAt(1.0, QColor(0, 0, 0, 0));
     } else {
-        glow.setColorAt(0.0, QColor(0, 240, 118, 30));
+        glow.setColorAt(0.0, QColor(0, 240, 118, 35));
         glow.setColorAt(1.0, QColor(0, 0, 0, 0));
     }
     p.setPen(Qt::NoPen);
     p.setBrush(glow);
-    p.drawEllipse(box.adjusted(-8, -8, 8, 8));
+    p.drawEllipse(box.adjusted(-10, -10, 10, 10));
+
+    // Active arc / full ring
+    if (m_mode == "done" || m_mode == "heroCheck") {
+        // Outer rotating dashed cyber ring
+        QPen dashPen(QColor(0, 240, 118, 185));
+        dashPen.setWidthF(2.0);
+        QVector<qreal> dashes;
+        dashes << 4.0 << 6.0;
+        dashPen.setDashPattern(dashes);
+        dashPen.setDashOffset(m_dashAngle);
+        p.setPen(dashPen);
+        p.setBrush(Qt::NoBrush);
+        p.drawEllipse(box.adjusted(-6, -6, 6, 6));
+
+        // Inner glowing translucent disk
+        QRadialGradient innerDisk(box.center(), box.width() / 2.0);
+        innerDisk.setColorAt(0.0, QColor(0, 240, 118, 60));
+        innerDisk.setColorAt(0.7, QColor(0, 240, 118, 18));
+        innerDisk.setColorAt(1.0, QColor(4, 16, 30, 230));
+        p.setPen(Qt::NoPen);
+        p.setBrush(innerDisk);
+        p.drawEllipse(box);
+
+        // Solid neon green ring
+        QPen ringPen(QColor("#00F076"));
+        ringPen.setWidthF(4.0);
+        ringPen.setCapStyle(Qt::RoundCap);
+        p.setPen(ringPen);
+        p.setBrush(Qt::NoBrush);
+        p.drawEllipse(box);
+
+        // Bright checkmark in center
+        QPen checkPen(QColor("#00F076"));
+        checkPen.setWidthF(side * 0.088);
+        checkPen.setCapStyle(Qt::RoundCap);
+        checkPen.setJoinStyle(Qt::RoundJoin);
+        p.setPen(checkPen);
+
+        QPainterPath checkPath;
+        const qreal cx = box.center().x();
+        const qreal cy = box.center().y();
+        const qreal s = side * 0.22;
+        checkPath.moveTo(cx - s * 0.88, cy - s * 0.04);
+        checkPath.lineTo(cx - s * 0.2, cy + s * 0.65);
+        checkPath.lineTo(cx + s * 0.96, cy - s * 0.65);
+        p.drawPath(checkPath);
+        return;
+    }
 
     // Background track ring
     QPen bg(QColor(15, 30, 50, 220));
@@ -67,34 +125,6 @@ void ProgressRing::paintEvent(QPaintEvent *)
     p.setPen(bg);
     p.setBrush(Qt::NoBrush);
     p.drawEllipse(box);
-
-    // Active arc / full ring
-    if (m_mode == "done" || m_mode == "heroCheck") {
-        // Solid neon green outer ring
-        QPen pen(QColor("#00F076"));
-        pen.setWidthF(strokeW * 0.9);
-        pen.setCapStyle(Qt::RoundCap);
-        p.setPen(pen);
-        p.drawEllipse(box);
-
-        // Big checkmark in center
-        p.setPen(Qt::NoPen);
-        QPen checkPen(QColor("#00F076"));
-        checkPen.setWidthF(side * 0.085);
-        checkPen.setCapStyle(Qt::RoundCap);
-        checkPen.setJoinStyle(Qt::RoundJoin);
-        p.setPen(checkPen);
-
-        QPainterPath checkPath;
-        const qreal cx = box.center().x();
-        const qreal cy = box.center().y();
-        const qreal s = side * 0.22;
-        checkPath.moveTo(cx - s * 0.9, cy - s * 0.05);
-        checkPath.lineTo(cx - s * 0.2, cy + s * 0.65);
-        checkPath.lineTo(cx + s * 1.0, cy - s * 0.65);
-        p.drawPath(checkPath);
-        return;
-    }
 
     if (m_mode == "optimizer") {
         // Circular health ring (e.g. 92/100)

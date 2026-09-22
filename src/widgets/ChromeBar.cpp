@@ -25,17 +25,15 @@ ChromeBar::ChromeBar(QWidget *parent) : QWidget(parent)
     layout->setContentsMargins(16, 8, 16, 8);
     layout->setSpacing(12);
 
-    // Left spacer or brand indicator if standalone
-    layout->addSpacing(8);
+    // Balanced spacer to center search bar relative to right-side controls (~230px)
+    layout->addSpacing(230);
 
     // Center Search Bar Pill
     layout->addStretch(1);
     m_searchEdit = new QLineEdit(this);
     m_searchEdit->setObjectName("topSearchBar");
     m_searchEdit->setPlaceholderText(tr("🔍 Szukaj funkcji, ustawień..."));
-    m_searchEdit->setMinimumWidth(160);
-    m_searchEdit->setMaximumWidth(360);
-    m_searchEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_searchEdit->setFixedWidth(340);
     m_searchEdit->setFixedHeight(32);
     m_searchEdit->setClearButtonEnabled(true);
     layout->addWidget(m_searchEdit);

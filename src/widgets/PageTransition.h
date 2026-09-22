@@ -2,7 +2,8 @@
 // By Ali Sakkaf - https://alisakkaf.com
 #pragma once
 #include <QObject>
-class QStackedWidget;
+class QPropertyAnimation;
+class QGraphicsOpacityEffect;
 
 namespace verax {
 
@@ -14,6 +15,8 @@ public:
 
 private:
     QStackedWidget *m_stack = nullptr;
+    QPropertyAnimation *m_anim = nullptr;
+    QGraphicsOpacityEffect *m_effect = nullptr;
 };
 
 } // namespace verax

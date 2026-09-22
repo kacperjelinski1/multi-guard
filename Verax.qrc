@@ -66,5 +66,7 @@
         <file alias="icons/icon_wand.svg">resources/assets/icons/icon_wand.svg</file>
         <file alias="icons/icon_refresh.svg">resources/assets/icons/icon_refresh.svg</file>
         <file alias="icons/icon_lock.svg">resources/assets/icons/icon_lock.svg</file>
+        <file alias="icons/switch_on.svg">resources/assets/icons/switch_on.svg</file>
+        <file alias="icons/switch_off.svg">resources/assets/icons/switch_off.svg</file>
     </qresource>
 </RCC>

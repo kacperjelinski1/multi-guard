@@ -807,56 +807,71 @@ Security for a better tomorrow</string>
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>100</height>
+                 <height>135</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>125</height>
+                 <height>155</height>
                 </size>
                </property>
                <property name="styleSheet">
-                <string>.QFrame { background-color: rgba(11, 23, 39, 0.82); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 12px; }</string>
+                <string>.QFrame { background-color: rgba(10, 24, 42, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 14px; padding: 10px; }</string>
                </property>
                <layout class="QVBoxLayout" name="layoutMod1">
                 <property name="spacing">
-                 <number>6</number>
+                 <number>8</number>
                 </property>
-                <item>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+                <item alignment="Qt::AlignCenter">
                  <widget class="QLabel" name="iconMod1">
                   <property name="fixedSize">
                    <size>
-                    <width>24</width>
-                    <height>24</height>
+                    <width>52</width>
+                    <height>52</height>
                    </size>
                   </property>
+                  <property name="styleSheet">
+                   <string>background-color: rgba(0, 240, 118, 0.09); border: 1.5px solid rgba(0, 240, 118, 0.55); border-radius: 14px; padding: 11px;</string>
+                  </property>
                   <property name="pixmap">
-                   <pixmap resource="../../Verax.qrc">:/assets/icons/nav_shield.svg</pixmap>
+                   <pixmap resource="../../Verax.qrc">:/assets/icons/module_shield.svg</pixmap>
                   </property>
                   <property name="scaledContents">
                    <bool>true</bool>
                   </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
                  </widget>
                 </item>
-                <item>
+                <item alignment="Qt::AlignCenter">
                  <widget class="QLabel" name="titleMod1">
                   <property name="text">
                    <string>Ochrona w czasie
 rzeczywistym</string>
                   </property>
                   <property name="styleSheet">
-                   <string>font-weight: 700; font-size: 9.5pt; color: #FFFFFF;</string>
+                   <string>font-weight: 700; font-size: 9pt; color: #FFFFFF;</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
-                <item>
+                <item alignment="Qt::AlignCenter">
                  <widget class="QLabel" name="statusMod1">
                   <property name="text">
                    <string>● Aktywna</string>
                   </property>
                   <property name="styleSheet">
                    <string>color: #00F076; font-weight: 600; font-size: 8.5pt;</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
@@ -868,56 +883,71 @@ rzeczywistym</string>
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>100</height>
+                 <height>135</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>125</height>
+                 <height>155</height>
                 </size>
                </property>
                <property name="styleSheet">
-                <string>.QFrame { background-color: rgba(11, 23, 39, 0.82); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 12px; }</string>
+                <string>.QFrame { background-color: rgba(10, 24, 42, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 14px; padding: 10px; }</string>
                </property>
                <layout class="QVBoxLayout" name="layoutMod2">
                 <property name="spacing">
-                 <number>6</number>
+                 <number>8</number>
                 </property>
-                <item>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+                <item alignment="Qt::AlignCenter">
                  <widget class="QLabel" name="iconMod2">
                   <property name="fixedSize">
                    <size>
-                    <width>24</width>
-                    <height>24</height>
+                    <width>52</width>
+                    <height>52</height>
                    </size>
                   </property>
+                  <property name="styleSheet">
+                   <string>background-color: rgba(0, 240, 118, 0.09); border: 1.5px solid rgba(0, 240, 118, 0.55); border-radius: 14px; padding: 11px;</string>
+                  </property>
                   <property name="pixmap">
-                   <pixmap resource="../../Verax.qrc">:/assets/icons/icon_globe.svg</pixmap>
+                   <pixmap resource="../../Verax.qrc">:/assets/icons/module_globe.svg</pixmap>
                   </property>
                   <property name="scaledContents">
                    <bool>true</bool>
                   </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
                  </widget>
                 </item>
-                <item>
+                <item alignment="Qt::AlignCenter">
                  <widget class="QLabel" name="titleMod2">
                   <property name="text">
                    <string>Ochrona
 przeglądarki</string>
                   </property>
                   <property name="styleSheet">
-                   <string>font-weight: 700; font-size: 9.5pt; color: #FFFFFF;</string>
+                   <string>font-weight: 700; font-size: 9pt; color: #FFFFFF;</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
-                <item>
+                <item alignment="Qt::AlignCenter">
                  <widget class="QLabel" name="statusMod2">
                   <property name="text">
                    <string>● Aktywna</string>
                   </property>
                   <property name="styleSheet">
                    <string>color: #00F076; font-weight: 600; font-size: 8.5pt;</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
@@ -929,56 +959,71 @@ przeglądarki</string>
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>100</height>
+                 <height>135</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>125</height>
+                 <height>155</height>
                 </size>
                </property>
                <property name="styleSheet">
-                <string>.QFrame { background-color: rgba(11, 23, 39, 0.82); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 12px; }</string>
+                <string>.QFrame { background-color: rgba(10, 24, 42, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 14px; padding: 10px; }</string>
                </property>
                <layout class="QVBoxLayout" name="layoutMod3">
                 <property name="spacing">
-                 <number>6</number>
+                 <number>8</number>
                 </property>
-                <item>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+                <item alignment="Qt::AlignCenter">
                  <widget class="QLabel" name="iconMod3">
                   <property name="fixedSize">
                    <size>
-                    <width>24</width>
-                    <height>24</height>
+                    <width>52</width>
+                    <height>52</height>
                    </size>
                   </property>
+                  <property name="styleSheet">
+                   <string>background-color: rgba(0, 240, 118, 0.09); border: 1.5px solid rgba(0, 240, 118, 0.55); border-radius: 14px; padding: 11px;</string>
+                  </property>
                   <property name="pixmap">
-                   <pixmap resource="../../Verax.qrc">:/assets/icons/icon_firewall.svg</pixmap>
+                   <pixmap resource="../../Verax.qrc">:/assets/icons/module_firewall.svg</pixmap>
                   </property>
                   <property name="scaledContents">
                    <bool>true</bool>
                   </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
                  </widget>
                 </item>
-                <item>
+                <item alignment="Qt::AlignCenter">
                  <widget class="QLabel" name="titleMod3">
                   <property name="text">
                    <string>Firewall
  </string>
                   </property>
                   <property name="styleSheet">
-                   <string>font-weight: 700; font-size: 9.5pt; color: #FFFFFF;</string>
+                   <string>font-weight: 700; font-size: 9pt; color: #FFFFFF;</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
-                <item>
+                <item alignment="Qt::AlignCenter">
                  <widget class="QLabel" name="statusMod3">
                   <property name="text">
                    <string>● Aktywny</string>
                   </property>
                   <property name="styleSheet">
                    <string>color: #00F076; font-weight: 600; font-size: 8.5pt;</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
@@ -990,56 +1035,71 @@ przeglądarki</string>
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>100</height>
+                 <height>135</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>125</height>
+                 <height>155</height>
                 </size>
                </property>
                <property name="styleSheet">
-                <string>.QFrame { background-color: rgba(11, 23, 39, 0.82); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 12px; }</string>
+                <string>.QFrame { background-color: rgba(10, 24, 42, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 14px; padding: 10px; }</string>
                </property>
                <layout class="QVBoxLayout" name="layoutMod4">
                 <property name="spacing">
-                 <number>6</number>
+                 <number>8</number>
                 </property>
-                <item>
+                <property name="alignment">
+                 <set>Qt::AlignCenter</set>
+                </property>
+                <item alignment="Qt::AlignCenter">
                  <widget class="QLabel" name="iconMod4">
                   <property name="fixedSize">
                    <size>
-                    <width>24</width>
-                    <height>24</height>
+                    <width>52</width>
+                    <height>52</height>
                    </size>
                   </property>
+                  <property name="styleSheet">
+                   <string>background-color: rgba(0, 240, 118, 0.09); border: 1.5px solid rgba(0, 240, 118, 0.55); border-radius: 14px; padding: 11px;</string>
+                  </property>
                   <property name="pixmap">
-                   <pixmap resource="../../Verax.qrc">:/assets/icons/icon_mail.svg</pixmap>
+                   <pixmap resource="../../Verax.qrc">:/assets/icons/module_mail.svg</pixmap>
                   </property>
                   <property name="scaledContents">
                    <bool>true</bool>
                   </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
+                  </property>
                  </widget>
                 </item>
-                <item>
+                <item alignment="Qt::AlignCenter">
                  <widget class="QLabel" name="titleMod4">
                   <property name="text">
                    <string>Ochrona
 poczty</string>
                   </property>
                   <property name="styleSheet">
-                   <string>font-weight: 700; font-size: 9.5pt; color: #FFFFFF;</string>
+                   <string>font-weight: 700; font-size: 9pt; color: #FFFFFF;</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
-                <item>
+                <item alignment="Qt::AlignCenter">
                  <widget class="QLabel" name="statusMod4">
                   <property name="text">
                    <string>● Aktywna</string>
                   </property>
                   <property name="styleSheet">
                    <string>color: #00F076; font-weight: 600; font-size: 8.5pt;</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
@@ -1058,17 +1118,17 @@ poczty</string>
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>56</height>
+                 <height>60</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>68</height>
+                 <height>74</height>
                 </size>
                </property>
                <property name="styleSheet">
-                <string>.QFrame { background-color: rgba(11, 23, 39, 0.82); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 12px; }</string>
+                <string>.QFrame { background-color: rgba(10, 24, 42, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 14px; padding: 10px 14px; }</string>
                </property>
                <layout class="QHBoxLayout" name="layoutInfo1">
                 <property name="spacing">
@@ -1078,15 +1138,21 @@ poczty</string>
                  <widget class="QLabel" name="iconInfo1">
                   <property name="fixedSize">
                    <size>
-                    <width>28</width>
-                    <height>28</height>
+                    <width>36</width>
+                    <height>36</height>
                    </size>
+                  </property>
+                  <property name="styleSheet">
+                   <string>background-color: rgba(0, 240, 118, 0.09); border: 1.2px solid rgba(0, 240, 118, 0.45); border-radius: 10px; padding: 7px;</string>
                   </property>
                   <property name="pixmap">
                    <pixmap resource="../../Verax.qrc">:/assets/icons/icon_check.svg</pixmap>
                   </property>
                   <property name="scaledContents">
                    <bool>true</bool>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
@@ -1125,17 +1191,17 @@ poczty</string>
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>56</height>
+                 <height>60</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>68</height>
+                 <height>74</height>
                 </size>
                </property>
                <property name="styleSheet">
-                <string>.QFrame { background-color: rgba(11, 23, 39, 0.82); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 12px; }</string>
+                <string>.QFrame { background-color: rgba(10, 24, 42, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 14px; padding: 10px 14px; }</string>
                </property>
                <layout class="QHBoxLayout" name="layoutInfo2">
                 <property name="spacing">
@@ -1145,15 +1211,21 @@ poczty</string>
                  <widget class="QLabel" name="iconInfo2">
                   <property name="fixedSize">
                    <size>
-                    <width>28</width>
-                    <height>28</height>
+                    <width>36</width>
+                    <height>36</height>
                    </size>
+                  </property>
+                  <property name="styleSheet">
+                   <string>background-color: rgba(0, 240, 118, 0.09); border: 1.2px solid rgba(0, 240, 118, 0.45); border-radius: 10px; padding: 7px;</string>
                   </property>
                   <property name="pixmap">
                    <pixmap resource="../../Verax.qrc">:/assets/icons/icon_database.svg</pixmap>
                   </property>
                   <property name="scaledContents">
                    <bool>true</bool>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
@@ -1178,7 +1250,7 @@ poczty</string>
                      <string>Zaktualizowana: 22.09.2026, 12:00</string>
                     </property>
                     <property name="styleSheet">
-                     <string>color: #8FA3BF; font-size: 8.5pt;</string>
+                     <string>color: #00F076; font-weight: 600; font-size: 8.5pt;</string>
                     </property>
                    </widget>
                   </item>
@@ -1192,17 +1264,17 @@ poczty</string>
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>56</height>
+                 <height>60</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>68</height>
+                 <height>74</height>
                 </size>
                </property>
                <property name="styleSheet">
-                <string>.QFrame { background-color: rgba(11, 23, 39, 0.82); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 12px; }</string>
+                <string>.QFrame { background-color: rgba(10, 24, 42, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 14px; padding: 10px 14px; }</string>
                </property>
                <layout class="QHBoxLayout" name="layoutInfo3">
                 <property name="spacing">
@@ -1212,15 +1284,21 @@ poczty</string>
                  <widget class="QLabel" name="iconInfo3">
                   <property name="fixedSize">
                    <size>
-                    <width>28</width>
-                    <height>28</height>
+                    <width>36</width>
+                    <height>36</height>
                    </size>
+                  </property>
+                  <property name="styleSheet">
+                   <string>background-color: rgba(0, 240, 118, 0.09); border: 1.2px solid rgba(0, 240, 118, 0.45); border-radius: 10px; padding: 7px;</string>
                   </property>
                   <property name="pixmap">
                    <pixmap resource="../../Verax.qrc">:/assets/icons/icon_crown.svg</pixmap>
                   </property>
                   <property name="scaledContents">
                    <bool>true</bool>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignCenter</set>
                   </property>
                  </widget>
                 </item>
@@ -2799,7 +2877,7 @@ zewnętrzne</string>
                 <bool>true</bool>
                </property>
                <property name="styleSheet">
-                <string>QCheckBox { font-weight: 700; color: #FFFFFF; } QCheckBox::indicator { width: 42px; height: 22px; border-radius: 11px; background-color: #00F076; }</string>
+                <string>QCheckBox { font-weight: 700; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }</string>
                </property>
               </widget>
              </item>
@@ -3011,7 +3089,7 @@ zewnętrzne</string>
                 <bool>true</bool>
                </property>
                <property name="styleSheet">
-                <string>QCheckBox::indicator { width: 42px; height: 22px; border-radius: 11px; background-color: #00F076; }</string>
+                <string>QCheckBox { font-weight: 600; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }</string>
                </property>
               </widget>
              </item>
@@ -3340,7 +3418,7 @@ zewnętrzne</string>
                      <bool>true</bool>
                     </property>
                     <property name="styleSheet">
-                     <string>QCheckBox::indicator { width: 36px; height: 18px; border-radius: 9px; background-color: #00F076; }</string>
+                     <string>QCheckBox { font-weight: 600; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }</string>
                     </property>
                    </widget>
                   </item>
@@ -3371,7 +3449,7 @@ zewnętrzne</string>
                      <bool>true</bool>
                     </property>
                     <property name="styleSheet">
-                     <string>QCheckBox::indicator { width: 36px; height: 18px; border-radius: 9px; background-color: #00F076; }</string>
+                     <string>QCheckBox { font-weight: 600; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }</string>
                     </property>
                    </widget>
                   </item>
@@ -3402,7 +3480,7 @@ zewnętrzne</string>
                      <bool>true</bool>
                     </property>
                     <property name="styleSheet">
-                     <string>QCheckBox::indicator { width: 36px; height: 18px; border-radius: 9px; background-color: #00F076; }</string>
+                     <string>QCheckBox { font-weight: 600; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }</string>
                     </property>
                    </widget>
                   </item>
@@ -3433,7 +3511,7 @@ zewnętrzne</string>
                      <bool>true</bool>
                     </property>
                     <property name="styleSheet">
-                     <string>QCheckBox::indicator { width: 36px; height: 18px; border-radius: 9px; background-color: #00F076; }</string>
+                     <string>QCheckBox { font-weight: 600; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }</string>
                     </property>
                    </widget>
                   </item>
@@ -3464,7 +3542,7 @@ zewnętrzne</string>
                      <bool>true</bool>
                     </property>
                     <property name="styleSheet">
-                     <string>QCheckBox::indicator { width: 36px; height: 18px; border-radius: 9px; background-color: #00F076; }</string>
+                     <string>QCheckBox { font-weight: 600; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }</string>
                     </property>
                    </widget>
                   </item>
@@ -4092,7 +4170,7 @@ zewnętrzne</string>
                    <bool>true</bool>
                   </property>
                   <property name="styleSheet">
-                   <string>QCheckBox::indicator { width: 38px; height: 20px; border-radius: 10px; background-color: #00F076; }</string>
+                   <string>QCheckBox { font-weight: 600; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }</string>
                   </property>
                  </widget>
                 </item>
@@ -4123,7 +4201,7 @@ zewnętrzne</string>
                    <bool>true</bool>
                   </property>
                   <property name="styleSheet">
-                   <string>QCheckBox::indicator { width: 38px; height: 20px; border-radius: 10px; background-color: #00F076; }</string>
+                   <string>QCheckBox { font-weight: 600; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }</string>
                   </property>
                  </widget>
                 </item>
@@ -4236,7 +4314,7 @@ zewnętrzne</string>
                    <bool>true</bool>
                   </property>
                   <property name="styleSheet">
-                   <string>QCheckBox::indicator { width: 38px; height: 20px; border-radius: 10px; background-color: #00F076; }</string>
+                   <string>QCheckBox { font-weight: 600; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }</string>
                   </property>
                  </widget>
                 </item>
@@ -4267,7 +4345,7 @@ zewnętrzne</string>
                    <bool>true</bool>
                   </property>
                   <property name="styleSheet">
-                   <string>QCheckBox::indicator { width: 38px; height: 20px; border-radius: 10px; background-color: #00F076; }</string>
+                   <string>QCheckBox { font-weight: 600; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }</string>
                   </property>
                  </widget>
                 </item>
@@ -4298,7 +4376,7 @@ zewnętrzne</string>
                    <bool>true</bool>
                   </property>
                   <property name="styleSheet">
-                   <string>QCheckBox::indicator { width: 38px; height: 20px; border-radius: 10px; background-color: #00F076; }</string>
+                   <string>QCheckBox { font-weight: 600; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }</string>
                   </property>
                  </widget>
                 </item>

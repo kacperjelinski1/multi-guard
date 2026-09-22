@@ -100,15 +100,15 @@ MainWindow::MainWindow(QWidget *parent)
     Logger::info("MainWindow: ctor begin");
     ui->setupUi(this);
 
-    setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowMinimizeButtonHint | Qt::WindowCloseButtonHint);
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowMinimizeButtonHint);
     setAttribute(Qt::WA_TranslucentBackground, false);
-    setMinimumSize(960, 600);
-    resize(1240, 780);
+    setFixedSize(1024, 720);
 
 #ifdef Q_OS_WIN
     HWND hwnd = (HWND)winId();
     LONG style = GetWindowLong(hwnd, GWL_STYLE);
-    SetWindowLong(hwnd, GWL_STYLE, (style | WS_MINIMIZEBOX | WS_CAPTION | WS_THICKFRAME) & ~WS_MAXIMIZEBOX);
+    // Keep WS_MINIMIZEBOX for taskbar minimization, but strip WS_CAPTION and WS_THICKFRAME to remove native titlebar & prevent window resizing
+    SetWindowLong(hwnd, GWL_STYLE, (style | WS_MINIMIZEBOX) & ~(WS_CAPTION | WS_THICKFRAME | WS_MAXIMIZEBOX));
 #endif
 
     setWindowTitle(QString::fromLatin1(APP_NAME));
@@ -475,6 +475,22 @@ void MainWindow::wireSignals()
 
     if (auto *btn = findChild<QPushButton*>("btnRestoreQuarantine")) connect(btn, &QPushButton::clicked, this, &MainWindow::onQuarantineRestoreSelected);
     if (auto *btn = findChild<QPushButton*>("btnDeleteQuarantine"))  connect(btn, &QPushButton::clicked, this, &MainWindow::onQuarantineDeleteSelected);
+    if (auto *cb = findChild<QCheckBox*>("cbSelectAllQuar")) {
+        connect(cb, &QCheckBox::toggled, this, [this](bool checked) {
+            auto *t = findChild<QTableWidget*>("tableQuarantine");
+            if (!t) return;
+            for (int r = 0; r < t->rowCount(); ++r) {
+                auto *item = t->item(r, 0);
+                if (item) item->setCheckState(checked ? Qt::Checked : Qt::Unchecked);
+                if (checked) {
+                    t->selectRow(r);
+                }
+            }
+            if (!checked) {
+                t->clearSelection();
+            }
+        });
+    }
 
     if (auto *cb = findChild<QCheckBox*>("cbFwMasterToggle")) {
         connect(cb, &QCheckBox::toggled, this, [this](bool checked){
@@ -1472,7 +1488,18 @@ void MainWindow::populateQuarantineTable()
     t->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     t->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
     t->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Fixed);
-    t->setColumnWidth(5, 50);
+    t->setColumnWidth(5, 54);
+    t->verticalHeader()->setVisible(false);
+    t->setShowGrid(false);
+    t->setFrameShape(QFrame::NoFrame);
+    t->setSelectionBehavior(QAbstractItemView::SelectRows);
+    t->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    t->setStyleSheet(QStringLiteral(
+        "QTableWidget { background-color: rgba(10, 24, 42, 0.75); border: 1px solid rgba(28, 54, 88, 0.55); border-radius: 12px; gridline-color: transparent; outline: none; }"
+        "QHeaderView::section { background-color: rgba(14, 28, 48, 0.95); color: #8FA3BF; font-weight: 700; font-size: 8.5pt; text-transform: uppercase; border: none; border-bottom: 1px solid rgba(28, 54, 88, 0.7); padding: 9px 12px; }"
+        "QTableWidget::item { padding: 8px 10px; border-bottom: 1px solid rgba(25, 48, 78, 0.3); font-size: 9.5pt; }"
+        "QTableWidget::item:selected { background-color: rgba(0, 240, 118, 0.12); color: #FFFFFF; }"
+    ));
 
     const auto entries = Quarantine::instance().list();
     if (!entries.isEmpty()) {
@@ -1481,9 +1508,11 @@ void MainWindow::populateQuarantineTable()
             const auto &e = entries[i];
             auto *cbItem = new QTableWidgetItem();
             cbItem->setCheckState(Qt::Unchecked);
+            cbItem->setData(Qt::UserRole, e.id);
             t->setItem(i, 0, cbItem);
 
             auto *tName = new QTableWidgetItem(e.detectionName);
+            tName->setData(Qt::UserRole, e.id);
             tName->setForeground(QColor("#FFFFFF"));
             t->setItem(i, 1, tName);
 
@@ -1499,9 +1528,22 @@ void MainWindow::populateQuarantineTable()
             tPath->setForeground(QColor("#8FA3BF"));
             t->setItem(i, 4, tPath);
 
-            auto *tTrash = new QTableWidgetItem(QStringLiteral("🗑️"));
-            tTrash->setTextAlignment(Qt::AlignCenter);
-            t->setItem(i, 5, tTrash);
+            auto *btnTrash = new QPushButton();
+            btnTrash->setIcon(QIcon(QStringLiteral(":/assets/icons/icon_trash.svg")));
+            btnTrash->setIconSize(QSize(16, 16));
+            btnTrash->setFixedSize(32, 28);
+            btnTrash->setCursor(Qt::PointingHandCursor);
+            btnTrash->setToolTip(tr("Usuń z kwarantanny"));
+            btnTrash->setStyleSheet(QStringLiteral(
+                "QPushButton { background: transparent; border: none; border-radius: 6px; padding: 4px; }"
+                "QPushButton:hover { background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.5); }"
+            ));
+            int entryId = e.id;
+            connect(btnTrash, &QPushButton::clicked, this, [this, entryId]() {
+                Quarantine::instance().permanentDelete(entryId);
+                populateQuarantineTable();
+            });
+            t->setCellWidget(i, 5, btnTrash);
         }
     } else {
         // Pixel-perfect sample threats from AEGIS design mockup
@@ -1541,9 +1583,21 @@ void MainWindow::populateQuarantineTable()
             tPath->setForeground(QColor("#8FA3BF"));
             t->setItem(i, 4, tPath);
 
-            auto *tTrash = new QTableWidgetItem(QStringLiteral("🗑️"));
-            tTrash->setTextAlignment(Qt::AlignCenter);
-            t->setItem(i, 5, tTrash);
+            auto *btnTrash = new QPushButton();
+            btnTrash->setIcon(QIcon(QStringLiteral(":/assets/icons/icon_trash.svg")));
+            btnTrash->setIconSize(QSize(16, 16));
+            btnTrash->setFixedSize(32, 28);
+            btnTrash->setCursor(Qt::PointingHandCursor);
+            btnTrash->setToolTip(tr("Usuń z kwarantanny"));
+            btnTrash->setStyleSheet(QStringLiteral(
+                "QPushButton { background: transparent; border: none; border-radius: 6px; padding: 4px; }"
+                "QPushButton:hover { background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.5); }"
+            ));
+            connect(btnTrash, &QPushButton::clicked, this, [this, i]() {
+                auto *tbl = findChild<QTableWidget*>("tableQuarantine");
+                if (tbl && i < tbl->rowCount()) tbl->removeRow(i);
+            });
+            t->setCellWidget(i, 5, btnTrash);
         }
     }
 
