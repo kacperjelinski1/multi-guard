@@ -17,6 +17,9 @@ class QTimer;
 class QComboBox;
 class QCheckBox;
 class QPushButton;
+class QLabel;
+class QLineEdit;
+class QTableWidget;
 template <class T> class QFutureWatcher;
 
 QT_BEGIN_NAMESPACE
