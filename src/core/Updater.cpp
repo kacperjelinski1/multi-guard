@@ -26,6 +26,10 @@
 #include <QPropertyAnimation>
 #include <QEasingCurve>
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 namespace verax {
 
 Updater& Updater::instance() {
