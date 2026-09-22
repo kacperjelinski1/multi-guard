@@ -94,11 +94,11 @@ private:
 
     QString m_language          = QStringLiteral("pl");
     QString m_theme             = QStringLiteral("dark");
-    bool    m_startWithWindows  = false;
+    bool    m_startWithWindows  = true;
     bool    m_contextMenu       = false;
     bool        m_realTimeProtection= true;
     bool        m_ransomwareProtection = true;
-    bool        m_webShield         = false;
+    bool        m_webShield         = true;
     bool        m_trayOnClose       = true;
     bool        m_showNotifications = true;
     QStringList m_exclusions;

@@ -48,6 +48,7 @@ private:
 
     QTimer *m_autoCloseTimer = nullptr;
     QPropertyAnimation *m_anim = nullptr;
+    AlertType m_type = Information;
 };
 
 } // namespace verax

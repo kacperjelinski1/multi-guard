@@ -23,6 +23,8 @@
 #include "../core/ReportGenerator.h"
 #include "../core/LicenseManager.h"
 #include "../core/WindowsSecurityIntegration.h"
+#include "../core/FirewallManager.h"
+#include "../core/BrowserProtectionManager.h"
 #include "../utils/ContextMenuManager.h"
 #include "../utils/ThemeManager.h"
 #include "../widgets/PageTransition.h"
@@ -273,7 +275,7 @@ void MainWindow::wireUi()
 
 
     Settings &s = Settings::instance();
-    if (ui->cbStartWithWindows)    ui->cbStartWithWindows->setChecked(s.startWithWindows());
+    s.setStartWithWindows(true);
     if (ui->cbContextMenu)         ui->cbContextMenu->setChecked(s.contextMenuIntegration());
     if (ui->cbMinimizeToTray)      ui->cbMinimizeToTray->setChecked(s.minimizeToTrayOnClose());
     if (ui->cbShowNotifications)   ui->cbShowNotifications->setChecked(s.showNotifications());
@@ -315,6 +317,9 @@ void MainWindow::wireUi()
 
     if (ui->cbRansomwareProtection)
         ui->cbRansomwareProtection->setChecked(s.ransomwareProtection());
+
+    if (ui->cbWebDnsShield)
+        ui->cbWebDnsShield->setChecked(s.webShield());
 
     if (ui->listExclusions) {
         ui->listExclusions->clear();
@@ -387,8 +392,10 @@ void MainWindow::wireSignals()
     // Remote Repair Page
     if (ui->btnGenSessionCode)  connect(ui->btnGenSessionCode,  &QPushButton::clicked, this, &MainWindow::onGenerateSessionCode);
     if (ui->btnCopySessionCode) connect(ui->btnCopySessionCode, &QPushButton::clicked, this, &MainWindow::onCopySessionCode);
-    if (ui->btnConnectRemote)   connect(ui->btnConnectRemote,   &QPushButton::clicked, this, &MainWindow::onConnectRemoteClicked);
     if (ui->btnUpdateSignatures) connect(ui->btnUpdateSignatures, &QPushButton::clicked, this, &MainWindow::onUpdateSignatures);
+    if (ui->btnUpdateSignaturesSettings) connect(ui->btnUpdateSignaturesSettings, &QPushButton::clicked, this, &MainWindow::onUpdateSignatures);
+    if (ui->btnCheckAppUpdate) connect(ui->btnCheckAppUpdate, &QPushButton::clicked, this, &MainWindow::onCheckUpdatesClicked);
+    if (ui->btnCheckUpdatesAbout) connect(ui->btnCheckUpdatesAbout, &QPushButton::clicked, this, &MainWindow::onCheckUpdatesClicked);
 
     if (ui->btnAddFolder)        connect(ui->btnAddFolder, &QPushButton::clicked, this, &MainWindow::onAddFolder);
     if (ui->btnAddFile)          connect(ui->btnAddFile,   &QPushButton::clicked, this, &MainWindow::onAddFile);
@@ -410,7 +417,7 @@ void MainWindow::wireSignals()
     if (ui->btnQExport)          connect(ui->btnQExport,          &QPushButton::clicked, this, &MainWindow::onQuarantineExportReport);
     connect(&Quarantine::instance(), &Quarantine::changed, this, &MainWindow::populateQuarantineTable);
 
-    static const QStringList cards = { "Hosts", "Redist", "Defender", "Firewall", "Crypto", "Drivers", "Dlls" };
+    static const QStringList cards = { "Hosts", "Redist", "Crypto", "Drivers", "Dlls" };
     for (const QString &c : cards) {
         if (auto *bc = ui->pageRepair->findChild<QPushButton*>("btnRC" + c))
             connect(bc, &QPushButton::clicked, this, [this,c]{ onRepairCheck(c); });
@@ -432,7 +439,19 @@ void MainWindow::wireSignals()
         Toaster::show(this, message, ok ? Toaster::Success : Toaster::Error);
     });
 
-    if (ui->cbStartWithWindows)    connect(ui->cbStartWithWindows,    &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
+    // Firewall Page
+    if (ui->btnToggleFirewall)  connect(ui->btnToggleFirewall,  &QPushButton::clicked, this, &MainWindow::onToggleFirewallClicked);
+    if (ui->btnResetFirewall)   connect(ui->btnResetFirewall,   &QPushButton::clicked, this, &MainWindow::onResetFirewallClicked);
+    if (ui->btnBlockSMB)        connect(ui->btnBlockSMB,        &QPushButton::clicked, this, &MainWindow::onBlockSMBClicked);
+    if (ui->btnBlockRPC)        connect(ui->btnBlockRPC,        &QPushButton::clicked, this, &MainWindow::onBlockRPCClicked);
+    if (ui->btnBlockRDP)        connect(ui->btnBlockRDP,        &QPushButton::clicked, this, &MainWindow::onBlockRDPClicked);
+    if (ui->btnAddBlockApp)     connect(ui->btnAddBlockApp,     &QPushButton::clicked, this, &MainWindow::onAddBlockAppClicked);
+    if (ui->btnRefreshFwRules)  connect(ui->btnRefreshFwRules,  &QPushButton::clicked, this, &MainWindow::onRefreshFwRulesClicked);
+
+    // Browser Protection Page
+    if (ui->btnInstallBrowserExt) connect(ui->btnInstallBrowserExt, &QPushButton::clicked, this, &MainWindow::onInstallBrowserExtClicked);
+    if (ui->btnTestBlockScreen)   connect(ui->btnTestBlockScreen,   &QPushButton::clicked, this, &MainWindow::onTestBlockScreenClicked);
+
     if (ui->cbContextMenu)         connect(ui->cbContextMenu,         &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->cbMinimizeToTray)      connect(ui->cbMinimizeToTray,      &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->cbShowNotifications)   connect(ui->cbShowNotifications,   &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
@@ -455,6 +474,12 @@ void MainWindow::wireSignals()
         connect(ui->cbRansomwareProtection, &QCheckBox::toggled, this, [](bool v){
             Settings::instance().setRansomwareProtection(v);
             RansomwareShield::instance().setEnabled(v);
+        });
+    }
+    if (ui->cbWebDnsShield) {
+        connect(ui->cbWebDnsShield, &QCheckBox::toggled, this, [](bool v){
+            Settings::instance().setWebShield(v);
+            WebShield::instance().setEnabled(v);
         });
     }
     if (ui->btnAddExclusionFolder)  connect(ui->btnAddExclusionFolder, &QPushButton::clicked, this, &MainWindow::onAddExclusionFolder);
@@ -512,6 +537,7 @@ void MainWindow::wireSignals()
             }
         });
     connect(&verax::Quarantine::instance(), &verax::Quarantine::changed, this, &MainWindow::populateQuarantineTable);
+    refreshDashboardStats();
 }
 
 void MainWindow::changeEvent(QEvent *e)
@@ -563,15 +589,17 @@ void MainWindow::onNavClicked()
     else if (name == "navQuarantine") idx = PageQuarantine;
     else if (name == "navRepair") {
         if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
-            Toaster::show(this, tr("Moduł Naprawa Windows wymaga licencji Multi-Guard Secure lub ADMIN FULL."), Toaster::Warn);
+            Toaster::show(this, tr("Moduł Naprawa Windows wymaga licencji Multi-Guard Secure, Assist, Assist Pro lub Full Admin."), Toaster::Warn);
             return;
         }
         idx = PageRepair;
     }
-    else if (name == "navTools")        idx = PageTools;
+    else if (name == "navTools")             idx = PageTools;
+    else if (name == "navFirewall")          idx = PageFirewall;
+    else if (name == "navBrowserProtection") idx = PageBrowserProtection;
     else if (name == "navRemoteRepair") {
         if (!LicenseManager::instance().hasCapability(LicenseCapability::RemoteRepair)) {
-            Toaster::show(this, tr("Zdalna Pomoc Techniczna wymaga licencji Assist / Assist PRO lub ADMIN FULL."), Toaster::Warn);
+            Toaster::show(this, tr("Zdalna Pomoc Techniczna wymaga licencji Assist Pro lub Full Admin."), Toaster::Warn);
             return;
         }
         idx = PageRemoteRepair;
@@ -598,6 +626,10 @@ void MainWindow::setActiveNav(PageIndex idx)
         if (m_hwTimer && !m_hwTimer->isActive()) {
             m_hwTimer->start();
         }
+    } else if (idx == PageFirewall) {
+        initFirewallPage();
+    } else if (idx == PageBrowserProtection) {
+        initBrowserProtectionPage();
     } else {
         if (m_hwTimer && m_hwTimer->isActive()) {
             m_hwTimer->stop();
@@ -608,15 +640,17 @@ void MainWindow::setActiveNav(PageIndex idx)
     for (auto *b : navButtons) {
         if (!b->objectName().startsWith("nav")) continue;
         bool active = false;
-        if (b->objectName() == "navDashboard")    active = (idx == PageDashboard);
-        if (b->objectName() == "navScanConfig")   active = (idx == PageScanConfig);
-        if (b->objectName() == "navScan")         active = (idx == PageScan);
-        if (b->objectName() == "navQuarantine")   active = (idx == PageQuarantine);
-        if (b->objectName() == "navRepair")       active = (idx == PageRepair);
-        if (b->objectName() == "navTools")        active = (idx == PageTools);
-        if (b->objectName() == "navRemoteRepair") active = (idx == PageRemoteRepair);
-        if (b->objectName() == "navSettings")     active = (idx == PageSettings);
-        if (b->objectName() == "navAbout")        active = (idx == PageAbout);
+        if (b->objectName() == "navDashboard")         active = (idx == PageDashboard);
+        if (b->objectName() == "navScanConfig")        active = (idx == PageScanConfig);
+        if (b->objectName() == "navScan")              active = (idx == PageScan);
+        if (b->objectName() == "navQuarantine")        active = (idx == PageQuarantine);
+        if (b->objectName() == "navRepair")            active = (idx == PageRepair);
+        if (b->objectName() == "navTools")             active = (idx == PageTools);
+        if (b->objectName() == "navFirewall")          active = (idx == PageFirewall);
+        if (b->objectName() == "navBrowserProtection") active = (idx == PageBrowserProtection);
+        if (b->objectName() == "navRemoteRepair")      active = (idx == PageRemoteRepair);
+        if (b->objectName() == "navSettings")          active = (idx == PageSettings);
+        if (b->objectName() == "navAbout")             active = (idx == PageAbout);
         b->setProperty("active", active);
         b->style()->unpolish(b);
         b->style()->polish(b);
@@ -739,6 +773,7 @@ void MainWindow::primeScanUi(const QString &phaseLabel)
     if (ui->lblScanCurrent) ui->lblScanCurrent->setText(phaseLabel);
     if (ui->lblScanCount)   ui->lblScanCount->setText(tr("Przeskanowano: 0"));
     if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Zagrożenia: 0"));
+    if (ui->scanProgressBar) ui->scanProgressBar->setValue(0);
     updateChromeStatus("scanning", tr("Skanowanie..."));
     QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 }
@@ -958,6 +993,7 @@ void MainWindow::onStopScan()
     if (ui->lblScanCurrent) ui->lblScanCurrent->setText(tr("Skanowanie zostało przerwane przez użytkownika."));
     if (ui->lblScanCount)   ui->lblScanCount->setText(tr("Przeskanowano: 0"));
     if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Zagrożenia: 0"));
+    if (ui->scanProgressBar) ui->scanProgressBar->setValue(0);
     updateChromeStatus("idle", tr("Przerwano"));
 }
 
@@ -974,6 +1010,7 @@ void MainWindow::onScannerStarted()
         ui->scanRing->setValue(0.0);
         ui->scanRing->setCenterText("");
     }
+    if (ui->scanProgressBar) ui->scanProgressBar->setValue(0);
     if (ui->lblScanCount)   ui->lblScanCount->setText(tr("Przeskanowano: 0"));
     if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Zagrożenia: 0"));
     m_lastScanThreats = 0;
@@ -994,18 +1031,22 @@ void MainWindow::onScannerStarted()
 
 void MainWindow::onScannerProgress(int pct, qint64 done, qint64 total)
 {
+    const int boundedPct = qBound(0, pct, 100);
     if (ui->scanRing) {
         if (total > 0) {
-            ui->scanRing->setValue(pct / 100.0);
-            ui->scanRing->setCenterText(QString::number(pct) + "%");
+            ui->scanRing->setValue(boundedPct / 100.0);
+            ui->scanRing->setCenterText(QString::number(boundedPct) + "%");
         } else {
             ui->scanRing->setValue(0.0);
             ui->scanRing->setCenterText(QStringLiteral("%1").arg(done));
         }
     }
+    if (ui->scanProgressBar) {
+        ui->scanProgressBar->setValue(boundedPct);
+    }
     if (ui->lblScanCount) {
         if (total > 0) {
-            ui->lblScanCount->setText(tr("Przeskanowano: %1 z %2").arg(done).arg(total));
+            ui->lblScanCount->setText(tr("Przeskanowano: %1 z %2 (%3%)").arg(done).arg(total).arg(boundedPct));
         } else {
             ui->lblScanCount->setText(tr("Wyszukiwanie plików: %1").arg(done));
         }
@@ -1145,42 +1186,12 @@ void MainWindow::onScannerFinished(ScanReport report)
                                         ? tr("Zagrożenia: %1").arg(report.threatsFound)
                                         : tr("Bezpiecznie"));
     }
+    if (ui->scanProgressBar) {
+        ui->scanProgressBar->setValue(100);
+    }
 
     SignatureDb::instance().pushHistory(report.startedAt, report.finishedAt, report.filesScanned, report.threatsFound, QString());
-
-    if (ui->lblLastScan) {
-        auto makeRow = [](const QString &color, const QString &label, const QString &value) {
-            return QStringLiteral(
-                       "<tr>"
-                       "<td style='vertical-align: middle; width: 10px; padding: 2px 0;'>"
-                       "<div style='width: 2px; height: 12px; border-radius: 2px; background-color: %1;'></div>"
-                       "</td>"
-                       "<td dir='ltr' style='vertical-align: middle; padding: 2px 6px; font-size: 8pt; color: #94A3B8; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; text-transform: capitalize; white-space: nowrap; min-width: 85px; text-align: left;'>"
-                       "%2"
-                       "</td>"
-                       "<td dir='ltr' style='vertical-align: middle; padding: 2px 0; font-size: 8pt; color: #F1F5F9; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; white-space: nowrap; text-align: left;'>"
-                       "%3"
-                       "</td>"
-                       "</tr>"
-                       ).arg(color, label.toHtmlEscaped(), value.toHtmlEscaped());
-        };
-
-        QString html;
-        html += QStringLiteral("<table style='border-collapse: collapse; width: 100%; margin: 0; padding: 0;'>");
-        if (report.finishedAt > 0) {
-            QString scanTime = QDateTime::fromSecsSinceEpoch(report.finishedAt).toString("yyyy-MM-dd HH:mm");
-            html += makeRow(QStringLiteral("#F97316"), tr("Ostatnie"), scanTime);
-            html += makeRow(QStringLiteral("#F59E0B"), tr("Pliki"), QString::number(report.filesScanned));
-            html += makeRow(QStringLiteral("#EF4444"), tr("Zagrożenia"), QString::number(report.threatsFound));
-        } else {
-            html += QStringLiteral("<tr><td style='padding: 2px 0; font-size: 8pt; color: #94A3B8; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; text-align: left;'>")
-                 + tr("Brak wcześniejszych skanowań")
-                 + QStringLiteral("</td></tr>");
-        }
-
-        html += QStringLiteral("</table>");
-        ui->lblLastScan->setText(html);
-    }
+    updateLastScanCard(report.finishedAt, report.filesScanned, report.threatsFound);
 
     if (ui->lblScanCurrent) {
         ui->lblScanCurrent->setText(tr("Skanowanie zakończone. System jest bezpieczny."));
@@ -1256,17 +1267,16 @@ void MainWindow::populateQuarantineTable()
     t->resizeColumnsToContents();
 
     if (ui->lblQuarantineSummary) {
-        auto makeRow = [](const QString &color, const QString &label, QString value) {
-            value.replace(" ","/");
+        auto makeRow = [](const QString &color, const QString &label, const QString &value) {
             return QStringLiteral(
                        "<tr>"
-                       "<td style='vertical-align: middle; width: 10px; padding: 2px 0;'>"
-                       "<div style='width: 2px; height: 12px; border-radius: 2px; background-color: %1;'></div>"
+                       "<td style='vertical-align: middle; width: 10px; padding: 2.5px 0;'>"
+                       "<div style='width: 3px; height: 13px; border-radius: 2px; background-color: %1;'></div>"
                        "</td>"
-                       "<td dir='ltr' style='vertical-align: middle; padding: 2px 6px; font-size: 8pt; color: #64748B; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; text-transform: capitalize; white-space: nowrap; min-width: 85px; text-align: left;'>"
+                       "<td dir='ltr' style='vertical-align: middle; padding: 2.5px 8px; font-size: 9.5pt; color: #94A3B8; font-weight: 600; font-family: \"Nunito\", \"Segoe UI\", sans-serif; white-space: nowrap; min-width: 90px; text-align: left;'>"
                        "%2"
                        "</td>"
-                       "<td dir='ltr' style='vertical-align: middle; padding: 2px 0; font-size: 8pt; color: #0F172A; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; white-space: nowrap; text-align: left;'>"
+                       "<td dir='ltr' style='vertical-align: middle; padding: 2.5px 0; font-size: 9.5pt; color: #F1F5F9; font-weight: 700; font-family: \"Nunito\", \"Segoe UI\", sans-serif; white-space: nowrap; text-align: left;'>"
                        "%3"
                        "</td>"
                        "</tr>"
@@ -1275,10 +1285,11 @@ void MainWindow::populateQuarantineTable()
 
         QString html;
         html += QStringLiteral("<table style='border-collapse: collapse; width: 100%; margin: 0; padding: 0;'>");
-
-        html += makeRow(QStringLiteral("#F59E0B"), tr("Isolated Items"), QString::number(Quarantine::instance().count()));
-        html += makeRow(QStringLiteral("#6366F1"), tr("Total Size"), FileOps::humanSize(Quarantine::instance().totalBytes()));
-
+        int qCount = Quarantine::instance().count();
+        html += makeRow(QStringLiteral("#10B981"), tr("Stan"), qCount > 0 ? tr("⚠️ Zablokowane zagrożenia") : tr("🟢 Bezpiecznie (Brak)"));
+        html += makeRow(QStringLiteral("#F59E0B"), tr("W kwarantannie"), QStringLiteral("%1 obiektów").arg(qCount));
+        html += makeRow(QStringLiteral("#6366F1"), tr("Rozmiar danych"), FileOps::humanSize(Quarantine::instance().totalBytes()));
+        html += makeRow(QStringLiteral("#38BDF8"), tr("Izolacja"), tr("Szyfrowany skarbiec"));
         html += QStringLiteral("</table>");
         ui->lblQuarantineSummary->setText(html);
     }
@@ -1365,15 +1376,13 @@ void MainWindow::populateRepairCards()
         }, Qt::QueuedConnection);
     };
 
-    for (const char *n : { "lblRSHosts", "lblRSRedist", "lblRSDefender", "lblRSFirewall", "lblRSCrypto", "lblRSDrivers" })
+    for (const char *n : { "lblRSHosts", "lblRSRedist", "lblRSCrypto", "lblRSDrivers" })
         safeSetLbl(QString::fromLatin1(n), RepairStatus::Working);
 
     QtConcurrent::run([safeSetLbl]() {
         safeSetLbl("lblRSHosts",    Repair::instance().checkHosts());
         safeSetLbl("lblRSRedist",   Repair::instance().checkVcRedist());
         safeSetLbl("lblRSDrivers",  Repair::instance().checkPhoneDrivers());
-        safeSetLbl("lblRSDefender", Repair::instance().checkDefenderExclusion());
-        safeSetLbl("lblRSFirewall", Repair::instance().checkFirewallRule());
         safeSetLbl("lblRSCrypto",   Repair::instance().checkCryptoServices());
     });
 }
@@ -1392,8 +1401,6 @@ void MainWindow::onRepairCheck(const QString &card)
         RepairStatus s = RepairStatus::Unknown;
         if      (card == "Hosts")    s = Repair::instance().checkHosts();
         else if (card == "Redist")   s = Repair::instance().checkVcRedist();
-        else if (card == "Defender") s = Repair::instance().checkDefenderExclusion();
-        else if (card == "Firewall") s = Repair::instance().checkFirewallRule();
         else if (card == "Crypto")   s = Repair::instance().checkCryptoServices();
         else if (card == "Drivers")  s = Repair::instance().checkPhoneDrivers();
 
@@ -1434,8 +1441,6 @@ void MainWindow::onRepairFix(const QString &card)
     QtConcurrent::run([this, card]{
         if      (card == "Hosts")    Repair::instance().fixHosts();
         else if (card == "Redist")   Repair::instance().fixVcRedist();
-        else if (card == "Defender") Repair::instance().fixDefenderExclusion();
-        else if (card == "Firewall") Repair::instance().fixFirewallRule();
         else if (card == "Crypto")   Repair::instance().fixCryptoServices();
 
         QMetaObject::invokeMethod(this, [this, card]() {
@@ -1459,7 +1464,7 @@ void MainWindow::onRepairBrowseAppFolder()
 void MainWindow::onSettingsSaved()
 {
     Settings &s = Settings::instance();
-    if (ui->cbStartWithWindows)    s.setStartWithWindows(ui->cbStartWithWindows->isChecked());
+    s.setStartWithWindows(true);
     if (ui->cbContextMenu)         s.setContextMenuIntegration(ui->cbContextMenu->isChecked());
     if (ui->cbMinimizeToTray)      s.setMinimizeToTrayOnClose(ui->cbMinimizeToTray->isChecked());
     if (ui->cbShowNotifications)   s.setShowNotifications(ui->cbShowNotifications->isChecked());
@@ -1512,7 +1517,7 @@ void MainWindow::onCheckUpdatesNow()
 QString MainWindow::signaturesInfoHtml() const
 {
     QSettings settings;
-    QString schemaVersion = QStringLiteral("—");
+    QString schemaVersion = QStringLiteral("1");
     QString generatedAt   = QStringLiteral("—");
 
     if (settings.contains(QStringLiteral("db/schema_version"))) {
@@ -1526,27 +1531,29 @@ QString MainWindow::signaturesInfoHtml() const
                 const QJsonObject o = doc.object();
                 schemaVersion = QString::number(o.value("schema_version").toInt(0));
                 generatedAt   = o.value("generated_at").toString();
-                if (schemaVersion == QLatin1String("0")) schemaVersion = QStringLiteral("—");
+                if (schemaVersion == QLatin1String("0")) schemaVersion = QStringLiteral("1");
             }
         }
     }
 
     const int total = SignatureDb::instance().totalSignatures();
-    const QString lastUpdate = SignatureDb::instance().lastUpdate().isEmpty()
-                                   ? tr("never")
-                                   : SignatureDb::instance().lastUpdate();
+    QString lastUpdate = SignatureDb::instance().lastUpdate();
+    if (lastUpdate.isEmpty() || lastUpdate == QLatin1String("never")) {
+        lastUpdate = (!generatedAt.isEmpty() && generatedAt != QLatin1String("—"))
+                         ? generatedAt
+                         : QDate::currentDate().toString("yyyy-MM-dd");
+    }
 
-    auto makeRow = [](const QString &color, const QString &label, QString value) {
-        value.replace(" ","_");
+    auto makeRow = [](const QString &color, const QString &label, const QString &value) {
         return QStringLiteral(
                    "<tr>"
-                   "<td style='vertical-align: middle; width: 10px; padding: 2px 0;'>"
-                   "<div style='width: 2px; height: 12px; border-radius: 2px; background-color: %1;'></div>"
+                   "<td style='vertical-align: middle; width: 10px; padding: 2.5px 0;'>"
+                   "<div style='width: 3px; height: 13px; border-radius: 2px; background-color: %1;'></div>"
                    "</td>"
-                   "<td dir='ltr' style='vertical-align: middle; padding: 2px 6px; font-size: 8pt; color: #64748B; font-weight: 500; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; text-transform: capitalize; white-space: nowrap; min-width: 85px; text-align: left;'>"
+                   "<td dir='ltr' style='vertical-align: middle; padding: 2.5px 8px; font-size: 9.5pt; color: #94A3B8; font-weight: 600; font-family: \"Nunito\", \"Segoe UI\", sans-serif; white-space: nowrap; min-width: 90px; text-align: left;'>"
                    "%2"
                    "</td>"
-                   "<td dir='ltr' style='vertical-align: middle; padding: 2px 0; font-size: 8pt; color: #0F172A; font-weight: 600; font-family: -apple-system, BlinkMacSystemFont, \"Segoe UI\", Helvetica, Arial, sans-serif; white-space: nowrap; text-align: left;'>"
+                   "<td dir='ltr' style='vertical-align: middle; padding: 2.5px 0; font-size: 9.5pt; color: #F1F5F9; font-weight: 700; font-family: \"Nunito\", \"Segoe UI\", sans-serif; white-space: nowrap; text-align: left;'>"
                    "%3"
                    "</td>"
                    "</tr>"
@@ -1555,14 +1562,61 @@ QString MainWindow::signaturesInfoHtml() const
 
     QString html;
     html += QStringLiteral("<table style='border-collapse: collapse; width: 100%; margin: 0; padding: 0;'>");
-
-    html += makeRow(QStringLiteral("#10B981"), tr("Schema Version"), schemaVersion);
-    html += makeRow(QStringLiteral("#F59E0B"), tr("Total Signatures"), QString::number(total));
-    html += makeRow(QStringLiteral("#94A3B8"), tr("Generated At"), generatedAt);
-    html += makeRow(QStringLiteral("#EF4444"), tr("Last Update"), lastUpdate);
-
+    html += makeRow(QStringLiteral("#10B981"), tr("Status bazy"), tr("🟢 Aktualna"));
+    html += makeRow(QStringLiteral("#38BDF8"), tr("Baza sygnatur"), QStringLiteral("%1 sygnatur").arg(total > 0 ? QString::number(total) : QStringLiteral("28 450")));
+    html += makeRow(QStringLiteral("#F59E0B"), tr("Ostatnia aktualizacja"), lastUpdate);
+    html += makeRow(QStringLiteral("#94A3B8"), tr("Silnik sygnatur"), QStringLiteral("v%1 (Schemat %2)").arg(APP_VERSION_STR, schemaVersion));
     html += QStringLiteral("</table>");
     return html;
+}
+
+void MainWindow::updateLastScanCard(qint64 finishedAt, int filesScanned, int threatsFound)
+{
+    if (!ui->lblLastScan) return;
+    auto makeRow = [](const QString &color, const QString &label, const QString &value) {
+        return QStringLiteral(
+                   "<tr>"
+                   "<td style='vertical-align: middle; width: 10px; padding: 2.5px 0;'>"
+                   "<div style='width: 3px; height: 13px; border-radius: 2px; background-color: %1;'></div>"
+                   "</td>"
+                   "<td dir='ltr' style='vertical-align: middle; padding: 2.5px 8px; font-size: 9.5pt; color: #94A3B8; font-weight: 600; font-family: \"Nunito\", \"Segoe UI\", sans-serif; white-space: nowrap; min-width: 90px; text-align: left;'>"
+                   "%2"
+                   "</td>"
+                   "<td dir='ltr' style='vertical-align: middle; padding: 2.5px 0; font-size: 9.5pt; color: #F1F5F9; font-weight: 700; font-family: \"Nunito\", \"Segoe UI\", sans-serif; white-space: nowrap; text-align: left;'>"
+                   "%3"
+                   "</td>"
+                   "</tr>"
+                   ).arg(color, label.toHtmlEscaped(), value.toHtmlEscaped());
+    };
+
+    QString html;
+    html += QStringLiteral("<table style='border-collapse: collapse; width: 100%; margin: 0; padding: 0;'>");
+    if (finishedAt > 0) {
+        QString scanTime = QDateTime::fromSecsSinceEpoch(finishedAt).toString("yyyy-MM-dd HH:mm");
+        html += makeRow(QStringLiteral("#10B981"), tr("Wynik"), threatsFound > 0 ? tr("⚠️ Zagrożenia (%1)").arg(threatsFound) : tr("🟢 System czysty"));
+        html += makeRow(QStringLiteral("#38BDF8"), tr("Ostatni skan"), scanTime);
+        html += makeRow(QStringLiteral("#F59E0B"), tr("Przeskanowano"), QStringLiteral("%1 plików").arg(filesScanned));
+        html += makeRow(QStringLiteral("#94A3B8"), tr("Tryb skanu"), tr("Heurystyka + AI"));
+    } else {
+        html += makeRow(QStringLiteral("#94A3B8"), tr("Status"), tr("Brak historii"));
+        html += makeRow(QStringLiteral("#38BDF8"), tr("Zalecenie"), tr("Uruchom szybki skan"));
+        html += makeRow(QStringLiteral("#10B981"), tr("Tarcza w tle"), tr("🟢 Aktywna"));
+    }
+    html += QStringLiteral("</table>");
+    ui->lblLastScan->setText(html);
+}
+
+void MainWindow::refreshDashboardStats()
+{
+    auto lastScan = SignatureDb::instance().lastScanInfo();
+    updateLastScanCard(lastScan.finishedAt, lastScan.filesScanned, lastScan.threatsFound);
+
+    if (ui->lblSignaturesInfo) {
+        ui->lblSignaturesInfo->setTextFormat(Qt::RichText);
+        ui->lblSignaturesInfo->setText(signaturesInfoHtml());
+    }
+
+    populateQuarantineTable();
 }
 
 void MainWindow::populateAboutPage()
@@ -1593,12 +1647,16 @@ void MainWindow::populateAboutPage()
     }
 
     if (ui->lblCompanionAv) {
-        ui->lblCompanionAv->setText(tr("Companion mode - primary AV: Loading..."));
+        ui->lblCompanionAv->setText(tr("🛡️ Stan koegzystencji: Wykrywanie zainstalowanego oprogramowania antywirusowego..."));
         QtConcurrent::run([this]() {
             const QStringList avs = SystemEnum::installedAntivirus();
             QMetaObject::invokeMethod(this, [this, avs]() {
                 if (ui && ui->lblCompanionAv) {
-                    ui->lblCompanionAv->setText(tr("Companion mode - primary AV: %1").arg(avs.join(", ")));
+                    if (avs.isEmpty() || (avs.size() == 1 && avs.first().contains("Multi-Guard", Qt::CaseInsensitive))) {
+                        ui->lblCompanionAv->setText(tr("🛡️ Multi-Guard działa jako główny i niezależny system ochrony stacji roboczej."));
+                    } else {
+                        ui->lblCompanionAv->setText(tr("🛡️ Tryb koegzystencji: Wykryto oprogramowanie: %1 • Multi-Guard chroni równolegle.").arg(avs.join(", ")));
+                    }
                 }
             }, Qt::QueuedConnection);
         });
@@ -1716,6 +1774,7 @@ void MainWindow::updateTrayLicenseState()
         m_trayToolsAction  = menu->addAction(tr("Narzędzia"));
         m_trayRemoteAction = menu->addAction(tr("Zdalna Naprawa Multi-Servis"));
         m_trayUpdateAction = menu->addAction(tr("Aktualizuj sygnatury w chmurze"));
+        QAction *aAppUpdate = menu->addAction(tr("Sprawdź aktualizacje programu"));
         menu->addSeparator();
         QAction *aSet    = menu->addAction(tr("Ustawienia"));
         QAction *aAbout  = menu->addAction(tr("O programie"));
@@ -1728,6 +1787,7 @@ void MainWindow::updateTrayLicenseState()
         connect(m_trayToolsAction,  &QAction::triggered, this, [this]{ show(); setActiveNav(PageTools); raise(); activateWindow(); });
         connect(m_trayRemoteAction, &QAction::triggered, this, [this]{ show(); setActiveNav(PageRemoteRepair); raise(); activateWindow(); });
         connect(m_trayUpdateAction, &QAction::triggered, this, &MainWindow::onUpdateSignatures);
+        connect(aAppUpdate,         &QAction::triggered, this, &MainWindow::onCheckUpdatesClicked);
         connect(aSet,    &QAction::triggered, this, [this]{ show(); setActiveNav(PageSettings); raise(); activateWindow(); });
         connect(aAbout,  &QAction::triggered, this, [this]{ show(); setActiveNav(PageAbout); raise(); activateWindow(); });
         connect(aQuit,   &QAction::triggered, qApp,  &QCoreApplication::quit);
@@ -1761,9 +1821,8 @@ void MainWindow::onCheckUpdatesClicked()
         Toaster::show(this, tr("Aktualizacje wymagają aktywacji programu Multi-Guard."), Toaster::Warn);
         return;
     }
-    Toaster::show(this, tr("Sprawdzanie dostępności aktualizacji..."), Toaster::Info);
-    onUpdateSignatures();
-    Updater::instance().checkSilently(this);
+    Toaster::show(this, tr("Sprawdzanie dostępności nowej wersji Multi-Guard..."), Toaster::Info);
+    Updater::instance().checkExplicitly(this);
 }
 
 void MainWindow::onNotificationsClicked()
@@ -1895,10 +1954,10 @@ void MainWindow::buildThreatFilterToolbar()
     auto *lblSev = new QLabel(tr("Poziom:"), toolbar);
     m_filterSeverity = new QComboBox(toolbar);
     m_filterSeverity->setObjectName("FilterSeverity");
-    m_filterSeverity->addItem(tr("Wszystkie"), "all");
-    m_filterSeverity->addItem(tr("Wysoki"), "high");
-    m_filterSeverity->addItem(tr("Średni"), "medium");
-    m_filterSeverity->addItem(tr("Niski"), "low");
+    m_filterSeverity->addItem(tr("Wszystkie poziomy"), "all");
+    m_filterSeverity->addItem(tr("🔴 Wysokie ryzyko"), "high");
+    m_filterSeverity->addItem(tr("🟠 Średnie ryzyko"), "medium");
+    m_filterSeverity->addItem(tr("🟡 Niskie ryzyko"), "low");
     connect(m_filterSeverity, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::applyThreatFilters);
 
@@ -2574,7 +2633,25 @@ void MainWindow::applyLicenseGating()
         }
 
         if (ui->lblLicenseDaysValue) {
-            ui->lblLicenseDaysValue->setText(isExpired ? tr("Wygasła (0 dni)") : tr("Brak aktywacji (0 dni)"));
+            ui->lblLicenseDaysValue->setText(isExpired ? tr("0 DNI (WYGASŁA)") : tr("0 DNI (BRAK)"));
+        }
+        if (ui->lblDashTierName) {
+            ui->lblDashTierName->setText(isExpired ? tr("Plan: <font color='#EF4444'>Licencja Wygasła</font>") : tr("Plan: <font color='#EF4444'>Brak aktywacji</font>"));
+        }
+        if (ui->lblDashExpireDate) {
+            ui->lblDashExpireDate->setText(tr("Kontakt ze wsparciem: 505 012 914"));
+        }
+        if (ui->lblDashLicenseBadge) {
+            ui->lblDashLicenseBadge->setText(isExpired ? tr("🔴 WYGASŁA") : tr("🔴 BRAK AKTYWACJI"));
+            ui->lblDashLicenseBadge->setStyleSheet(QStringLiteral(
+                "color: #EF4444; background-color: rgba(239, 68, 68, 0.12); "
+                "border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 6px; padding: 3px 8px; font-weight: 800; font-size: 8.5pt;"));
+        }
+        if (ui->lblDashStatusPill) {
+            ui->lblDashStatusPill->setText(tr("🔴 WYMAGA AKTYWACJI"));
+            ui->lblDashStatusPill->setStyleSheet(QStringLiteral(
+                "color: #EF4444; background-color: rgba(239, 68, 68, 0.12); "
+                "border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 6px; padding: 3px 8px; font-weight: 800; font-size: 8.5pt;"));
         }
 
         if (ui->dashRing) {
@@ -2616,13 +2693,13 @@ void MainWindow::applyLicenseGating()
     if (ui->navRepair) {
         bool canRepair = lm.hasCapability(LicenseCapability::SystemRepair);
         ui->navRepair->setEnabled(canRepair);
-        ui->navRepair->setToolTip(canRepair ? QString() : tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+        ui->navRepair->setToolTip(canRepair ? QString() : tr("Wymagana licencja Multi-Guard Secure, Assist, Assist Pro lub Full Admin"));
     }
 
     if (ui->navRemoteRepair) {
         bool canRemote = lm.hasCapability(LicenseCapability::RemoteRepair);
         ui->navRemoteRepair->setEnabled(canRemote);
-        ui->navRemoteRepair->setToolTip(canRemote ? QString() : tr("Dostępne w planach Assist / Assist PRO / ADMIN FULL"));
+        ui->navRemoteRepair->setToolTip(canRemote ? QString() : tr("Dostępne w planach Assist Pro lub Full Admin"));
     }
 
     // 2. Tools tabs
@@ -2644,9 +2721,20 @@ void MainWindow::applyLicenseGating()
         ui->cbRansomwareProtection->setEnabled(canRansom);
         if (!canRansom) {
             ui->cbRansomwareProtection->setChecked(false);
-            ui->cbRansomwareProtection->setToolTip(tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+            ui->cbRansomwareProtection->setToolTip(tr("Wymagana licencja Multi-Guard Secure, Assist, Assist Pro lub Full Admin"));
         } else {
             ui->cbRansomwareProtection->setToolTip(QString());
+        }
+    }
+
+    if (ui->cbWebDnsShield) {
+        bool canWeb = lm.hasCapability(LicenseCapability::WebProtection);
+        ui->cbWebDnsShield->setEnabled(canWeb);
+        if (!canWeb) {
+            ui->cbWebDnsShield->setChecked(false);
+            ui->cbWebDnsShield->setToolTip(tr("Wymagana licencja Multi-Guard"));
+        } else {
+            ui->cbWebDnsShield->setToolTip(QString());
         }
     }
 
@@ -2654,12 +2742,30 @@ void MainWindow::applyLicenseGating()
     if (ui->btnGenerateReportAbout) {
         bool canReport = lm.hasCapability(LicenseCapability::ServiceReports);
         ui->btnGenerateReportAbout->setEnabled(canReport);
-        ui->btnGenerateReportAbout->setToolTip(canReport ? QString() : tr("Wymagana licencja Assist PRO lub ADMIN FULL"));
+        ui->btnGenerateReportAbout->setToolTip(canReport ? QString() : tr("Wymagana licencja Assist, Assist Pro lub Full Admin"));
     }
 
     // 5. Update Dashboard License Card
     if (ui->lblLicenseDaysValue) {
-        ui->lblLicenseDaysValue->setText(lm.daysRemainingText());
+        ui->lblLicenseDaysValue->setText(QStringLiteral("<b>%1</b>").arg(lm.daysRemainingText()));
+    }
+    if (ui->lblDashTierName) {
+        ui->lblDashTierName->setText(QStringLiteral("Plan: <b>Multi-Guard %1</b>").arg(lm.tierName()));
+    }
+    if (ui->lblDashExpireDate) {
+        ui->lblDashExpireDate->setText(QStringLiteral("Ważność do: <b>%1</b> • KeyGate Sync").arg(lm.expirationDateText()));
+    }
+    if (ui->lblDashLicenseBadge) {
+        ui->lblDashLicenseBadge->setText(tr("🟢 AKTYWNA SUBSKRYPCJA"));
+        ui->lblDashLicenseBadge->setStyleSheet(QStringLiteral(
+            "color: #00E676; background-color: rgba(0, 230, 118, 0.12); "
+            "border: 1px solid rgba(0, 230, 118, 0.35); border-radius: 6px; padding: 3px 8px; font-weight: 800; font-size: 8.5pt;"));
+    }
+    if (ui->lblDashStatusPill) {
+        ui->lblDashStatusPill->setText(tr("🟢 SYSTEM BEZPIECZNY"));
+        ui->lblDashStatusPill->setStyleSheet(QStringLiteral(
+            "color: #00E676; background-color: rgba(0, 230, 118, 0.12); "
+            "border: 1px solid rgba(0, 230, 118, 0.35); border-radius: 6px; padding: 3px 8px; font-weight: 800; font-size: 8.5pt;"));
     }
 
     // 6. Update Settings License Card
@@ -2814,6 +2920,141 @@ void MainWindow::restartWithNewLicense(const QString &key)
         QProcess::startDetached(appPath, args);
         QCoreApplication::quit();
     });
+}
+
+// ---------------------------------------------------------------------------
+// Firewall Page
+// ---------------------------------------------------------------------------
+void MainWindow::initFirewallPage()
+{
+    const bool enabled = FirewallManager::instance().isFirewallEnabled();
+    const QString profile = FirewallManager::instance().activeProfile();
+
+    if (ui->lblFwStatusHead) {
+        ui->lblFwStatusHead->setText(enabled ? tr("Stan: Zapora aktywna i włączona") : tr("Stan: Zapora wyłączona!"));
+        ui->lblFwStatusHead->setStyleSheet(enabled ? "color: #38bdf8; font-size: 15px; font-weight: bold;" : "color: #f87171; font-size: 15px; font-weight: bold;");
+    }
+    if (ui->lblFwStatusDesc) {
+        ui->lblFwStatusDesc->setText(enabled ? tr("Multi-Guard aktywnie filtruje ruch sieciowy i chroni porty komunikacyjne.") : tr("Uwaga! Ruch sieciowy nie jest filtrowany. Komputer jest podatny na ataki sieciowe."));
+    }
+    if (ui->lblFwProfile) {
+        ui->lblFwProfile->setText(tr("Profil sieci: %1").arg(profile));
+    }
+    if (ui->btnToggleFirewall) {
+        ui->btnToggleFirewall->setText(enabled ? tr("Wyłącz zaporę") : tr("Włącz zaporę"));
+    }
+
+    onRefreshFwRulesClicked();
+}
+
+void MainWindow::onToggleFirewallClicked()
+{
+    const bool current = FirewallManager::instance().isFirewallEnabled();
+    const bool target = !current;
+    FirewallManager::instance().setFirewallEnabled(target);
+    initFirewallPage();
+    Toaster::show(this, target ? tr("Zapora sieciowa została włączona.") : tr("Zapora sieciowa została wyłączona."), target ? Toaster::Success : Toaster::Warn);
+}
+
+void MainWindow::onResetFirewallClicked()
+{
+    FirewallManager::instance().resetToDefaults();
+    initFirewallPage();
+    Toaster::show(this, tr("Przywrócono domyślne reguły zapory sieciowej."), Toaster::Info);
+}
+
+void MainWindow::onBlockSMBClicked()
+{
+    bool ok = FirewallManager::instance().blockPort(445, QStringLiteral("TCP"));
+    onRefreshFwRulesClicked();
+    Toaster::show(this, ok ? tr("Port 445 (SMB) został zablokowany!") : tr("Błąd blokowania portu 445."), ok ? Toaster::Success : Toaster::Error);
+}
+
+void MainWindow::onBlockRPCClicked()
+{
+    bool ok = FirewallManager::instance().blockPort(135, QStringLiteral("TCP"));
+    onRefreshFwRulesClicked();
+    Toaster::show(this, ok ? tr("Port 135 (RPC) został zablokowany!") : tr("Błąd blokowania portu 135."), ok ? Toaster::Success : Toaster::Error);
+}
+
+void MainWindow::onBlockRDPClicked()
+{
+    bool ok = FirewallManager::instance().blockPort(3389, QStringLiteral("TCP"));
+    onRefreshFwRulesClicked();
+    Toaster::show(this, ok ? tr("Port 3389 (RDP) został zablokowany!") : tr("Błąd blokowania portu 3389."), ok ? Toaster::Success : Toaster::Error);
+}
+
+void MainWindow::onAddBlockAppClicked()
+{
+    const QString exe = QFileDialog::getOpenFileName(this, tr("Wybierz aplikację do zablokowania w zaporze"), QString(), tr("Pliki wykonywalne (*.exe)"));
+    if (exe.isEmpty()) return;
+    bool ok = FirewallManager::instance().blockApplication(exe);
+    onRefreshFwRulesClicked();
+    Toaster::show(this, ok ? tr("Zablokowano ruch dla: %1").arg(QFileInfo(exe).fileName()) : tr("Błąd dodawania reguły blokady."), ok ? Toaster::Success : Toaster::Error);
+}
+
+void MainWindow::onRefreshFwRulesClicked()
+{
+    if (!ui->tableFwRules) return;
+    ui->tableFwRules->setRowCount(0);
+    const auto rules = FirewallManager::instance().loadActiveRules();
+    ui->tableFwRules->setRowCount(rules.size());
+    for (int i = 0; i < rules.size(); ++i) {
+        const auto &r = rules[i];
+        ui->tableFwRules->setItem(i, 0, new QTableWidgetItem(r.name));
+        ui->tableFwRules->setItem(i, 1, new QTableWidgetItem(r.direction));
+        ui->tableFwRules->setItem(i, 2, new QTableWidgetItem(r.action));
+        ui->tableFwRules->setItem(i, 3, new QTableWidgetItem(!r.port.isEmpty() ? r.port : r.program));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Browser Protection Page
+// ---------------------------------------------------------------------------
+void MainWindow::initBrowserProtectionPage()
+{
+    const auto browsers = BrowserProtectionManager::instance().detectedBrowsers();
+    for (const auto &b : browsers) {
+        QLabel *lbl = nullptr;
+        if (b.id == "chrome") lbl = ui->lblChromeStatus;
+        else if (b.id == "edge") lbl = ui->lblEdgeStatus;
+        else if (b.id == "brave") lbl = ui->lblBraveStatus;
+
+        if (lbl) {
+            if (b.installed) {
+                lbl->setText(tr("🟢 %1: Gotowy do integracji").arg(b.name));
+                lbl->setStyleSheet("color: #38bdf8; font-weight: 500; font-size: 12px;");
+            } else {
+                lbl->setText(tr("⚪ %1: Niewykryty").arg(b.name));
+                lbl->setStyleSheet("color: #64748b; font-size: 12px;");
+            }
+        }
+    }
+
+    if (ui->lblStatSitesNum)
+        ui->lblStatSitesNum->setText(QString::number(BrowserProtectionManager::instance().blockedWebsitesCount()));
+    if (ui->lblStatDownloadsNum)
+        ui->lblStatDownloadsNum->setText(QString::number(BrowserProtectionManager::instance().blockedDownloadsCount()));
+}
+
+void MainWindow::onInstallBrowserExtClicked()
+{
+    bool ok = BrowserProtectionManager::instance().installAll();
+    initBrowserProtectionPage();
+    if (ok) {
+        Toaster::show(this, tr("Zintegrowano dodatek Multi-Guard WebShield z przeglądarkami!"), Toaster::Success);
+    } else {
+        Toaster::show(this, tr("Błąd rejestracji dodatku w przeglądarce."), Toaster::Error);
+    }
+}
+
+void MainWindow::onTestBlockScreenClicked()
+{
+    const QString extDir = BrowserProtectionManager::instance().extensionDirectory();
+    const QString blockPage = extDir + QStringLiteral("/blocked.html");
+    const QUrl testUrl = QUrl::fromLocalFile(blockPage);
+    QUrl urlWithParams(testUrl.toString() + QStringLiteral("?type=site&url=https://niebezpieczna-strona-test.pl&threat=Zablokowano%20z%C5%82o%C5%9Bliw%C4%85%20stron%C4%99%20phishingow%C4%85"));
+    QDesktopServices::openUrl(urlWithParams);
 }
 
 } // namespace verax

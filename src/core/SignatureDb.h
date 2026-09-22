@@ -79,6 +79,13 @@ public:
                         int filesScanned, int threatsFound,
                         const QString &reportJson);
 
+    struct LastScanInfo {
+        qint64 finishedAt = 0;
+        int filesScanned = 0;
+        int threatsFound = 0;
+    };
+    LastScanInfo lastScanInfo() const;
+
 signals:
     void updateProgress(int pct);
     void updateFinished(int added, int total, const QString &error);

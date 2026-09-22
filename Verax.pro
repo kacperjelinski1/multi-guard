@@ -91,6 +91,8 @@ SOURCES += \
     src/core/Ed25519.cpp \
     src/core/LicenseManager.cpp \
     src/core/WindowsSecurityIntegration.cpp \
+    src/core/FirewallManager.cpp \
+    src/core/BrowserProtectionManager.cpp \
     src/core/tweetnacl.c
 
 HEADERS += \
@@ -108,6 +110,8 @@ HEADERS += \
     src/core/Updater.h \
     src/core/RealTimeShield.h \
     src/core/WebShield.h \
+    src/core/FirewallManager.h \
+    src/core/BrowserProtectionManager.h \
     src/core/SystemOptimizer.h \
     src/core/StartupManager.h \
     src/core/HardwareMonitor.h \

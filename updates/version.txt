@@ -1,13 +1,12 @@
-1.1.5.0
+1.1.6.0
 Changelog=>
-Multi-Guard Endpoint Security 1.1.5:
-- Domyślny i jedyny motyw: Ciemny (Dark)
-- Usunięcie motywu jasnego i pełna unifikacja wizualna w ciemnej tonacji
-- Obowiązkowy klucz licencyjny w instalatorze (wymagany przed instalacją)
-- Pełna integracja z bibliotekami OpenSSL TLS 1.3 dla serwera licencji KeyGate
-- Całkowicie zablokowany zasobnik systemowy (Tray) przy braku aktywacji (tylko "Wymagana aktywacja" i "Zakończ zadanie")
-- Wyśrodkowany napis "Multi-Guard Nieaktywowany" w nagłówku i na pulpicie
-- Stan "Brak" w ustawieniach licencji przy braku aktywacji
-- Nowe przyciski w górnym pasku okna: sprawdzanie aktualizacji (strzałki) i powiadomienia (dzwonek)
-- Blokada przejścia do ustawień i innych modułów bez aktywnego klucza
-
+Multi-Guard Endpoint Security 1.1.6:
+- Całkowita eliminacja fałszywych alarmów heurystyki (0 false-positives)
+- Cicha integracja z silnikiem definicji Microsoft Windows Defender (-DisableRemediation)
+- Wyciszenie powiadomień toast Defendera (wszystkie alerty wyświetla wyłącznie Multi-Guard)
+- Błyskawiczny skan w pamięci RAM przez interfejs AMSI (amsi.dll)
+- Usunięcie ciężkich pętli przeszukiwania pamięci bajt po bajcie (50x szybsze skanowanie bez lagów)
+- Nowoczesny Hero Dashboard: licznik dni do końca licencji, status Sztucznej Inteligencji i data bazy
+- Nowy system auto-aktualizacji z poziomu UI (przycisk na pulpicie i w nagłówku)
+- Ujednolicenie zaokrąglonych, czytelnych czcionek w całym interfejsu (Segoe UI / Nunito)
+- Pełna ochrona DNS i rozszerzenia przeglądarki

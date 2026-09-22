@@ -1,8 +1,6 @@
-// ═══════════════════════════════════════════════════════════════════════
-//  Updater.cpp — implementation.
-// ═══════════════════════════════════════════════════════════════════════
 #include "Updater.h"
 #include "Logger.h"
+#include "../widgets/Toaster.h"
 #include "../../Version.h"
 
 #include <QNetworkAccessManager>
@@ -16,10 +14,17 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QTextBrowser>
+#include <QProgressBar>
+#include <QFile>
+#include <QFileInfo>
+#include <QDir>
+#include <QStandardPaths>
+#include <QProcess>
+#include <QDesktopServices>
+#include <QCoreApplication>
 #include <QGraphicsOpacityEffect>
 #include <QPropertyAnimation>
 #include <QEasingCurve>
-#include <QDesktopServices>
 
 namespace verax {
 
@@ -30,9 +35,6 @@ Updater& Updater::instance() {
 
 Updater::Updater(QObject *parent) : QObject(parent) {}
 
-// ────────────────────────────────────────────────────────────────────────
-//  Version comparison — left-pads with 0 so "1.1" vs "1.1.0.0" compare equal.
-// ────────────────────────────────────────────────────────────────────────
 int Updater::compareVersions(const QString &a, const QString &b)
 {
     const QStringList ax = a.split('.', Qt::SkipEmptyParts);
@@ -46,53 +48,73 @@ int Updater::compareVersions(const QString &a, const QString &b)
     return 0;
 }
 
-// ────────────────────────────────────────────────────────────────────────
-//  Body parser. Contract documented in Updater.h.
-// ────────────────────────────────────────────────────────────────────────
 UpdateInfo Updater::parseBody(const QString &body)
 {
     UpdateInfo info;
-    info.downloadUrl = QString::fromLatin1(APP_DOWNLOAD_URL);
+    info.downloadUrl = QStringLiteral("https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup.exe");
+    info.releasePageUrl = QString::fromLatin1(APP_DOWNLOAD_URL);
 
     const QString trimmed = body.trimmed();
     if (trimmed.isEmpty()) return info;
 
-    // First non-empty line is the version. Anything after the literal
-    // "Changelog=>" marker is the changelog (free-form).
-    const int marker = trimmed.indexOf(QLatin1String("Changelog=>"));
+    // Optional direct download url override (Url=>...)
+    QString textAfterUrl = trimmed;
+    const int urlMarker = trimmed.indexOf(QLatin1String("Url=>"));
+    if (urlMarker >= 0) {
+        const int urlEnd = trimmed.indexOf('\n', urlMarker);
+        if (urlEnd > urlMarker) {
+            info.downloadUrl = trimmed.mid(urlMarker + 5, urlEnd - (urlMarker + 5)).trimmed();
+            textAfterUrl = trimmed.left(urlMarker).trimmed() + "\n" + trimmed.mid(urlEnd).trimmed();
+        } else {
+            info.downloadUrl = trimmed.mid(urlMarker + 5).trimmed();
+            textAfterUrl = trimmed.left(urlMarker).trimmed();
+        }
+    }
+
+    // Version & Changelog
+    const int marker = textAfterUrl.indexOf(QLatin1String("Changelog=>"));
     QString verLine;
     QString changelog;
     if (marker >= 0) {
-        verLine   = trimmed.left(marker).trimmed();
-        changelog = trimmed.mid(marker + int(strlen("Changelog=>"))).trimmed();
+        verLine   = textAfterUrl.left(marker).trimmed();
+        changelog = textAfterUrl.mid(marker + int(strlen("Changelog=>"))).trimmed();
     } else {
-        // No marker → assume the whole body is the version
-        verLine   = trimmed;
+        verLine   = textAfterUrl;
     }
 
-    // Pick the FIRST line of the version block in case there's whitespace
     const QStringList vlines = verLine.split(QRegExp("[\\r\\n]"), Qt::SkipEmptyParts);
-    if (!vlines.isEmpty()) info.latestVersion = vlines.first().trimmed();
+    if (!vlines.isEmpty()) {
+        info.latestVersion = vlines.first().trimmed();
+    }
     info.changelog = changelog;
 
-    // Validate: must look like a dotted-decimal version, e.g. "1.2.3" or "1.2.3.4"
     static const QRegExp rxVer("^\\d+(\\.\\d+){0,3}$");
     info.valid = rxVer.exactMatch(info.latestVersion);
     if (info.valid) {
-        info.newer = compareVersions(info.latestVersion,
-                                     QString::fromLatin1(APP_VERSION_STR)) > 0;
+        info.newer = compareVersions(info.latestVersion, QString::fromLatin1(APP_VERSION_STR)) > 0;
     }
     return info;
 }
 
-// ────────────────────────────────────────────────────────────────────────
-//  Network check
-// ────────────────────────────────────────────────────────────────────────
 void Updater::checkSilently(QWidget *uiOwner)
 {
     if (m_inFlight) return;
-    m_inFlight = true;
+    m_explicit = false;
     m_owner = uiOwner;
+    runCheck();
+}
+
+void Updater::checkExplicitly(QWidget *uiOwner)
+{
+    if (m_inFlight) return;
+    m_explicit = true;
+    m_owner = uiOwner;
+    runCheck();
+}
+
+void Updater::runCheck()
+{
+    m_inFlight = true;
 
     if (!m_nam) m_nam = new QNetworkAccessManager(this);
 
@@ -106,7 +128,7 @@ void Updater::checkSilently(QWidget *uiOwner)
 
     auto *to = new QTimer(this);
     to->setSingleShot(true);
-    to->setInterval(8000);
+    to->setInterval(10000);
     connect(to, &QTimer::timeout, r, &QNetworkReply::abort);
     to->start();
 
@@ -118,8 +140,12 @@ void Updater::checkSilently(QWidget *uiOwner)
         if (r->error() != QNetworkReply::NoError) {
             const QString err = r->errorString();
             r->deleteLater();
-            Logger::warn(QStringLiteral("Updater silent check failed: %1").arg(err));
+            Logger::warn(QStringLiteral("Updater check failed: %1").arg(err));
             emit checkFailed(err);
+
+            if (m_explicit && m_owner) {
+                Toaster::show(m_owner, tr("Błąd sprawdzania aktualizacji: %1").arg(err), Toaster::Error);
+            }
             return;
         }
 
@@ -128,30 +154,33 @@ void Updater::checkSilently(QWidget *uiOwner)
 
         const UpdateInfo info = parseBody(body);
         if (!info.valid) {
-            Logger::warn(QStringLiteral("Updater: malformed body (head=%1)")
-                         .arg(body.left(64).replace('\n', ' ')));
-            emit checkFailed(QStringLiteral("Malformed update payload"));
-            return;
-        }
-        if (!info.newer) {
-            Logger::info(QStringLiteral("Updater: already on latest version (%1).")
-                         .arg(info.latestVersion));
-            emit noUpdate();
+            Logger::warn(QStringLiteral("Updater: malformed payload (%1)").arg(body.left(64).replace('\n', ' ')));
+            emit checkFailed(QStringLiteral("Nieprawidłowa odpowiedź serwera"));
+            if (m_explicit && m_owner) {
+                Toaster::show(m_owner, tr("Nieprawidłowa odpowiedź serwera aktualizacji."), Toaster::Error);
+            }
             return;
         }
 
-        Logger::info(QStringLiteral("Updater: new version available (%1 → %2)")
+        if (!info.newer) {
+            Logger::info(QStringLiteral("Updater: currently running latest version (%1).").arg(APP_VERSION_STR));
+            emit noUpdate();
+            if (m_explicit && m_owner) {
+                Toaster::show(m_owner, tr("Posiadasz najnowszą wersję Multi-Guard (%1). Brak dostępnych aktualizacji.").arg(APP_VERSION_STR), Toaster::Success);
+            }
+            return;
+        }
+
+        Logger::info(QStringLiteral("Updater: newer version found (%1 → %2)")
                      .arg(QString::fromLatin1(APP_VERSION_STR), info.latestVersion));
         emit updateAvailable(info);
 
-        if (m_owner) showUpdateDialog(m_owner, info);
+        if (m_owner) {
+            showUpdateDialog(m_owner, info);
+        }
     });
 }
 
-// ────────────────────────────────────────────────────────────────────────
-//  Modal dialog — frameless, branded, with a smooth fade-in animation
-//  and three actions: Update now / Remind me later / Skip this version.
-// ────────────────────────────────────────────────────────────────────────
 void Updater::showUpdateDialog(QWidget *parent, const UpdateInfo &info)
 {
     auto *dlg = new QDialog(parent);
@@ -159,104 +188,183 @@ void Updater::showUpdateDialog(QWidget *parent, const UpdateInfo &info)
     dlg->setWindowFlag(Qt::Dialog);
     dlg->setWindowFlag(Qt::FramelessWindowHint);
     dlg->setAttribute(Qt::WA_DeleteOnClose, true);
-    dlg->setAttribute(Qt::WA_TranslucentBackground, false);
-    dlg->setMinimumSize(520, 360);
-    dlg->setWindowTitle(tr("Update available"));
+    dlg->setMinimumSize(560, 420);
+    dlg->setWindowTitle(tr("Aktualizacja Multi-Guard"));
+    dlg->setStyleSheet(
+        "QDialog#UpdaterDialog { background-color: #0E131F; border: 1px solid #222D42; border-radius: 16px; }\n"
+        "QLabel { font-family: 'Nunito', 'Segoe UI', sans-serif; color: #F1F5F9; }\n"
+        "QTextBrowser { background-color: #080B12; border: 1px solid #1E273A; border-radius: 8px; color: #CBD5E1; padding: 10px; font-size: 13px; }\n"
+        "QProgressBar { background-color: #141A28; border: 1px solid #2A364F; border-radius: 6px; height: 14px; text-align: center; color: #FFFFFF; font-size: 11px; font-weight: bold; }\n"
+        "QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00E676, stop:1 #00B0FF); border-radius: 5px; }\n"
+        "QPushButton { font-family: 'Nunito', 'Segoe UI', sans-serif; border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 13px; }\n"
+    );
 
     auto *root = new QVBoxLayout(dlg);
     root->setContentsMargins(28, 24, 28, 24);
     root->setSpacing(14);
 
-    // ── Header row: badge + title + version chip ─────────────────────────
+    // Header
     auto *headerRow = new QHBoxLayout();
-    headerRow->setSpacing(12);
+    headerRow->setSpacing(14);
 
     auto *badge = new QLabel(dlg);
-    badge->setObjectName("UpdaterBadge");
-    badge->setText(QStringLiteral("\u2728")); // sparkles
+    badge->setText(QStringLiteral("🚀"));
     badge->setAlignment(Qt::AlignCenter);
-    badge->setMinimumSize(48, 48);
-    badge->setMaximumSize(48, 48);
+    badge->setStyleSheet("background: rgba(37,99,235,0.18); border: 1px solid rgba(56,189,248,0.4); border-radius: 12px; font-size: 24px;");
+    badge->setFixedSize(52, 52);
     headerRow->addWidget(badge);
 
     auto *titleCol = new QVBoxLayout();
     titleCol->setSpacing(2);
-    auto *title = new QLabel(tr("A new version of %1 is available")
-                                 .arg(QString::fromLatin1(APP_NAME)), dlg);
-    title->setObjectName("UpdaterTitle");
-    title->setWordWrap(true);
-    auto *subtitle = new QLabel(dlg);
-    subtitle->setObjectName("UpdaterSubtitle");
-    subtitle->setText(tr("You have version %1. Version %2 is now available.")
-                          .arg(QString::fromLatin1(APP_VERSION_STR), info.latestVersion));
-    subtitle->setWordWrap(true);
+    auto *title = new QLabel(tr("Dostępna jest nowa wersja programu!"), dlg);
+    title->setStyleSheet("font-size: 18px; font-weight: 800; color: #FFFFFF;");
+    auto *subtitle = new QLabel(tr("Zainstalowana wersja: %1 • Nowa wersja: %2")
+                                  .arg(QString::fromLatin1(APP_VERSION_STR), info.latestVersion), dlg);
+    subtitle->setStyleSheet("font-size: 13px; color: #38BDF8; font-weight: 600;");
     titleCol->addWidget(title);
     titleCol->addWidget(subtitle);
     headerRow->addLayout(titleCol, 1);
     root->addLayout(headerRow);
 
-    // ── Version chip row ─────────────────────────────────────────────────
-    auto *chipRow = new QHBoxLayout();
-    chipRow->setSpacing(8);
-    auto *chipNew = new QLabel(QStringLiteral("v%1").arg(info.latestVersion), dlg);
-    chipNew->setObjectName("UpdaterChipNew");
-    chipNew->setProperty("class", "Chip");
-    auto *chipOld = new QLabel(tr("Current v%1").arg(QString::fromLatin1(APP_VERSION_STR)), dlg);
-    chipOld->setObjectName("UpdaterChipOld");
-    chipOld->setProperty("class", "Chip");
-    chipRow->addWidget(chipNew);
-    chipRow->addWidget(chipOld);
-    chipRow->addStretch(1);
-    root->addLayout(chipRow);
-
-    // ── Changelog area ───────────────────────────────────────────────────
-    auto *changeTitle = new QLabel(tr("What's new"), dlg);
-    changeTitle->setObjectName("UpdaterChangelogTitle");
+    // Changelog
+    auto *changeTitle = new QLabel(tr("Lista zmian (Co nowego):"), dlg);
+    changeTitle->setStyleSheet("font-size: 13px; font-weight: 700; color: #94A3B8;");
     root->addWidget(changeTitle);
 
     auto *changeView = new QTextBrowser(dlg);
-    changeView->setObjectName("UpdaterChangelog");
-    changeView->setOpenExternalLinks(true);
-    const QString changelog = info.changelog.isEmpty()
-        ? tr("No changelog provided.")
-        : info.changelog;
+    const QString changelog = info.changelog.isEmpty() ? tr("Brak opisu zmian.") : info.changelog;
     changeView->setPlainText(changelog);
     root->addWidget(changeView, 1);
 
-    // ── Buttons row ──────────────────────────────────────────────────────
+    // Status and Progress
+    auto *lblStatus = new QLabel(tr("Gotowy do pobrania instalatora."), dlg);
+    lblStatus->setStyleSheet("font-size: 12px; color: #94A3B8;");
+    root->addWidget(lblStatus);
+
+    auto *progBar = new QProgressBar(dlg);
+    progBar->setRange(0, 100);
+    progBar->setValue(0);
+    progBar->setVisible(false);
+    root->addWidget(progBar);
+
+    // Buttons
     auto *btnRow = new QHBoxLayout();
-    btnRow->setSpacing(8);
+    btnRow->setSpacing(10);
     btnRow->addStretch(1);
 
-    auto *btnLater = new QPushButton(tr("Remind me later"), dlg);
-    btnLater->setProperty("kind", "ghost");
-    auto *btnSkip = new QPushButton(tr("Skip this version"), dlg);
-    btnSkip->setProperty("kind", "ghost");
-    auto *btnUpdate = new QPushButton(tr("Update now"), dlg);
-    btnUpdate->setProperty("kind", "primary");
+    auto *btnBrowser = new QPushButton(tr("Strona pobierania"), dlg);
+    btnBrowser->setStyleSheet("background: transparent; border: 1px solid #334155; color: #94A3B8;");
 
-    btnRow->addWidget(btnSkip);
+    auto *btnLater = new QPushButton(tr("Przypomnij później"), dlg);
+    btnLater->setStyleSheet("background: transparent; border: 1px solid #334155; color: #94A3B8;");
+
+    auto *btnUpdate = new QPushButton(tr("⬇️ Pobierz i zainstaluj teraz"), dlg);
+    btnUpdate->setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00E676, stop:1 #00C853); border: 1px solid #00E676; color: #021206; font-weight: 700;");
+
+    btnRow->addWidget(btnBrowser);
     btnRow->addWidget(btnLater);
     btnRow->addWidget(btnUpdate);
     root->addLayout(btnRow);
 
     connect(btnLater, &QPushButton::clicked, dlg, &QDialog::reject);
-    connect(btnSkip,  &QPushButton::clicked, dlg, &QDialog::reject);
-    connect(btnUpdate, &QPushButton::clicked, dlg, [dlg, info]{
-        QDesktopServices::openUrl(QUrl(info.downloadUrl));
+    connect(btnBrowser, &QPushButton::clicked, dlg, [dlg, info]{
+        QDesktopServices::openUrl(QUrl(info.releasePageUrl));
         dlg->accept();
     });
 
-    // ── Smooth fade-in animation ─────────────────────────────────────────
-    auto *fx = new QGraphicsOpacityEffect(dlg);
-    fx->setOpacity(0.0);
-    dlg->setGraphicsEffect(fx);
-    auto *anim = new QPropertyAnimation(fx, "opacity", dlg);
-    anim->setStartValue(0.0);
-    anim->setEndValue(1.0);
-    anim->setDuration(220);
-    anim->setEasingCurve(QEasingCurve::OutCubic);
-    QTimer::singleShot(0, dlg, [anim]{ anim->start(QAbstractAnimation::DeleteWhenStopped); });
+    // In-App Auto-Download & Detached Install Execution
+    connect(btnUpdate, &QPushButton::clicked, dlg, [this, dlg, info, btnUpdate, btnLater, btnBrowser, progBar, lblStatus]() mutable {
+        btnUpdate->setEnabled(false);
+        btnLater->setEnabled(false);
+        progBar->setVisible(true);
+        progBar->setValue(0);
+        lblStatus->setText(tr("Nawiązywanie połączenia z serwerem pobierania..."));
+
+        QString tempDir = QStandardPaths::writableLocation(QStandardPaths::TempLocation);
+        QString tempPath = tempDir + QStringLiteral("/Multi-Guard-Setup-%1.exe").arg(info.latestVersion);
+
+        auto *file = new QFile(tempPath, dlg);
+        if (!file->open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            lblStatus->setText(tr("<font color='#f87171'>Błąd zapisu pliku instalatora w folderze tymczasowym.</font>"));
+            btnUpdate->setEnabled(true);
+            btnLater->setEnabled(true);
+            return;
+        }
+
+        if (!m_nam) m_nam = new QNetworkAccessManager(this);
+
+        QNetworkRequest req(QUrl(info.downloadUrl));
+        req.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("Multi-Guard-AutoUpdater/%1").arg(APP_VERSION_STR));
+        req.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+
+        QNetworkReply *reply = m_nam->get(req);
+
+        connect(reply, &QNetworkReply::readyRead, dlg, [reply, file]{
+            file->write(reply->readAll());
+        });
+
+        connect(reply, &QNetworkReply::downloadProgress, dlg, [progBar, lblStatus](qint64 bytesReceived, qint64 bytesTotal){
+            if (bytesTotal > 0) {
+                int pct = static_cast<int>((bytesReceived * 100) / bytesTotal);
+                progBar->setValue(pct);
+                double mbReceived = bytesReceived / (1024.0 * 1024.0);
+                double mbTotal = bytesTotal / (1024.0 * 1024.0);
+                lblStatus->setText(QObject::tr("Pobieranie instalatora: %1 MB / %2 MB (%3%)")
+                                   .arg(QString::number(mbReceived, 'f', 1),
+                                        QString::number(mbTotal, 'f', 1),
+                                        QString::number(pct)));
+            } else {
+                double mbReceived = bytesReceived / (1024.0 * 1024.0);
+                lblStatus->setText(QObject::tr("Pobieranie instalatora: %1 MB...")
+                                   .arg(QString::number(mbReceived, 'f', 1)));
+            }
+        });
+
+        connect(reply, &QNetworkReply::finished, dlg, [reply, file, tempPath, dlg, info, lblStatus, btnBrowser, btnLater]{
+            file->flush();
+            file->close();
+
+            if (reply->error() != QNetworkReply::NoError) {
+                QString err = reply->errorString();
+                reply->deleteLater();
+                file->remove();
+                lblStatus->setText(QObject::tr("<font color='#f87171'>Błąd pobierania (%1). Użyj przycisku poniżej, aby pobrać instalator ręcznie.</font>").arg(err));
+                btnBrowser->setStyleSheet("background: #2563EB; border: 1px solid #38BDF8; color: #FFFFFF; font-weight: bold;");
+                btnLater->setEnabled(true);
+                return;
+            }
+
+            reply->deleteLater();
+
+            if (QFileInfo(tempPath).size() < 1024) {
+                file->remove();
+                lblStatus->setText(QObject::tr("<font color='#f87171'>Pobrany plik jest uszkodzony lub niekompletny. Otwórz stronę wydań.</font>"));
+                btnBrowser->setStyleSheet("background: #2563EB; border: 1px solid #38BDF8; color: #FFFFFF; font-weight: bold;");
+                btnLater->setEnabled(true);
+                return;
+            }
+
+            lblStatus->setText(QObject::tr("<font color='#4ade80'><b>Pobieranie zakończone!</b> Trwa uruchamianie instalatora nowej wersji...</font>"));
+
+            QTimer::singleShot(1500, dlg, [tempPath, dlg]{
+#ifdef Q_OS_WIN
+                QStringList args;
+                args << QStringLiteral("/CLOSEAPPLICATIONS");
+                bool ok = QProcess::startDetached(tempPath, args);
+                if (ok) {
+                    dlg->accept();
+                    QCoreApplication::quit();
+                } else {
+                    QDesktopServices::openUrl(QUrl::fromLocalFile(tempPath));
+                    dlg->accept();
+                }
+#else
+                QDesktopServices::openUrl(QUrl::fromLocalFile(tempPath));
+                dlg->accept();
+#endif
+            });
+        });
+    });
 
     dlg->show();
     dlg->raise();

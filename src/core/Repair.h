@@ -23,16 +23,12 @@ public:
     // Probes (synchronous, fast). Each returns RepairStatus.
     RepairStatus checkVcRedist();
     RepairStatus checkHosts();
-    RepairStatus checkDefenderExclusion();
-    RepairStatus checkFirewallRule();
     RepairStatus checkCryptoServices();
     RepairStatus checkPhoneDrivers();
 
     // Actions (async; emit fix*Finished signals).
     void fixVcRedist();
     void fixHosts();
-    void fixDefenderExclusion();
-    void fixFirewallRule();
     void fixCryptoServices();
     void fixPhoneDrivers(const QString &infFolder);
 

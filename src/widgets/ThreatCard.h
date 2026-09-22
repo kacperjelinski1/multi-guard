@@ -56,8 +56,18 @@ public:
 
     // Filter helpers
     QString severityLevel() const {
-        if (m_info.severity >= 8 || m_info.score >= 100) return QStringLiteral("high");
-        if (m_info.severity >= 5 || m_info.score >= 60)  return QStringLiteral("medium");
+        if (m_info.severity >= 8 || m_info.score >= 80 ||
+            m_info.family.contains(QLatin1String("Ransom"), Qt::CaseInsensitive) ||
+            m_info.family.contains(QLatin1String("Trojan"), Qt::CaseInsensitive) ||
+            m_info.family.contains(QLatin1String("Worm"), Qt::CaseInsensitive) ||
+            m_info.detectionName.startsWith(QLatin1String("Virus:"), Qt::CaseInsensitive) ||
+            m_info.detectionName.startsWith(QLatin1String("Ransom:"), Qt::CaseInsensitive) ||
+            m_info.detectionName.startsWith(QLatin1String("Trojan:"), Qt::CaseInsensitive)) {
+            return QStringLiteral("high");
+        }
+        if (m_info.severity >= 5 || m_info.score >= 50) {
+            return QStringLiteral("medium");
+        }
         return QStringLiteral("low");
     }
     QString familyName() const { return m_info.family; }

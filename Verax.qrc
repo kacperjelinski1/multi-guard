@@ -5,6 +5,7 @@
         <file alias="signatures/seed.json">resources/signatures/seed.json</file>
         <file alias="sql/schema.sql">resources/sql/schema.sql</file>
         <file alias="i18n/verax_pl.qm">i18n/verax_pl.qm</file>
+        <file alias="fonts/Nunito.ttf">resources/fonts/Nunito.ttf</file>
     </qresource>
     <qresource prefix="/assets">
         <file alias="logo.png">resources/assets/logo.png</file>

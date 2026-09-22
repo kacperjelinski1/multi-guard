@@ -38,6 +38,8 @@ public:
         PageQuarantine,
         PageRepair,
         PageTools,
+        PageFirewall,
+        PageBrowserProtection,
         PageRemoteRepair,
         PageSettings,
         PageAbout,
@@ -136,6 +138,8 @@ private:
     void updateTrayLicenseState();
     void buildThreatFilterToolbar();
     QString signaturesInfoHtml() const;
+    void updateLastScanCard(qint64 finishedAt, int filesScanned, int threatsFound);
+    void refreshDashboardStats();
     void updateChromeStatus(const QString &kind, const QString &text);
     void primeScanUi(const QString &phaseLabel);
     QStringList collectScanTargets() const;
@@ -166,6 +170,20 @@ private:
     void onAddExclusionFile();
     void onRemoveExclusion();
     void onGenerateServiceReportClicked();
+
+    // Firewall & Browser Protection
+    void initFirewallPage();
+    void onToggleFirewallClicked();
+    void onResetFirewallClicked();
+    void onBlockSMBClicked();
+    void onBlockRPCClicked();
+    void onBlockRDPClicked();
+    void onAddBlockAppClicked();
+    void onRefreshFwRulesClicked();
+
+    void initBrowserProtectionPage();
+    void onInstallBrowserExtClicked();
+    void onTestBlockScreenClicked();
 
     // Licensing
     void applyLicenseGating();

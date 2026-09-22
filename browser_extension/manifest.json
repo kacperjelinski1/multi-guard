@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Multi-Guard WebShield & Download Protection",
+  "version": "1.2.0",
+  "description": "Ochrona stacji roboczej w czasie rzeczywistym przed złośliwymi stronami WWW, phishingiem i niebezpiecznymi plikami.",
+  "permissions": [
+    "webNavigation",
+    "downloads",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Multi-Guard WebShield — Ochrona aktywna"
+  }
+}

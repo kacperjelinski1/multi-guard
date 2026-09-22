@@ -603,6 +603,19 @@ void SignatureDb::pushHistory(qint64 startedAt, qint64 finishedAt,
     q.exec();
 }
 
+SignatureDb::LastScanInfo SignatureDb::lastScanInfo() const
+{
+    LastScanInfo info;
+    if (m_jsonFallback || !m_db.isOpen()) return info;
+    QSqlQuery q(m_db);
+    if (q.exec("SELECT finished_at, files_scanned, threats_found FROM scan_history ORDER BY id DESC LIMIT 1") && q.next()) {
+        info.finishedAt = q.value(0).toLongLong();
+        info.filesScanned = q.value(1).toInt();
+        info.threatsFound = q.value(2).toInt();
+    }
+    return info;
+}
+
 // ═══════════════════════════════════════════════════════════════════
 //  Online Update (works with both DB and JSON fallback)
 // ═══════════════════════════════════════════════════════════════════

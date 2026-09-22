@@ -6,14 +6,16 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 QMainWindow, #centralWidget {
-    background-color: #FAFBFC;
-    font-family: "Segoe UI", "Tajawal", "Cairo", "Inter", sans-serif;
+    background-color: #F8FAFC;
+    font-family: "Nunito", "Segoe UI Variable Text", "Segoe UI", sans-serif;
     font-size: 10pt;
     color: #0F172A;
+    letter-spacing: 0.2px;
 }
 
 QWidget {
-    font-family: "Segoe UI", "Tajawal", "Cairo", "Inter", sans-serif;
+    font-family: "Nunito", "Segoe UI Variable Text", "Segoe UI", sans-serif;
+    color: #0F172A;
 }
 
 /* ── Custom Title Bar (ChromeBar Elements Built in UI) ── */
@@ -237,13 +239,36 @@ QScrollBar::handle:vertical:hover { background: #94A3B8; }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { border: none; background: none; }
 
 /* ── Cards & Toasters ── */
-.SurfaceCard, #cardInstaller, #cardRemoteSession, #cardRemotePerms, #cardRemoteDiag, #cardGeneral, #cardScanning, #cardEngine, #cardScanActions, #cardScanStats, #cardQuickScan, #cardFullScan {
+.SurfaceCard, #cardInstaller, #cardSecurityHero, #cardAiEngine, #cardZeroDay, #cardMemShield, #cardRemoteSession, #cardRemotePerms, #cardRemoteDiag, #cardGeneral, #cardScanning, #cardEngine, #cardScanActions, #cardScanStats, #cardQuickScan, #cardFullScan {
     background-color: #FFFFFF;
     border-radius: 16px;
     border: 1px solid #E2E8F0;
+    padding: 12px;
 }
-.SurfaceCard:hover {
-    border-color: #CBD5E1;
+.SurfaceCard:hover, #cardSecurityHero:hover, #cardAiEngine:hover, #cardZeroDay:hover, #cardMemShield:hover {
+    border-color: #0284C7;
+}
+
+#boxLicenseCounter {
+    background-color: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(14, 165, 233, 0.3);
+    border-radius: 10px;
+}
+
+#lblLicenseDaysValue {
+    font-size: 15pt;
+    font-weight: 800;
+    color: #0284C7;
+}
+
+#lblAi1Status, #lblAi2Status, #lblAi3Status, #lblDashStatusPill, #lblDashLicenseBadge {
+    font-size: 8.5pt;
+    font-weight: 800;
+    color: #059669;
+    background-color: rgba(5, 150, 105, 0.12);
+    border: 1px solid rgba(5, 150, 105, 0.3);
+    border-radius: 6px;
+    padding: 3px 8px;
 }
 
 #Toaster {
@@ -670,4 +695,15 @@ QLabel[class="Chip"] {
     font-size: 9pt;
     font-weight: 900;
     padding: 4px 4px 8px 4px;
+}
+
+#scanProgressBar {
+    background-color: #E2E8F0;
+    border: 1px solid #CBD5E1;
+    border-radius: 3px;
+    max-height: 6px;
+}
+#scanProgressBar::chunk {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2563EB, stop:1 #38BDF8);
+    border-radius: 2px;
 }

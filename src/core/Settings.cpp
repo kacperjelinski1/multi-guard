@@ -31,7 +31,8 @@ void Settings::load()
 
     m_language          = s.value("general/language",        m_language).toString();
     m_theme             = s.value("general/theme",           m_theme).toString();
-    m_startWithWindows  = s.value("general/startWithWindows",m_startWithWindows).toBool();
+    m_startWithWindows  = true;
+    applyStartupRegistry();
     m_contextMenu       = s.value("general/contextMenu",     m_contextMenu).toBool();
     m_trayOnClose       = s.value("general/trayOnClose",     m_trayOnClose).toBool();
     m_showNotifications = s.value("general/showNotifications", m_showNotifications).toBool();
@@ -221,7 +222,7 @@ void Settings::resetAll()
     s.sync();
 
     // 2. Clear registry startup & context menu
-    m_startWithWindows = false;
+    m_startWithWindows = true;
     applyStartupRegistry();
     m_contextMenu = false;
     applyContextMenuRegistry();
@@ -248,7 +249,7 @@ void Settings::resetAll()
     m_contextMenu       = false;
     m_realTimeProtection= true;
     m_ransomwareProtection = true;
-    m_webShield         = false;
+    m_webShield         = true;
     m_exclusions.clear();
     m_trayOnClose       = true;
     m_showNotifications = true;

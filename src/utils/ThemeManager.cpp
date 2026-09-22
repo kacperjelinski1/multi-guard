@@ -43,8 +43,8 @@ void ThemeManager::applyTheme(const QString &themeMode)
 QString ThemeManager::trayStyleSheet()
 {
     return QStringLiteral(
-        "QMenu { background: #121622; color: #F1F5F9; border: 1px solid #252E42; border-radius: 8px; padding: 6px; }\n"
-        "QMenu::item { padding: 8px 24px 8px 12px; border-radius: 4px; font-size: 12px; }\n"
+        "QMenu { font-family: 'Nunito', 'Segoe UI', sans-serif; background: #121622; color: #F1F5F9; border: 1px solid #252E42; border-radius: 8px; padding: 6px; }\n"
+        "QMenu::item { font-family: 'Nunito', 'Segoe UI', sans-serif; padding: 8px 24px 8px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; }\n"
         "QMenu::item:selected { background: #00E676; color: #000000; font-weight: bold; }\n"
         "QMenu::separator { height: 1px; background: #252E42; margin: 4px 8px; }"
     );

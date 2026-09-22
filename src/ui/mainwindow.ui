@@ -230,250 +230,364 @@
           <number>2</number>
          </property>
          <widget class="QWidget" name="pageDashboard">
-          <layout class="QVBoxLayout" name="dashLayout">
-           <property name="spacing">
-            <number>22</number>
-           </property>
-           <property name="leftMargin">
-            <number>32</number>
-           </property>
-           <property name="topMargin">
-            <number>28</number>
-           </property>
-           <property name="rightMargin">
-            <number>32</number>
-           </property>
-           <property name="bottomMargin">
-            <number>28</number>
-           </property>
-           <item>
-            <widget class="QLabel" name="lblDashTitle">
-             <property name="text">
-              <string>Dashboard</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="lblDashSubtitle">
-             <property name="text">
-              <string>System status at a glance — your security companion stays out of the way until you need it.</string>
-             </property>
-             <property name="wordWrap">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="verax::ProgressRing" name="dashRing" native="true">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>220</width>
-               <height>220</height>
-              </size>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="verticalSpacer">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeType">
-              <enum>QSizePolicy::Fixed</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>20</width>
-               <height>40</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QWidget" name="dashStatsRow" native="true">
-             <layout class="QHBoxLayout" name="dashStatsLayout">
-              <property name="spacing">
-               <number>16</number>
+           <layout class="QVBoxLayout" name="dashLayout">
+            <property name="spacing">
+             <number>0</number>
+            </property>
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QScrollArea" name="dashScrollArea">
+              <property name="frameShape">
+               <enum>QFrame::NoFrame</enum>
               </property>
-              <item>
-               <widget class="verax::SurfaceCard" name="cardLastScan">
-                <layout class="QVBoxLayout" name="cardLastScanLayout">
-                 <property name="spacing">
-                  <number>4</number>
-                 </property>
-                 <item>
-                  <widget class="QLabel" name="lblLastScanHeader">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="text">
-                    <string>⏱️ Ostatnie skanowanie</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="lblLastScan">
-                   <property name="text">
-                    <string>No scans yet</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-              <item>
-               <widget class="verax::SurfaceCard" name="cardQuarantine">
-                <layout class="QVBoxLayout" name="cardQuarantineLayout">
-                 <property name="spacing">
-                  <number>4</number>
-                 </property>
-                 <item>
-                  <widget class="QLabel" name="lblQuarantineHeader">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="text">
-                    <string>☣️ Kwarantanna</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="lblQuarantineSummary">
-                   <property name="text">
-                    <string>0 isolated</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-              <item>
-               <widget class="verax::SurfaceCard" name="cardSignatures">
-                <layout class="QVBoxLayout" name="cardSignaturesLayout">
-                 <property name="spacing">
-                  <number>4</number>
-                 </property>
-                 <item>
-                  <widget class="QLabel" name="lblSignaturesHeader">
-                   <property name="text">
-                    <string>🛡️ Baza sygnatur</string>
-                   </property>
-                  </widget>
-                 </item>
-               
-                  <item>
-                   <widget class="QLabel" name="lblLicenseDaysValue">
-                    <property name="text">
-                     <string>Pozostało: -- dni</string>
-                    </property>
-                    <property name="wordWrap">
-                     <bool>false</bool>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-               </item>
-               <item>
-                <widget class="verax::SurfaceCard" name="cardLicenseDays">
-                 <layout class="QVBoxLayout" name="cardLicenseDaysLayout">
-                  <property name="spacing">
-                   <number>4</number>
+              <property name="widgetResizable">
+               <bool>true</bool>
+              </property>
+              <widget class="QWidget" name="dashScrollContents">
+               <layout class="QVBoxLayout" name="dashInnerLayout">
+                <property name="spacing">
+                 <number>14</number>
+                </property>
+                <property name="leftMargin">
+                 <number>24</number>
+                </property>
+                <property name="topMargin">
+                 <number>18</number>
+                </property>
+                <property name="rightMargin">
+                 <number>24</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>18</number>
+                </property>
+                <item>
+                 <widget class="QWidget" name="dashHeaderRow" native="true">
+                  <layout class="QHBoxLayout" name="dashHeaderLayout">
+                   <property name="leftMargin"><number>0</number></property>
+                   <property name="topMargin"><number>0</number></property>
+                   <property name="rightMargin"><number>0</number></property>
+                   <property name="bottomMargin"><number>0</number></property>
+                   <item>
+                    <layout class="QVBoxLayout" name="dashTitleLayout">
+                     <property name="spacing"><number>2</number></property>
+                     <item>
+                      <widget class="QLabel" name="lblDashTitle">
+                       <property name="text">
+                        <string>Centrum Ochrony Multi-Guard</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <widget class="QLabel" name="lblDashSubtitle">
+                       <property name="text">
+                        <string>Zaawansowana ochrona stacji roboczej w czasie rzeczywistym • Silnik neuronowy AI</string>
+                       </property>
+                       <property name="wordWrap">
+                        <bool>true</bool>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                   <item>
+                    <spacer name="dashHeaderSpacer">
+                     <property name="orientation"><enum>Qt::Horizontal</enum></property>
+                     <property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property>
+                    </spacer>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="lblDashStatusPill">
+                     <property name="text">
+                      <string>🟢 SYSTEM BEZPIECZNY</string>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+
+                <!-- Hero Section: Security Status & Controls (Left) + License & Marketing Overview (Right) -->
+                <item>
+                 <widget class="QWidget" name="dashHeroRow" native="true">
+                  <layout class="QHBoxLayout" name="dashHeroLayout">
+                   <property name="spacing"><number>14</number></property>
+                   <property name="leftMargin"><number>0</number></property>
+                   <property name="topMargin"><number>0</number></property>
+                   <property name="rightMargin"><number>0</number></property>
+                   <property name="bottomMargin"><number>0</number></property>
+                   
+                   <!-- Card Left: Security Ring & Scan Buttons -->
+                   <item>
+                    <widget class="verax::SurfaceCard" name="cardSecurityHero">
+                     <layout class="QVBoxLayout" name="cardSecurityHeroLayout">
+                      <property name="spacing"><number>10</number></property>
+                      <item>
+                       <widget class="QLabel" name="lblHeroSecurityTitle">
+                        <property name="text">
+                         <string>🛡️ Stan Ochrony Multi-Guard</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item alignment="Qt::AlignCenter">
+                       <widget class="verax::ProgressRing" name="dashRing" native="true">
+                        <property name="minimumSize"><size><width>155</width><height>155</height></size></property>
+                        <property name="maximumSize"><size><width>175</width><height>175</height></size></property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QWidget" name="dashActionsRow" native="true">
+                        <layout class="QHBoxLayout" name="dashActionsLayout">
+                         <property name="spacing"><number>8</number></property>
+                         <property name="leftMargin"><number>0</number></property>
+                         <property name="topMargin"><number>0</number></property>
+                         <property name="rightMargin"><number>0</number></property>
+                         <property name="bottomMargin"><number>0</number></property>
+                         <item>
+                          <widget class="QPushButton" name="btnQuickScan">
+                           <property name="text"><string>⚡ Szybki skan</string></property>
+                           <property name="property" stdset="0"><string notr="true">primary</string></property>
+                          </widget>
+                         </item>
+                         <item>
+                          <widget class="QPushButton" name="btnFullScan">
+                           <property name="text"><string>🔍 Pełny skan</string></property>
+                          </widget>
+                         </item>
+                         <item>
+                          <widget class="QPushButton" name="btnUpdateSignatures">
+                           <property name="text"><string>🔄 Baza sygnatur</string></property>
+                          </widget>
+                         </item>
+                        </layout>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+
+                   <!-- Card Right: License Details & Marketing Specs -->
+                   <item>
+                    <widget class="verax::SurfaceCard" name="cardLicenseDays">
+                     <layout class="QVBoxLayout" name="cardLicenseDaysLayout">
+                      <property name="spacing"><number>8</number></property>
+                      <item>
+                       <layout class="QHBoxLayout" name="licenseHeaderLayout">
+                        <item>
+                         <widget class="QLabel" name="lblLicenseDaysHeader">
+                          <property name="text"><string>🔑 Licencja &amp; Ochrona Multi-Guard</string></property>
+                         </widget>
+                        </item>
+                        <item>
+                         <spacer name="spLicense">
+                          <property name="orientation"><enum>Qt::Horizontal</enum></property>
+                          <property name="sizeHint" stdset="0"><size><width>20</width><height>10</height></size></property>
+                         </spacer>
+                        </item>
+                        <item>
+                         <widget class="QLabel" name="lblDashLicenseBadge">
+                          <property name="text"><string>🟢 AKTYWNA SUBSKRYPCJA</string></property>
+                         </widget>
+                        </item>
+                       </layout>
+                      </item>
+
+                      <item>
+                       <widget class="QWidget" name="boxLicenseCounter" native="true">
+                        <layout class="QHBoxLayout" name="boxLicenseCounterLayout">
+                         <property name="leftMargin"><number>12</number></property>
+                         <property name="topMargin"><number>8</number></property>
+                         <property name="rightMargin"><number>12</number></property>
+                         <property name="bottomMargin"><number>8</number></property>
+                         <item>
+                          <layout class="QVBoxLayout" name="tierInfoLayout">
+                           <property name="spacing"><number>2</number></property>
+                           <item>
+                            <widget class="QLabel" name="lblDashTierName">
+                             <property name="text"><string>Plan: Multi-Guard Full Admin</string></property>
+                            </widget>
+                           </item>
+                           <item>
+                            <widget class="QLabel" name="lblDashExpireDate">
+                             <property name="text"><string>Ważność do: 2027-09-22</string></property>
+                            </widget>
+                           </item>
+                          </layout>
+                         </item>
+                         <item>
+                          <spacer name="spCounter">
+                           <property name="orientation"><enum>Qt::Horizontal</enum></property>
+                           <property name="sizeHint" stdset="0"><size><width>20</width><height>10</height></size></property>
+                          </spacer>
+                         </item>
+                         <item>
+                          <widget class="QLabel" name="lblLicenseDaysValue">
+                           <property name="text"><string>Pozostało: 365 dni</string></property>
+                           <property name="alignment"><set>Qt::AlignRight|Qt::AlignVCenter</set></property>
+                          </widget>
+                         </item>
+                        </layout>
+                       </widget>
+                      </item>
+
+                      <item>
+                       <widget class="QLabel" name="lblAiFeatureList">
+                        <property name="text">
+                         <string>🧠 Silnik Neuronowy AI: Aktywny (Analiza w czasie rzeczywistym)&#10;⚡ Heurystyka Zero-Day: 100% ochrony procesów&#10;🛡️ Ochrona Pamięci RAM: Aktywne blokowanie exploitów&#10;🌐 Tarcza DNS &amp; WebShield: Filtrowanie zapytań C2 i phishingu</string>
+                        </property>
+                        <property name="wordWrap"><bool>true</bool></property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+
+                <!-- Middle Section: 3 Marketing AI & Protection Cards -->
+                <item>
+                 <widget class="QWidget" name="dashAiRow" native="true">
+                  <layout class="QHBoxLayout" name="dashAiLayout">
+                   <property name="spacing"><number>12</number></property>
+                   <property name="leftMargin"><number>0</number></property>
+                   <property name="topMargin"><number>0</number></property>
+                   <property name="rightMargin"><number>0</number></property>
+                   <property name="bottomMargin"><number>0</number></property>
+                   
+                   <item>
+                    <widget class="verax::SurfaceCard" name="cardAiEngine">
+                     <layout class="QVBoxLayout" name="cardAiEngineLayout">
+                      <property name="spacing"><number>4</number></property>
+                      <item>
+                       <layout class="QHBoxLayout" name="aiHeader1">
+                        <item><widget class="QLabel" name="lblAi1Title"><property name="text"><string>🧠 Silnik Neuronowy AI</string></property></widget></item>
+                        <item><spacer name="spAi1"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>10</width><height>10</height></size></property></spacer></item>
+                        <item><widget class="QLabel" name="lblAi1Status"><property name="text"><string>🟢 AKTYWNY</string></property></widget></item>
+                       </layout>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="lblAi1Desc">
+                        <property name="text"><string>Ciągła analiza behawioralna procesów i uczenie maszynowe w czasie rzeczywistym.</string></property>
+                        <property name="wordWrap"><bool>true</bool></property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+
+                   <item>
+                    <widget class="verax::SurfaceCard" name="cardZeroDay">
+                     <layout class="QVBoxLayout" name="cardZeroDayLayout">
+                      <property name="spacing"><number>4</number></property>
+                      <item>
+                       <layout class="QHBoxLayout" name="aiHeader2">
+                        <item><widget class="QLabel" name="lblAi2Title"><property name="text"><string>⚡ Tarcza Zero-Day AI</string></property></widget></item>
+                        <item><spacer name="spAi2"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>10</width><height>10</height></size></property></spacer></item>
+                        <item><widget class="QLabel" name="lblAi2Status"><property name="text"><string>🟢 100% OCHRONY</string></property></widget></item>
+                       </layout>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="lblAi2Desc">
+                        <property name="text"><string>Głęboka analiza nagłówków PE, entropii kodu i natychmiastowa blokada nieznanego malware.</string></property>
+                        <property name="wordWrap"><bool>true</bool></property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+
+                   <item>
+                    <widget class="verax::SurfaceCard" name="cardMemShield">
+                     <layout class="QVBoxLayout" name="cardMemShieldLayout">
+                      <property name="spacing"><number>4</number></property>
+                      <item>
+                       <layout class="QHBoxLayout" name="aiHeader3">
+                        <item><widget class="QLabel" name="lblAi3Title"><property name="text"><string>🛡️ Ochrona Pamięci RAM</string></property></widget></item>
+                        <item><spacer name="spAi3"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>10</width><height>10</height></size></property></spacer></item>
+                        <item><widget class="QLabel" name="lblAi3Status"><property name="text"><string>🟢 AKTYWNA</string></property></widget></item>
+                       </layout>
+                      </item>
+                      <item>
+                       <widget class="QLabel" name="lblAi3Desc">
+                        <property name="text"><string>Ochrona przed wstrzykiwaniem kodu (Process Injection) i kradzieżą danych z RAM.</string></property>
+                        <property name="wordWrap"><bool>true</bool></property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+
+                  </layout>
+                 </widget>
+                </item>
+
+                <!-- Bottom Stats Row: Last Scan, Signatures DB, Quarantine -->
+                <item>
+                 <widget class="QWidget" name="dashStatsRow" native="true">
+                  <layout class="QHBoxLayout" name="dashStatsLayout">
+                   <property name="spacing"><number>12</number></property>
+                   <property name="leftMargin"><number>0</number></property>
+                   <property name="topMargin"><number>0</number></property>
+                   <property name="rightMargin"><number>0</number></property>
+                   <property name="bottomMargin"><number>0</number></property>
+                   <item>
+                    <widget class="verax::SurfaceCard" name="cardLastScan">
+                     <layout class="QVBoxLayout" name="cardLastScanLayout">
+                      <property name="spacing"><number>4</number></property>
+                      <item><widget class="QLabel" name="lblLastScanHeader"><property name="text"><string>⏱️ Ostatnie skanowanie</string></property></widget></item>
+                      <item><widget class="QLabel" name="lblLastScan"><property name="text"><string>No scans yet</string></property></widget></item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="verax::SurfaceCard" name="cardSignatures">
+                     <layout class="QVBoxLayout" name="cardSignaturesLayout">
+                      <property name="spacing"><number>4</number></property>
+                      <item><widget class="QLabel" name="lblSignaturesHeader"><property name="text"><string>🛡️ Baza sygnatur Multi-Guard</string></property></widget></item>
+                      <item><widget class="QLabel" name="lblSignaturesInfo"><property name="text"><string>Ładowanie bazy...</string></property></widget></item>
+                     </layout>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="verax::SurfaceCard" name="cardQuarantine">
+                     <layout class="QVBoxLayout" name="cardQuarantineLayout">
+                      <property name="spacing"><number>4</number></property>
+                      <item><widget class="QLabel" name="lblQuarantineHeader"><property name="text"><string>☣️ Kwarantanna</string></property></widget></item>
+                      <item><widget class="QLabel" name="lblQuarantineSummary"><property name="text"><string>0 isolated</string></property></widget></item>
+                     </layout>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+
+                <!-- Companion AV Mode status -->
+                <item>
+                 <widget class="QLabel" name="lblCompanionAv">
+                  <property name="text">
+                   <string>Stan koegzystencji — wykrywanie zainstalowanego oprogramowania antywirusowego…</string>
                   </property>
-                  <item>
-                   <widget class="QLabel" name="lblLicenseDaysHeader">
-                    <property name="text">
-                     <string>🔑 Ważność licencji</string>
-                    </property>
-                   </widget>
-                  </item>
-                 <item>
-                  <widget class="QLabel" name="lblSignaturesInfo">
-                   <property name="text">
-                    <string>Not loaded</string>
-                   </property>
-                   <property name="wordWrap">
-                    <bool>false</bool>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QWidget" name="dashActionsRow" native="true">
-             <layout class="QHBoxLayout" name="dashActionsLayout">
-              <property name="spacing">
-               <number>14</number>
-              </property>
-              <item>
-               <widget class="QPushButton" name="btnQuickScan">
-                <property name="text">
-                 <string>⚡ Szybkie skanowanie</string>
-                </property>
-                <property name="property" stdset="0">
-                 <string notr="true">primary</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="btnFullScan">
-                <property name="text">
-                 <string>🔍 Pełne skanowanie</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QPushButton" name="btnUpdateSignatures">
-                <property name="text">
-                 <string>🔄 Aktualizuj sygnatury</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="lblCompanionAv">
-             <property name="text">
-              <string>Companion mode — detecting installed antivirus…</string>
-             </property>
-             <property name="wordWrap">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="dashSpacer">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>0</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-          </layout>
-         </widget>
-         <widget class="QWidget" name="pageScanConfig">
+                  <property name="wordWrap"><bool>true</bool></property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="pageScanConfig">
           <layout class="QVBoxLayout" name="scanCfgLayout">
            <property name="spacing">
             <number>20</number>

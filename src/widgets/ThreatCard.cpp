@@ -63,21 +63,61 @@ ThreatCard::ThreatCard(const ThreatInfo &info, QWidget *parent)
                            info.family.isEmpty() ? QStringLiteral("Generic") : info.family,
                            "family", "ThreatFamily");
 
-    m_lblSeverity = makeChip(this, QString(), "low", "ThreatSeverity");
-    if (info.severity >= 8 || info.score >= 100) {
-        m_lblSeverity->setText(tr("High"));
+    // ── Poziom ryzyka kodowany kolorami: Wysokie (czerwony), Średnie (pomarańczowy), Niskie (żółty) ──
+    const bool isHigh = (info.severity >= 8 || info.score >= 80 ||
+                         info.family.contains(QLatin1String("Ransom"), Qt::CaseInsensitive) ||
+                         info.family.contains(QLatin1String("Trojan"), Qt::CaseInsensitive) ||
+                         info.family.contains(QLatin1String("Worm"), Qt::CaseInsensitive) ||
+                         info.detectionName.startsWith(QLatin1String("Virus:"), Qt::CaseInsensitive) ||
+                         info.detectionName.startsWith(QLatin1String("Ransom:"), Qt::CaseInsensitive) ||
+                         info.detectionName.startsWith(QLatin1String("Trojan:"), Qt::CaseInsensitive));
+    const bool isMedium = (!isHigh && (info.severity >= 5 || info.score >= 50));
+
+    m_lblSeverity = new QLabel(this);
+    m_lblSeverity->setObjectName("ThreatRiskBadge");
+    m_lblSeverity->setAlignment(Qt::AlignCenter);
+
+    if (isHigh) {
+        m_lblSeverity->setText(tr("WYSOKIE RYZYKO"));
         m_lblSeverity->setProperty("kind", "high");
-    } else if (info.severity >= 5 || info.score >= 60) {
-        m_lblSeverity->setText(tr("Medium"));
+        m_lblSeverity->setStyleSheet(
+            "background-color: #450A0A; color: #F87171; border: 1px solid #DC2626; "
+            "border-radius: 7px; padding: 4px 10px; font-weight: 700; font-size: 9pt; font-family: 'Nunito', 'Segoe UI', sans-serif; letter-spacing: 0.4px;"
+        );
+    } else if (isMedium) {
+        m_lblSeverity->setText(tr("ŚREDNIE RYZYKO"));
         m_lblSeverity->setProperty("kind", "medium");
+        m_lblSeverity->setStyleSheet(
+            "background-color: #431407; color: #FB923C; border: 1px solid #EA580C; "
+            "border-radius: 7px; padding: 4px 10px; font-weight: 700; font-size: 9pt; font-family: 'Nunito', 'Segoe UI', sans-serif; letter-spacing: 0.4px;"
+        );
     } else {
-        m_lblSeverity->setText(tr("Low"));
+        m_lblSeverity->setText(tr("NISKIE RYZYKO"));
         m_lblSeverity->setProperty("kind", "low");
+        m_lblSeverity->setStyleSheet(
+            "background-color: #422006; color: #FACC15; border: 1px solid #CA8A04; "
+            "border-radius: 7px; padding: 4px 10px; font-weight: 700; font-size: 9pt; font-family: 'Nunito', 'Segoe UI', sans-serif; letter-spacing: 0.4px;"
+        );
     }
 
-    m_lblScore = makeChip(this,
-                          tr("Score: %1").arg(info.score),
-                          "score", "ThreatScore");
+    // ── Źródło detekcji (Baza sygnatur / Heurystyka) zamiast surowych liczb 110, 109 itp. ──
+    m_lblScore = new QLabel(this);
+    m_lblScore->setObjectName("ThreatSourceChip");
+    m_lblScore->setAlignment(Qt::AlignCenter);
+    const bool isSigHit = (!info.sha256.isEmpty() && (info.reason.contains(QLatin1String("baza"), Qt::CaseInsensitive) || info.reason.contains(QLatin1String("database"), Qt::CaseInsensitive) || (!info.detectionName.contains(QLatin1String("Heur"), Qt::CaseInsensitive) && !info.detectionName.isEmpty())));
+    if (isSigHit) {
+        m_lblScore->setText(tr("Baza sygnatur"));
+        m_lblScore->setStyleSheet(
+            "background-color: #0F233A; color: #38BDF8; border: 1px solid #0284C7; "
+            "border-radius: 7px; padding: 4px 10px; font-weight: 600; font-size: 9pt; font-family: 'Nunito', 'Segoe UI', sans-serif;"
+        );
+    } else {
+        m_lblScore->setText(tr("Heurystyka"));
+        m_lblScore->setStyleSheet(
+            "background-color: #261738; color: #C4B5FD; border: 1px solid #7C3AED; "
+            "border-radius: 7px; padding: 4px 10px; font-weight: 600; font-size: 9pt; font-family: 'Nunito', 'Segoe UI', sans-serif;"
+        );
+    }
 
     m_lblActionTag = makeChip(this, QString(), "action", "ThreatActionTag");
     m_lblActionTag->setVisible(false);
@@ -261,7 +301,8 @@ void ThreatCard::retranslate()
                                 hashShort.isEmpty() ? QString() : QStringLiteral("...")));
     m_lblSize->setText(QStringLiteral("<b>%1:</b> %2")
                            .arg(tr("Size"), FileOps::humanSize(m_info.size)));
-    m_lblScore->setText(tr("Score: %1").arg(m_info.score));
+    const bool isSigHit = (!m_info.sha256.isEmpty() && (m_info.reason.contains(QLatin1String("baza"), Qt::CaseInsensitive) || m_info.reason.contains(QLatin1String("database"), Qt::CaseInsensitive) || (!m_info.detectionName.contains(QLatin1String("Heur"), Qt::CaseInsensitive) && !m_info.detectionName.isEmpty())));
+    m_lblScore->setText(isSigHit ? tr("Baza sygnatur") : tr("Heurystyka"));
     m_btnFolder->setText(tr("Open folder"));
     m_btnIgnore->setText(tr("Ignore"));
     if (m_isRepairable)

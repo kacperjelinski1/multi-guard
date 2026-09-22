@@ -244,7 +244,6 @@
             "repair_method": "PE.SectionWipe+EP.Restore",
             "entry_point_patch": "",
             "byte_signatures": [
-                "558BEC6AFF68????????68????????64A100000000508B??????????81EC",
                 "E8000000005D81ED????????8DB5????????8B4D??03CD51E8"
             ],
             "target_type": "PE_EXE_DLL"
@@ -258,12 +257,6 @@
             "repairable": true,
             "repair_method": "PE.SectionWipe+EP.Restore",
             "entry_point_patch": "",
-            "byte_signatures": [
-                "60E8000000005B81EB????????8DB3????????8B",
-                "60E8000000005E81EE????????8DBE????????56",
-                "E8000000005881C0????????50C3",
-                "9C60E8000000005D81ED"
-            ],
             "target_type": "PE_EXE_DLL"
         },
         {
@@ -286,10 +279,6 @@
             "repairable": true,
             "repair_method": "PE.SectionWipe+EP.Restore",
             "entry_point_patch": "",
-            "byte_signatures": [
-                "E9????????60E8000000005D81ED????????8DB5",
-                "68????????C3558BEC6AFF68????????64A100000000"
-            ],
             "target_type": "PE_EXE_DLL"
         },
         {
@@ -345,11 +334,6 @@
             "repairable": true,
             "repair_method": "PE.SectionWipe+EP.Restore",
             "entry_point_patch": "",
-            "byte_signatures": [
-                "E800000000 5D81ED",
-                "60E800000000 5E81EE",
-                "60E800000000 5D81ED"
-            ],
             "target_type": "PE_EXE_DLL"
         },
         {
@@ -383,10 +367,6 @@
             "repairable": true,
             "repair_method": "PE.SectionWipe+EP.Restore",
             "entry_point_patch": "",
-            "byte_signatures": [
-                "E9????????60E8000000005D81ED????????8DB5",
-                "E9????????60E8000000005B81EB????????8DB3"
-            ],
             "target_type": "PE_EXE_DLL"
         },
         {
@@ -420,11 +400,6 @@
             "repairable": true,
             "repair_method": "PE.SectionWipe+EP.Restore",
             "entry_point_patch": "",
-            "byte_signatures": [
-                "CC90E9????????",
-                "0F84????????E9",
-                "0F85????????E9"
-            ],
             "target_type": "PE_EXE_DLL"
         },
         {
@@ -481,10 +456,6 @@
             "repairable": true,
             "repair_method": "PE.SectionWipe+EP.Restore",
             "entry_point_patch": "",
-            "byte_signatures": [
-                "E800000000 5B81EB",
-                "E800000000 58"
-            ],
             "target_type": "PE_EXE_DLL"
         },
         {
@@ -715,10 +686,6 @@
             "repairable": true,
             "repair_method": "PE.SectionWipe+EP.Restore",
             "entry_point_patch": "",
-            "byte_signatures": [
-                "60E8000000005D81ED????????8DB5????????8B",
-                "9C60E8000000005D81ED????????8DB5"
-            ],
             "target_type": "PE_EXE_DLL"
         },
         {
@@ -730,11 +697,6 @@
             "repairable": true,
             "repair_method": "PE.SectionWipe+EP.Restore",
             "entry_point_patch": "",
-            "byte_signatures": [
-                "E8000000005881C0????????50C3",
-                "E8000000005A81EA????????8D92",
-                "E8000000005981E9????????8D91"
-            ],
             "target_type": "PE_EXE_DLL"
         },
         {
@@ -746,10 +708,6 @@
             "repairable": true,
             "repair_method": "PE.SectionWipe+EP.Restore",
             "entry_point_patch": "",
-            "byte_signatures": [
-                "E9????????60E8000000005D81ED",
-                "E9????????9C60E8000000005D81ED"
-            ],
             "target_type": "PE_EXE_DLL"
         },
         {
@@ -761,11 +719,6 @@
             "repairable": true,
             "repair_method": "PE.SectionWipe+EP.Restore",
             "entry_point_patch": "",
-            "byte_signatures": [
-                "E9????????4883EC28",
-                "E9????????4889442408",
-                "FF25????????4883EC"
-            ],
             "target_type": "PE_EXE_DLL"
         },
         {

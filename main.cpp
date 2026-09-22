@@ -107,14 +107,40 @@ int main(int argc, char *argv[])
     // 1) HARDEN FIRST - before any other init. Kills DLL planting.
     shield::harden();
 
-    // Disable High DPI Scaling globally
-    qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
-    qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "0");
-
-    // Force Windows to treat the application as DPI Unaware
-    qputenv("QT_QPA_PLATFORM", "windows:dpiawareness=0");
+    // 2) High DPI Scaling & Subpixel Font Rendering
+    QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
+    QCoreApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+    qputenv("QT_AUTO_SCREEN_SCALE_FACTOR", "1");
 
     QApplication a(argc, argv);
+
+    // Modern smooth, rounded and legible typography (Nunito / Segoe UI Variable)
+    QString primaryFamily;
+    int fontId = QFontDatabase::addApplicationFont(QStringLiteral(":/fonts/Nunito.ttf"));
+    if (fontId != -1) {
+        const QStringList loadedFamilies = QFontDatabase::applicationFontFamilies(fontId);
+        if (!loadedFamilies.isEmpty()) {
+            primaryFamily = loadedFamilies.first();
+        }
+    }
+
+    QFont appFont;
+    QStringList preferredFamilies;
+    if (!primaryFamily.isEmpty()) {
+        preferredFamilies << primaryFamily;
+    }
+    preferredFamilies << QStringLiteral("Nunito")
+                      << QStringLiteral("Segoe UI Variable Text")
+                      << QStringLiteral("Segoe UI Variable Display")
+                      << QStringLiteral("Segoe UI")
+                      << QStringLiteral("Aptos")
+                      << QStringLiteral("Inter")
+                      << QStringLiteral("sans-serif");
+    appFont.setFamilies(preferredFamilies);
+    appFont.setPointSize(10);
+    appFont.setWeight(QFont::Medium);
+    appFont.setStyleStrategy(QFont::PreferAntialias);
+    a.setFont(appFont);
 
     qRegisterMetaType<verax::DriveInfo>("verax::DriveInfo");
     qRegisterMetaType<QVector<verax::DriveInfo>>("QVector<verax::DriveInfo>");
@@ -142,16 +168,8 @@ int main(int argc, char *argv[])
     verax::Logger::init();
     verax::Logger::info(QStringLiteral("=== %1 v%2 starting ===")
                         .arg(APP_NAME).arg(APP_VERSION_STR));
-
-    // 4) Load fonts (best-effort - falls back to system fonts)
-    const QStringList fontPaths = {
-        QStringLiteral(":/fonts/Inter-Regular.ttf"),
-        QStringLiteral(":/fonts/Inter-SemiBold.ttf"),
-        QStringLiteral(":/fonts/Inter-Bold.ttf"),
-    };
-    for (const QString &p : fontPaths) {
-        if (QFile::exists(p))
-            QFontDatabase::addApplicationFont(p);
+    if (!primaryFamily.isEmpty()) {
+        verax::Logger::info(QStringLiteral("Primary smooth rounded font active: %1").arg(primaryFamily));
     }
 
     // 5) Settings + Translator (must come before any UI)

@@ -58,6 +58,8 @@ public:
     bool advancedCleanThreat(const QString &path, ThreatInfo &info);
     int  inspectFile(const QString &path, const ScanRequest &req, ThreatInfo &info);
     static bool verifyAuthenticode(const QString &path);
+    static int  scanWithWindowsDefender(const QString &path, ThreatInfo &info);
+    static bool scanBufferWithAmsi(const uchar *data, qint64 size, const QString &contentName, ThreatInfo &info);
 
 signals:
     void started();

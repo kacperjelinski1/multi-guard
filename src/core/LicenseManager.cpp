@@ -510,6 +510,7 @@ void LicenseManager::updateCapabilities()
         m_activeCapabilities.insert(LicenseCapability::UsbScanning);
         m_activeCapabilities.insert(LicenseCapability::SignaturesAndUpdates);
         m_activeCapabilities.insert(LicenseCapability::Exclusions);
+        m_activeCapabilities.insert(LicenseCapability::WebProtection);
         m_activeCapabilities.insert(LicenseCapability::HardwareMonitor);
         m_activeCapabilities.insert(LicenseCapability::DiskCleaner);
         m_activeCapabilities.insert(LicenseCapability::StartupManager);
@@ -534,11 +535,40 @@ void LicenseManager::updateCapabilities()
         break;
 
     case LicenseTier::Assist:
-        // Architecture prepared; capabilities will be configured later per user instructions
+        // All of Secure + system tools & service reports
+        m_activeCapabilities.insert(LicenseCapability::BasicScanning);
+        m_activeCapabilities.insert(LicenseCapability::QuarantineAndRepair);
+        m_activeCapabilities.insert(LicenseCapability::RealTimeProtection);
+        m_activeCapabilities.insert(LicenseCapability::UsbScanning);
+        m_activeCapabilities.insert(LicenseCapability::SignaturesAndUpdates);
+        m_activeCapabilities.insert(LicenseCapability::Exclusions);
+        m_activeCapabilities.insert(LicenseCapability::RansomwareProtection);
+        m_activeCapabilities.insert(LicenseCapability::WebProtection);
+        m_activeCapabilities.insert(LicenseCapability::SystemRepair);
+        m_activeCapabilities.insert(LicenseCapability::FileShredder);
+        m_activeCapabilities.insert(LicenseCapability::DiskCleaner);
+        m_activeCapabilities.insert(LicenseCapability::StartupManager);
+        m_activeCapabilities.insert(LicenseCapability::HardwareMonitor);
+        m_activeCapabilities.insert(LicenseCapability::ServiceReports);
         break;
 
     case LicenseTier::AssistPro:
-        // Architecture prepared; capabilities will be configured later per user instructions
+        // All of Assist + remote repair session
+        m_activeCapabilities.insert(LicenseCapability::BasicScanning);
+        m_activeCapabilities.insert(LicenseCapability::QuarantineAndRepair);
+        m_activeCapabilities.insert(LicenseCapability::RealTimeProtection);
+        m_activeCapabilities.insert(LicenseCapability::UsbScanning);
+        m_activeCapabilities.insert(LicenseCapability::SignaturesAndUpdates);
+        m_activeCapabilities.insert(LicenseCapability::Exclusions);
+        m_activeCapabilities.insert(LicenseCapability::RansomwareProtection);
+        m_activeCapabilities.insert(LicenseCapability::WebProtection);
+        m_activeCapabilities.insert(LicenseCapability::SystemRepair);
+        m_activeCapabilities.insert(LicenseCapability::FileShredder);
+        m_activeCapabilities.insert(LicenseCapability::DiskCleaner);
+        m_activeCapabilities.insert(LicenseCapability::StartupManager);
+        m_activeCapabilities.insert(LicenseCapability::HardwareMonitor);
+        m_activeCapabilities.insert(LicenseCapability::RemoteRepair);
+        m_activeCapabilities.insert(LicenseCapability::ServiceReports);
         break;
 
     case LicenseTier::AdminFull:
@@ -677,9 +707,21 @@ QString LicenseManager::tierName() const
     case LicenseTier::AV:         return QStringLiteral("Multi-Guard AV");
     case LicenseTier::Secure:     return QStringLiteral("Multi-Guard Secure");
     case LicenseTier::Assist:     return QStringLiteral("Multi-Guard Assist");
-    case LicenseTier::AssistPro:  return QStringLiteral("Multi-Guard Assist PRO");
-    case LicenseTier::AdminFull:  return QStringLiteral("ADMIN FULL (Perpetual)");
-    default:                      return QStringLiteral("Brak licencji");
+    case LicenseTier::AssistPro:  return QStringLiteral("Multi-Guard Assist Pro");
+    case LicenseTier::AdminFull:  return QStringLiteral("Multi-Guard Full Admin");
+    default:                      return QStringLiteral("Brak");
+    }
+}
+
+QString LicenseManager::tierShortName() const
+{
+    switch (m_license.tier) {
+    case LicenseTier::AV:         return QStringLiteral("AV");
+    case LicenseTier::Secure:     return QStringLiteral("Secure");
+    case LicenseTier::Assist:     return QStringLiteral("Assist");
+    case LicenseTier::AssistPro:  return QStringLiteral("Assist Pro");
+    case LicenseTier::AdminFull:  return QStringLiteral("Full Admin");
+    default:                      return QStringLiteral("Brak");
     }
 }
 

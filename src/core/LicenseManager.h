@@ -121,6 +121,7 @@ public:
     QString expirationDateText() const;
     LicenseTier currentTier() const;
     QString tierName() const;
+    QString tierShortName() const;
     const LicenseInfo& currentLicense() const;
     LicenseStatus status() const;
 

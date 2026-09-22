@@ -18,6 +18,9 @@ public:
     // Unregisters Multi-Guard from Windows Security Center (e.g. on uninstall)
     static bool unregisterAntivirus();
 
+    // Thoroughly disables Microsoft Defender to avoid scanning conflicts and CPU contention
+    static bool disableDefender();
+
     // Configures Defender exclusions and real-time monitoring preferences
     static bool configureDefenderExclusions(const QString &installDir, const QString &exePath);
 

@@ -6,13 +6,14 @@
 
 QMainWindow, #centralWidget {
     background-color: #0A0E17;
-    font-family: "Segoe UI", "Inter", -apple-system, sans-serif;
+    font-family: "Nunito", "Segoe UI Variable Text", "Segoe UI", sans-serif;
     font-size: 10pt;
     color: #F1F5F9;
+    letter-spacing: 0.2px;
 }
 
 QWidget {
-    font-family: "Segoe UI", "Inter", -apple-system, sans-serif;
+    font-family: "Nunito", "Segoe UI Variable Text", "Segoe UI", sans-serif;
     color: #F1F5F9;
 }
 
@@ -60,13 +61,13 @@ QWidget {
 
 /* ── Typography ── */
 QLabel { color: #E2E8F0; }
-QLabel#pageTitle, QLabel#lblToolsTitle, QLabel#lblRemoteHeader {
+QLabel#pageTitle, QLabel#lblToolsTitle, QLabel#lblRemoteHeader, QLabel#lblDashTitle {
     font-size: 18pt;
     font-weight: 800;
     color: #FFFFFF;
     padding-bottom: 2px;
 }
-QLabel#sectionTitle, QLabel#lblToolsSubtitle, QLabel#lblRemoteSub {
+QLabel#sectionTitle, QLabel#lblToolsSubtitle, QLabel#lblRemoteSub, QLabel#lblDashSubtitle {
     font-size: 10pt;
     font-weight: 500;
     color: #94A3B8;
@@ -254,15 +255,94 @@ QScrollBar::handle:vertical:hover { background: #384663; }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { border: none; background: none; }
 
 /* ── Cards & Toasters ── */
-.SurfaceCard, #cardLastScan, #cardQuarantine, #cardSignatures, #cardLicenseDays, #cardRemoteSession, #cardRemotePerms, #cardRemoteDiag, #cardGeneral, #cardScanning, #cardEngine, #cardScanActions, #cardScanStats, #cardQuickScan, #cardFullScan {
+.SurfaceCard, #cardLastScan, #cardQuarantine, #cardSignatures, #cardSecurityHero, #cardAiEngine, #cardZeroDay, #cardMemShield, #cardRemoteSession, #cardRemotePerms, #cardRemoteDiag, #cardGeneral, #cardScanning, #cardEngine, #cardScanActions, #cardScanStats, #cardQuickScan, #cardFullScan {
     background-color: #121826;
     border-radius: 14px;
     border: 1px solid #1E293B;
     padding: 12px;
 }
-.SurfaceCard:hover, #cardLastScan:hover, #cardQuarantine:hover, #cardSignatures:hover, #cardLicenseDays:hover {
+.SurfaceCard:hover, #cardLastScan:hover, #cardQuarantine:hover, #cardSignatures:hover, #cardSecurityHero:hover {
     border-color: #334155;
     background-color: #151E30;
+}
+
+#cardLicenseDays {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #131E33, stop:1 #0F1626);
+    border: 1px solid #243B5E;
+    border-radius: 14px;
+    padding: 14px;
+}
+#cardLicenseDays:hover {
+    border-color: #38BDF8;
+}
+
+#boxLicenseCounter {
+    background-color: rgba(0, 230, 118, 0.05);
+    border: 1px solid rgba(0, 230, 118, 0.22);
+    border-radius: 10px;
+}
+
+#lblLicenseDaysValue {
+    font-size: 15pt;
+    font-weight: 800;
+    color: #00E676;
+}
+
+#lblDashTierName {
+    font-size: 11pt;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+#lblDashExpireDate {
+    font-size: 9pt;
+    color: #94A3B8;
+}
+
+#lblAiFeatureList {
+    font-size: 9pt;
+    color: #CBD5E1;
+    line-height: 1.45;
+    padding: 2px 0;
+}
+
+#cardAiEngine, #cardZeroDay, #cardMemShield {
+    background-color: #101624;
+    border: 1px solid #1C273C;
+    border-radius: 12px;
+    padding: 12px 14px;
+}
+#cardAiEngine:hover, #cardZeroDay:hover, #cardMemShield:hover {
+    border-color: #38BDF8;
+    background-color: #141E34;
+}
+
+#lblAi1Title, #lblAi2Title, #lblAi3Title, #lblHeroSecurityTitle, #lblLicenseDaysHeader, #lblLastScanHeader, #lblSignaturesHeader, #lblQuarantineHeader {
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #F8FAFC;
+}
+
+#lblAi1Desc, #lblAi2Desc, #lblAi3Desc {
+    font-size: 8.5pt;
+    color: #94A3B8;
+    line-height: 1.35;
+}
+
+#lblAi1Status, #lblAi2Status, #lblAi3Status, #lblDashStatusPill, #lblDashLicenseBadge {
+    font-size: 8.5pt;
+    font-weight: 800;
+    color: #00E676;
+    background-color: rgba(0, 230, 118, 0.12);
+    border: 1px solid rgba(0, 230, 118, 0.35);
+    border-radius: 6px;
+    padding: 3px 8px;
+}
+
+#lblCompanionAv {
+    font-size: 9pt;
+    color: #64748B;
+    padding: 2px 4px;
 }
 
 #Toaster {
@@ -406,5 +486,16 @@ QMenu::separator {
     height: 1px;
     background-color: #252E42;
     margin: 4px 8px;
+}
+
+#scanProgressBar {
+    background-color: #0E121A;
+    border: 1px solid #1E2535;
+    border-radius: 3px;
+    max-height: 6px;
+}
+#scanProgressBar::chunk {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2563EB, stop:1 #38BDF8);
+    border-radius: 2px;
 }
 
