@@ -7,6 +7,14 @@ a projekt stosuje [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.1.7.0] - 2026-09-22
+
+### ✨ AEGIS Cyber HUD & Lekka Architektura Antywirusa
+- **Interfejs AEGIS 1:1**: Wdrożenie pełnego Cyber HUD, responsywności wszystkich 9 ekranów oraz panoramicznego tła górskiego na Pulpicie.
+- **Dedykowane ikony**: Ostre neonowe ikony modułów (Tarcza, WWW, Zapora, Poczta) oraz jednolite szare ikony nawigacji bocznej.
+- **Usunięcie WSC / DefendNot**: Całkowita rezygnacja z zewnętrznych providerów WSC, atrap WMI oraz usług w tle na rzecz stabilnego, samodzielnego działania.
+- **Kompilacja i Instalator**: Naprawa reguł uprawnień Inno Setup oraz automatyczny proces budowania i publikacji wydań.
+
 ## [1.0.0] - 2026-09-21
 
 ### 🎉 Oficjalne Wydanie Multi-Guard

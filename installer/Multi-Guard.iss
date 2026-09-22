@@ -2,7 +2,7 @@
 ; Developed by Multi-Servis (https://multi-servis.pl)
 
 #define MyAppName "Multi-Guard"
-#define MyAppVersion "1.1.6.0"
+#define MyAppVersion "1.1.7.0"
 #define MyAppPublisher "Multi-Servis"
 #define MyAppURL "https://multi-servis.pl"
 #define MyAppExeName "Multi-Guard.exe"

@@ -1,12 +1,8 @@
-1.1.6.0
+1.1.7.0
 Changelog=>
-Multi-Guard Endpoint Security 1.1.6:
-- Całkowita eliminacja fałszywych alarmów heurystyki (0 false-positives)
-- Cicha integracja z silnikiem definicji Microsoft Windows Defender (-DisableRemediation)
-- Wyciszenie powiadomień toast Defendera (wszystkie alerty wyświetla wyłącznie Multi-Guard)
-- Błyskawiczny skan w pamięci RAM przez interfejs AMSI (amsi.dll)
-- Usunięcie ciężkich pętli przeszukiwania pamięci bajt po bajcie (50x szybsze skanowanie bez lagów)
-- Nowoczesny Hero Dashboard: licznik dni do końca licencji, status Sztucznej Inteligencji i data bazy
-- Nowy system auto-aktualizacji z poziomu UI (przycisk na pulpicie i w nagłówku)
-- Ujednolicenie zaokrąglonych, czytelnych czcionek w całym interfejsu (Segoe UI / Nunito)
-- Pełna ochrona DNS i rozszerzenia przeglądarki
+Multi-Guard Endpoint Security 1.1.7:
+- Nowy interfejs AEGIS Cyber HUD 1:1 z responsywnym układem wszystkich 9 ekranów
+- Panoramiczne tło górskie na Pulpicie oraz dedykowane, ostre neonowe ikony modułów
+- Całkowite usunięcie zbędnych integracji WSC, DefendNot oraz usług w tle
+- Zoptymalizowana, lekka i w pełni stabilna architektura samodzielnego antywirusa
+- Usprawniony instalator Inno Setup oraz automatyczny proces wydań
