@@ -24,33 +24,22 @@ void PageTransition::slideTo(int index)
         return;
     }
 
-    if (m_anim && m_anim->state() == QAbstractAnimation::Running) {
-        m_anim->stop();
-    }
-
-    if (!m_effect) {
-        m_effect = new QGraphicsOpacityEffect(this);
-    }
-
-    nextWidget->setGraphicsEffect(m_effect);
-    m_effect->setOpacity(0.08);
+    auto *effect = new QGraphicsOpacityEffect(nextWidget);
+    nextWidget->setGraphicsEffect(effect);
+    effect->setOpacity(0.08);
 
     m_stack->setCurrentIndex(index);
 
-    if (!m_anim) {
-        m_anim = new QPropertyAnimation(m_effect, "opacity", this);
-        m_anim->setDuration(220);
-        m_anim->setEasingCurve(QEasingCurve::OutCubic);
-        connect(m_anim, &QPropertyAnimation::finished, this, [this]() {
-            if (m_stack && m_stack->currentWidget()) {
-                m_stack->currentWidget()->setGraphicsEffect(nullptr);
-            }
-        });
-    }
-
-    m_anim->setStartValue(0.08);
-    m_anim->setEndValue(1.0);
-    m_anim->start();
+    auto *anim = new QPropertyAnimation(effect, "opacity", nextWidget);
+    anim->setDuration(220);
+    anim->setEasingCurve(QEasingCurve::OutCubic);
+    anim->setStartValue(0.08);
+    anim->setEndValue(1.0);
+    connect(anim, &QPropertyAnimation::finished, [nextWidget, anim]() {
+        nextWidget->setGraphicsEffect(nullptr);
+        anim->deleteLater();
+    });
+    anim->start(QAbstractAnimation::DeleteWhenStopped);
 }
 
 } // namespace verax

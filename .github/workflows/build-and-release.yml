@@ -67,7 +67,12 @@ jobs:
         shell: pwsh
         run: |
           qmake Verax.pro "CONFIG+=release"
-          mingw32-make -j 2 release
+          mingw32-make -j 2 release 2>&1 | Tee-Object -FilePath build.log
+          if ($LASTEXITCODE -ne 0) {
+            $err = Get-Content build.log | Select-Object -Last 100
+            Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value "### Build Failed`n````n$($err -join "`n")`n```"
+            exit 1
+          }
 
       - name: Deploy Qt Runtime & Plugins (windeployqt)
         shell: pwsh
