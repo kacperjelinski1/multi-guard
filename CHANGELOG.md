@@ -7,6 +7,13 @@ a projekt stosuje [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.0.2.1] - 2026-09-22
+
+### 🛠️ Poprawka Instalatora & Pełna Zgodność z Windows Defender Tamper Protection
+- **Eliminacja błędu instalatora (Błąd wykonywania RegCreateKeyEx; kod 5 Odmowa dostępu)**: Usunięto ze skryptu instalatora Inno Setup statyczne próby modyfikacji rejestru w chronionym kluczu `HKLM\SOFTWARE\Microsoft\Windows Defender\Exclusions`, które były blokowane przez mechanizm Tamper Protection na Windows 10 i 11.
+- **Oficjalne API PowerShell WMI (`Add-MpPreference`)**: Wszystkie wykluczenia (katalog aplikacji, katalog danych `{commonappdata}\Multi-Guard`, proces `Multi-Guard.exe` oraz rozszerzenia `.mgvault` i `.mgenc`) są bezpiecznie rejestrowane przez oficjalny mechanizm Microsoftu bez jakichkolwiek okienek błędów.
+- **Wyciszenie powiadomień i tray**: Konfiguracja zasad powiadomień oraz protokołu `windowsdefender://` została przeniesiona do etapu cichego wykonania z obsługą `-ErrorAction SilentlyContinue`, zapewniając w 100% bezbłędną i płynną instalację na każdym systemie Windows.
+
 ## [2.0.2.0] - 2026-09-22
 
 ### 💎 Asynchroniczne Definicje, Autostart bez UAC & Dymki Zasobnika

@@ -1,7 +1,9 @@
-2.0.2.0
-Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-2.0.2.0.exe
+2.0.2.1
+Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-2.0.2.1.exe
 Changelog=>
-Multi-Guard Endpoint Security 2.0.2.0:
+Multi-Guard Endpoint Security 2.0.2.1:
+- Naprawa instalatora: bezpieczna rejestracja wykluczeń przez PowerShell Add-MpPreference bez błędów uprawnień rejestru (kod 5 / odmowa dostępu)
+- Pełna zgodność instalatora z Windows Defender Tamper Protection na Windows 10 i 11
 - W 100% asynchroniczna aktualizacja definicji Microsoft w tle (zero zawieszania GUI)
 - Autostart bez denerwującego monitu UAC przez Harmonogram Zadań Windows (schtasks /RL HIGHEST)
 - Eleganckie systemowe dymki powiadomień w zasobniku (Windows Tray Toasts)
