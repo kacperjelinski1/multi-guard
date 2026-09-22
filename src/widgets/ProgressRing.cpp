@@ -78,10 +78,15 @@ void ProgressRing::paintEvent(QPaintEvent *)
         QVector<qreal> dashes;
         dashes << 4.0 << 6.0;
         dashPen.setDashPattern(dashes);
-        dashPen.setDashOffset(m_dashAngle);
         p.setPen(dashPen);
         p.setBrush(Qt::NoBrush);
-        p.drawEllipse(box.adjusted(-6, -6, 6, 6));
+
+        p.save();
+        p.translate(box.center());
+        p.rotate(m_dashAngle);
+        const qreal r = box.width() / 2.0 + 6.0;
+        p.drawEllipse(QRectF(-r, -r, r * 2.0, r * 2.0));
+        p.restore();
 
         // Inner glowing translucent disk
         QRadialGradient innerDisk(box.center(), box.width() / 2.0);
