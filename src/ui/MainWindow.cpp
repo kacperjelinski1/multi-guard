@@ -1593,6 +1593,11 @@ void MainWindow::initDefenderIntegration()
                 lbl->setText(tr("Wersja sygnatur: %1").arg(st.signatureVersion));
             }
         }
+
+        // Apply mutual exclusions and suppress Microsoft Defender alerts so Multi-Guard owns the UI
+        DefenderEngine::instance().ensureMutualExclusions();
+        DefenderEngine::instance().suppressDefenderPopups();
+        DefenderEngine::instance().hijackDefenderTrayAndSettings();
     });
 }
 

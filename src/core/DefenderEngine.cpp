@@ -514,4 +514,70 @@ bool DefenderEngine::setControlledFolderAccess(bool enable)
     return true;
 }
 
+bool DefenderEngine::ensureMutualExclusions()
+{
+#ifdef Q_OS_WIN
+    const QString appDir = QCoreApplication::applicationDirPath();
+    const QString appExe = QCoreApplication::applicationFilePath();
+    const QString commonData = QDir::fromNativeSeparators(qgetenv("ProgramData")) + QStringLiteral("/Multi-Guard");
+
+    // Add path and process exclusions in Defender so Defender NEVER scans or alerts on Multi-Guard
+    QString cmd = QStringLiteral(
+        "$appDir = '%1'; $appExe = '%2'; $commData = '%3'; "
+        "Add-MpPreference -ExclusionPath $appDir -ErrorAction SilentlyContinue; "
+        "Add-MpPreference -ExclusionPath $commData -ErrorAction SilentlyContinue; "
+        "Add-MpPreference -ExclusionProcess 'Multi-Guard.exe' -ErrorAction SilentlyContinue; "
+        "Add-MpPreference -ExclusionProcess $appExe -ErrorAction SilentlyContinue; "
+        "Add-MpPreference -ExclusionExtension '.mgvault' -ErrorAction SilentlyContinue; "
+        "Add-MpPreference -ExclusionExtension '.mgenc' -ErrorAction SilentlyContinue; "
+    ).arg(QDir::toNativeSeparators(appDir),
+         QDir::toNativeSeparators(appExe),
+         QDir::toNativeSeparators(commonData));
+
+    runPowerShellCommand(cmd);
+    Logger::info(QStringLiteral("DefenderEngine: Zastosowano wzajemne reguły wykluczeń dla Multi-Guard."));
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool DefenderEngine::suppressDefenderPopups()
+{
+#ifdef Q_OS_WIN
+    // 1. Suppress all Defender desktop toast notifications so only Multi-Guard notifications appear
+    QString psCmd = QStringLiteral(
+        "Set-MpPreference -DisableNotificationOptions 1 -ErrorAction SilentlyContinue; "
+        "New-Item -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Reporting' -Force -ErrorAction SilentlyContinue | Out-Null; "
+        "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender\\Reporting' -Name 'DisableEnhancedNotifications' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "New-Item -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Notifications' -Force -ErrorAction SilentlyContinue | Out-Null; "
+        "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Notifications' -Name 'DisableNotifications' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Notifications' -Name 'DisableEnhancedNotifications' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+    );
+    runPowerShellCommand(psCmd);
+    Logger::info(QStringLiteral("DefenderEngine: Wyciszono systemowe powiadomienia Microsoft Defender."));
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool DefenderEngine::hijackDefenderTrayAndSettings()
+{
+#ifdef Q_OS_WIN
+    // Hide Windows Security Systray icon if desired and redirect Windows Security app
+    QString psCmd = QStringLiteral(
+        "New-Item -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Systray' -Force -ErrorAction SilentlyContinue | Out-Null; "
+        "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Systray' -Name 'HideSystray' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
+        "Stop-Process -Name 'SecurityHealthSystray' -Force -ErrorAction SilentlyContinue; "
+    );
+    runPowerShellCommand(psCmd);
+    Logger::info(QStringLiteral("DefenderEngine: Skonfigurowano ukrywanie ikony Security Health Systray."));
+    return true;
+#else
+    return false;
+#endif
+}
+
 } // namespace verax
+

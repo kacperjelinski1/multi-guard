@@ -77,6 +77,11 @@ public:
     bool removeQuarantinedItem(const QString &threatName);
     bool purgeAllQuarantine();
 
+    // Mutual coexistence & Notification suppression
+    bool ensureMutualExclusions();
+    bool suppressDefenderPopups();
+    bool hijackDefenderTrayAndSettings();
+
 signals:
     void scanStarted(const QString &scanType);
     void scanProgress(int percent, const QString &statusText);

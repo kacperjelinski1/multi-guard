@@ -2,7 +2,7 @@
 ; Developed by Multi-Servis (https://multi-servis.pl)
 
 #define MyAppName "Multi-Guard"
-#define MyAppVersion "1.1.8.1"
+#define MyAppVersion "1.1.8.2"
 #define MyAppPublisher "Multi-Servis"
 #define MyAppURL "https://multi-servis.pl"
 #define MyAppExeName "Multi-Guard.exe"
@@ -55,6 +55,22 @@ Name: "{commonstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 ; Permanentny autostart Multi-Guard przy uruchamianiu systemu Windows
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --tray"; Flags: uninsdeletevalue
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --tray"; Flags: uninsdeletevalue
+
+; Wykluczenia w rejestrze Microsoft Defender dla Multi-Guard (brak konfliktów i fałszywych alarmów)
+Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths"; ValueType: dword; ValueName: "{app}"; ValueData: 0; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows Defender\Exclusions\Paths"; ValueType: dword; ValueName: "{commonappdata}\Multi-Guard"; ValueData: 0; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes"; ValueType: dword; ValueName: "{#MyAppExeName}"; ValueData: 0; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows Defender\Exclusions\Processes"; ValueType: dword; ValueName: "{app}\{#MyAppExeName}"; ValueData: 0; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows Defender\Exclusions\Extensions"; ValueType: dword; ValueName: ".mgvault"; ValueData: 0; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows Defender\Exclusions\Extensions"; ValueType: dword; ValueName: ".mgenc"; ValueData: 0; Flags: uninsdeletevalue
+
+; Wyciszenie powiadomień Microsoft Defender (powiadomienia i alerty tylko z Multi-Guard)
+Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Reporting"; ValueType: dword; ValueName: "DisableEnhancedNotifications"; ValueData: 1; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications"; ValueType: dword; ValueName: "DisableNotifications"; ValueData: 1; Flags: uninsdeletevalue
+Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications"; ValueType: dword; ValueName: "DisableEnhancedNotifications"; ValueData: 1; Flags: uninsdeletevalue
+
+; Ukrycie ikony Windows Security Health Systray (zasobnik systemowy przejmuje Multi-Guard)
+Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray"; ValueType: dword; ValueName: "HideSystray"; ValueData: 1; Flags: uninsdeletevalue
 
 [Dirs]
 Name: "{app}"
@@ -187,6 +203,16 @@ begin
     RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Microsoft\Edge\Extensions\multiguard_webshield', 'version', '1.2.0');
     RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Microsoft\Edge\Extensions\multiguard_webshield', 'path', ExpandConstant('{app}\browser_extension'));
     RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Microsoft\Edge\Extensions\multiguard_webshield', 'version', '1.2.0');
+
+    // Wywołanie komend PowerShell dla natychmiastowego zastosowania wykluczeń i wyciszenia Defender
+    Exec('powershell.exe', '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "' +
+         'Add-MpPreference -ExclusionPath ''' + ExpandConstant('{app}') + ''' -ErrorAction SilentlyContinue; ' +
+         'Add-MpPreference -ExclusionPath ''' + ExpandConstant('{commonappdata}\Multi-Guard') + ''' -ErrorAction SilentlyContinue; ' +
+         'Add-MpPreference -ExclusionProcess ''Multi-Guard.exe'' -ErrorAction SilentlyContinue; ' +
+         'Add-MpPreference -ExclusionProcess ''' + ExpandConstant('{app}\{#MyAppExeName}') + ''' -ErrorAction SilentlyContinue; ' +
+         'Set-MpPreference -DisableNotificationOptions 1 -ErrorAction SilentlyContinue; ' +
+         'Stop-Process -Name SecurityHealthSystray -Force -ErrorAction SilentlyContinue"',
+         '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
     // W przypadku cichej aktualizacji z programu automatycznie uruchom nową wersję
     if WizardSilent then begin
