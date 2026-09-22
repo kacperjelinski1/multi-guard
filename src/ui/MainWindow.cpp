@@ -119,9 +119,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     m_transition = new PageTransition(ui->stackedWidget, this);
 
-    SignatureDb::instance().open();
-    SignatureDb::instance().initSchema();
-
     wireUi();
     wireSignals();
     setupTrayIcon();
@@ -129,13 +126,6 @@ MainWindow::MainWindow(QWidget *parent)
         setActiveNav(PageLicenseLocked);
     } else {
         setActiveNav(PageDashboard);
-    }
-
-    connect(&RealTimeShield::instance(), &RealTimeShield::threatDetected,
-            this, &MainWindow::onRealTimeThreatDetected);
-
-    if (LicenseManager::instance().isValid() && Settings::instance().realTimeProtection()) {
-        RealTimeShield::instance().start();
     }
     if (LicenseManager::instance().isValid() && Settings::instance().ransomwareProtection()) {
         RansomwareShield::instance().setEnabled(true);

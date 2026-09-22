@@ -7,6 +7,16 @@ a projekt stosuje [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.0.0.0] - 2026-09-22
+
+### 🛡️ Pure Microsoft Defender Overlay & Pełna Integracja Systemowa (V2)
+- **Architektura Pure Defender Overlay**: Całkowite odciążenie systemu — usunięcie ciężkich baz sygnatur SQLite i hakowania dysku na rzecz bezpośredniej integracji z oficjalnym, zaufanym silnikiem Microsoft Defender (`MpCmdRun.exe`, `WdFilter.sys`).
+- **Przejęcie protokołu `windowsdefender://`**: Kliknięcie ochrony antywirusowej w Ustawieniach Windows (Windows Settings) lub w powiadomieniach systemowych otwiera natychmiast Multi-Guard.
+- **Menu kontekstowe Eksploratora Windows**: Domyślna integracja pod prawym przyciskiem myszy dla plików, katalogów i dysków („Skanuj za pomocą Multi-Guard” z ikoną aplikacji).
+- **Zaawansowane moduły ochronne**: Integracja z ochroną przed Ransomware (Controlled Folder Access) oraz chmurowym blokowaniem w ułamku sekundy (MAPS Cloud Block at First Sight).
+- **Generator Certyfikatów Serwisowych Multi-Servis**: Generowanie oficjalnych raportów stanu stacji roboczej dla klientów serwisu.
+- **Wzajemne wykluczenia i wyciszenie toastów Defendera**: Automatyczne dodanie Multi-Guard do wykluczeń oraz przekierowanie powiadomień i ikony zasobnika tak, aby Multi-Guard był jedynym centrum powiadomień.
+
 ## [1.1.7.0] - 2026-09-22
 
 ### ✨ AEGIS Cyber HUD & Lekka Architektura Antywirusa

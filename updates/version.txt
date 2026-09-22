@@ -1,10 +1,13 @@
-1.1.8.2
-Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-1.1.8.2.exe
+2.0.0.0
+Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-2.0.0.0.exe
 Changelog=>
-Multi-Guard Endpoint Security 1.1.8.2:
-- Wzajemne wykluczenia (Mutual Exclusions): instalator oraz aplikacja automatycznie dodają Multi-Guard do wykluczeń Defendera (brak fałszywych alarmów i konfliktów)
-- Pełne wyciszenie powiadomień Microsoft Defender (DisableNotificationOptions / DisableEnhancedNotifications): alerty i powiadomienia o zagrożeniach są wyświetlane wyłącznie przez Multi-Guard
-- Ukrycie domyślnej ikony Windows Security Health Systray – cały zasobnik systemowy i komunikacja skupione w Multi-Guard
-- Zoptymalizowana koegzystencja z silnikiem Windows Defender
+Multi-Guard Endpoint Security 2.0.0.0 (The Pure Defender Overlay):
+- Całkowita transformacja architektury: program działa teraz w 100% jako lekka, nowoczesna nakładka Cyber HUD na oficjalny silnik Microsoft Defender
+- Usunięcie ciężkich wewnętrznych baz sygnatur SQLite i hakowania dysku – znikome zużycie RAM/CPU i błyskawiczny start programu
+- Przejęcie protokołu windowsdefender:// – kliknięcie ochrony w Ustawieniach Windows otwiera bezpośrednio Multi-Guard
+- Integracja z menu kontekstowym Eksploratora Windows (PPM): „Skanuj za pomocą Multi-Guard” z ikoną aplikacji
+- Ochrona przed Ransomware (Controlled Folder Access) i Chmura (Cloud Block at First Sight) zintegrowane w UI
+- Nowy oficjalny generator Raportów Serwisowych Multi-Servis dla stacji roboczych
+- Pełna synchronizacja kwarantanny, aktualizacji z chmury Microsoft i zapory Windows Firewall
 
 

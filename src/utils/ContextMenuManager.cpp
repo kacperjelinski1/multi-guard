@@ -21,7 +21,7 @@ bool ContextMenuManager::setEnabled(bool enable)
 {
 #ifdef Q_OS_WIN
     const QString exePath = QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
-    const QString title = QObject::tr("Scan with Multi-Guard");
+    const QString title = QObject::tr("Skanuj za pomocą Multi-Guard");
 
     const QStringList keys = {
         "HKEY_CURRENT_USER\\Software\\Classes\\*\\shell\\MultiGuard",

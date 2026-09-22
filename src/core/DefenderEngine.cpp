@@ -565,14 +565,22 @@ bool DefenderEngine::suppressDefenderPopups()
 bool DefenderEngine::hijackDefenderTrayAndSettings()
 {
 #ifdef Q_OS_WIN
-    // Hide Windows Security Systray icon if desired and redirect Windows Security app
+    const QString appExe = QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
+
+    // 1. Hide Windows Security Systray icon
+    // 2. Register windowsdefender: protocol so Windows Settings opens Multi-Guard
     QString psCmd = QStringLiteral(
         "New-Item -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Systray' -Force -ErrorAction SilentlyContinue | Out-Null; "
         "Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender Security Center\\Systray' -Name 'HideSystray' -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue; "
         "Stop-Process -Name 'SecurityHealthSystray' -Force -ErrorAction SilentlyContinue; "
-    );
+        "New-Item -Path 'HKCU:\\Software\\Classes\\windowsdefender\\shell\\open\\command' -Force -ErrorAction SilentlyContinue | Out-Null; "
+        "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\windowsdefender' -Name '(default)' -Value 'URL:Windows Defender Security Center' -Force -ErrorAction SilentlyContinue; "
+        "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\windowsdefender' -Name 'URL Protocol' -Value '' -Force -ErrorAction SilentlyContinue; "
+        "Set-ItemProperty -Path 'HKCU:\\Software\\Classes\\windowsdefender\\shell\\open\\command' -Name '(default)' -Value '\"%1\"' -Force -ErrorAction SilentlyContinue; "
+    ).arg(appExe);
+
     runPowerShellCommand(psCmd);
-    Logger::info(QStringLiteral("DefenderEngine: Skonfigurowano ukrywanie ikony Security Health Systray."));
+    Logger::info(QStringLiteral("DefenderEngine: Skonfigurowano ukrywanie ikony Security Health Systray oraz przekierowanie protokołu windowsdefender."));
     return true;
 #else
     return false;

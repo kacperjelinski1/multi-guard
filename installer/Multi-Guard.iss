@@ -2,7 +2,7 @@
 ; Developed by Multi-Servis (https://multi-servis.pl)
 
 #define MyAppName "Multi-Guard"
-#define MyAppVersion "1.1.8.2"
+#define MyAppVersion "2.0.0.0"
 #define MyAppPublisher "Multi-Servis"
 #define MyAppURL "https://multi-servis.pl"
 #define MyAppExeName "Multi-Guard.exe"
@@ -71,6 +71,24 @@ Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender Security Cente
 
 ; Ukrycie ikony Windows Security Health Systray (zasobnik systemowy przejmuje Multi-Guard)
 Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray"; ValueType: dword; ValueName: "HideSystray"; ValueData: 1; Flags: uninsdeletevalue
+
+; Przejęcie protokołu windowsdefender:// (Ustawienia Windows otwierają Multi-Guard)
+Root: HKCR; Subkey: "windowsdefender"; ValueType: string; ValueName: ""; ValueData: "URL:Windows Defender Security Center"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "windowsdefender"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""; Flags: uninsdeletevalue
+Root: HKCR; Subkey: "windowsdefender\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"""; Flags: uninsdeletekey
+
+; Domyślna integracja z menu kontekstowym Eksploratora Windows (Skanuj za pomocą Multi-Guard)
+Root: HKCR; Subkey: "*\shell\MultiGuard"; ValueType: string; ValueName: ""; ValueData: "Skanuj za pomocą Multi-Guard"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "*\shell\MultiGuard"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\{#MyAppExeName}"",0"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: "*\shell\MultiGuard\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Flags: uninsdeletekey
+
+Root: HKCR; Subkey: "Directory\shell\MultiGuard"; ValueType: string; ValueName: ""; ValueData: "Skanuj za pomocą Multi-Guard"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "Directory\shell\MultiGuard"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\{#MyAppExeName}"",0"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: "Directory\shell\MultiGuard\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Flags: uninsdeletekey
+
+Root: HKCR; Subkey: "Drive\shell\MultiGuard"; ValueType: string; ValueName: ""; ValueData: "Skanuj za pomocą Multi-Guard"; Flags: uninsdeletekey
+Root: HKCR; Subkey: "Drive\shell\MultiGuard"; ValueType: string; ValueName: "Icon"; ValueData: """{app}\{#MyAppExeName}"",0"; Flags: uninsdeletevalue
+Root: HKCR; Subkey: "Drive\shell\MultiGuard\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#MyAppExeName}"" ""%1"""; Flags: uninsdeletekey
 
 [Dirs]
 Name: "{app}"
