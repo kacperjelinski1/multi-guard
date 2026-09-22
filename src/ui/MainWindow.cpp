@@ -1588,6 +1588,22 @@ void MainWindow::initDefenderIntegration()
         DefenderEngine::instance().ensureMutualExclusions();
         DefenderEngine::instance().suppressDefenderPopups();
         DefenderEngine::instance().hijackDefenderTrayAndSettings();
+
+        // Enforce enterprise ASR and Network Protection
+        if (Settings::instance().asrProtection()) {
+            DefenderEngine::instance().enableAsrRules(true);
+        }
+        if (Settings::instance().webShield()) {
+            DefenderEngine::instance().setNetworkProtection(true);
+        }
+
+        // Sync native Defender scan schedule
+        const QString sched = Settings::instance().scheduledScan();
+        if (sched != QLatin1String("off")) {
+            int day = (sched == QLatin1String("daily")) ? 0 : 1;
+            QTime targetTime = QTime::fromString(Settings::instance().scheduledTime(), QStringLiteral("HH:mm"));
+            DefenderEngine::instance().setScheduledScan(true, day, targetTime.isValid() ? targetTime : QTime(12, 0));
+        }
     });
 }
 
@@ -3079,7 +3095,7 @@ void MainWindow::initScheduler()
 void MainWindow::onScheduledTimerTick()
 {
     const QString sched = Settings::instance().scheduledScan();
-    if (sched == "off" || ShieldEngine::instance().scanner()->isRunning()) return;
+    if (sched == "off" || DefenderEngine::instance().isScanning() || ShieldEngine::instance().scanner()->isRunning()) return;
 
     const QTime now = QTime::currentTime();
     const QTime target = QTime::fromString(Settings::instance().scheduledTime(), "HH:mm");
@@ -3105,6 +3121,7 @@ void MainWindow::onAddExclusionFolder()
     const QString dir = QFileDialog::getExistingDirectory(this, tr("Wybierz folder do wykluczenia ze skanowania"));
     if (!dir.isEmpty()) {
         Settings::instance().addExclusion(dir);
+        DefenderEngine::instance().addDefenderExclusion(dir);
         if (ui->listExclusions) ui->listExclusions->addItem(QDir::cleanPath(dir));
         Toaster::show(this, tr("Dodano folder do listy wykluczeń."), Toaster::Success);
         AuditLogger::instance().logEvent("ExclusionAdded", tr("Dodano folder do wykluczeń: %1").arg(dir), dir, 0);
@@ -3116,6 +3133,7 @@ void MainWindow::onAddExclusionFile()
     const QString file = QFileDialog::getOpenFileName(this, tr("Wybierz plik do wykluczenia ze skanowania"));
     if (!file.isEmpty()) {
         Settings::instance().addExclusion(file);
+        DefenderEngine::instance().addDefenderExclusion(file);
         if (ui->listExclusions) ui->listExclusions->addItem(QDir::cleanPath(file));
         Toaster::show(this, tr("Dodano plik do listy wykluczeń."), Toaster::Success);
         AuditLogger::instance().logEvent("ExclusionAdded", tr("Dodano plik do wykluczeń: %1").arg(file), file, 0);
@@ -3129,6 +3147,7 @@ void MainWindow::onRemoveExclusion()
     if (item) {
         const QString path = item->text();
         Settings::instance().removeExclusion(path);
+        DefenderEngine::instance().removeDefenderExclusion(path);
         delete item;
         Toaster::show(this, tr("Usunięto element z listy wykluczeń."), Toaster::Info);
         AuditLogger::instance().logEvent("ExclusionRemoved", tr("Usunięto wykluczenie: %1").arg(path), path, 0);

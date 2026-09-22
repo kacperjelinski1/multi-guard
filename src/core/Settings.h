@@ -36,6 +36,9 @@ public:
     bool    webShield() const                { return m_webShield; }
     void    setWebShield(bool v);
 
+    bool    asrProtection() const            { return m_asrProtection; }
+    void    setAsrProtection(bool v)         { m_asrProtection = v; save(); }
+
     QStringList exclusions() const           { return m_exclusions; }
     void    addExclusion(const QString &path);
     void    removeExclusion(const QString &path);
@@ -115,6 +118,7 @@ private:
     bool        m_realTimeProtection= true;
     bool        m_ransomwareProtection = true;
     bool        m_webShield         = true;
+    bool        m_asrProtection     = true;
     bool        m_trayOnClose       = true;
     bool        m_showNotifications = true;
     QStringList m_exclusions;

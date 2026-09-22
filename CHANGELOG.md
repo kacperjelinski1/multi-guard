@@ -7,6 +7,15 @@ a projekt stosuje [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.0.1.0] - 2026-09-22
+
+### ⚡ Błyskawiczny IPC Single-Instance, Reguły ASR & Optymalizacja Rejestru
+- **Inteligentny IPC Single-Instance**: Wywołanie skanowania z menu kontekstowego PPM przesyła ścieżkę do działającego programu przez `QLocalSocket` (`SCAN:<ścieżka>`). Okno wyskakuje natychmiast w 0.005s bez restartu procesu i bez ponownego ładowania bibliotek.
+- **Reguły ASR (Attack Surface Reduction)**: Ochrona korporacyjna przed złośliwymi makrami Office, procesami potomnymi Word/Excel, kradzieżą poświadczeń z pamięci LSASS oraz niepodpisanym kodem z USB.
+- **Globalna Ochrona Sieciowa Defender Network Protection**: Blokowanie szkodliwych domen phishingowych i C2 na poziomie całego systemu Windows.
+- **Optymalizacja odpytywania statusu (0% CPU)**: Bezpośredni odczyt stanu bazy sygnatur z rejestru Windows `HKLM\SOFTWARE\Microsoft\Windows Defender\Signature Updates` z pamięcią podręczną.
+- **Automatyczna synchronizacja wykluczeń**: Dodawanie i usuwanie wykluczeń w GUI natychmiast synchronizuje listę z Microsoft Defenderem (`Add-MpPreference / Remove-MpPreference`).
+
 ## [2.0.0.0] - 2026-09-22
 
 ### 🛡️ Pure Microsoft Defender Overlay & Pełna Integracja Systemowa (V2)

@@ -9,6 +9,8 @@
 #include <QJsonArray>
 #include <QCoreApplication>
 #include <QTimer>
+#include <QSettings>
+#include <QTime>
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -371,7 +373,35 @@ bool DefenderEngine::setRealTimeProtection(bool enable)
 
 DefenderStatus DefenderEngine::getStatus()
 {
+    static DefenderStatus cachedStatus;
+    static qint64 lastFetchTime = 0;
+    qint64 now = QDateTime::currentMSecsSinceEpoch();
+
+    if (now - lastFetchTime < 30000 && !cachedStatus.signatureVersion.isEmpty()) {
+        return cachedStatus;
+    }
+
     DefenderStatus status;
+
+#ifdef Q_OS_WIN
+    // Fast path: direct registry read (0ms, 0% CPU)
+    QSettings regUpdates(QStringLiteral("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Signature Updates"), QSettings::NativeFormat);
+    QString avSig = regUpdates.value(QStringLiteral("AVSignatureVersion")).toString();
+    QString engVer = regUpdates.value(QStringLiteral("EngineVersion")).toString();
+
+    QSettings regRtp(QStringLiteral("HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows Defender\\Real-Time Protection"), QSettings::NativeFormat);
+    QVariant disRtp = regRtp.value(QStringLiteral("DisableRealtimeMonitoring"));
+
+    if (!avSig.isEmpty()) {
+        status.signatureVersion = avSig;
+        status.engineVersion = engVer;
+        status.realTimeProtectionEnabled = disRtp.isValid() ? (disRtp.toInt() == 0) : true;
+        cachedStatus = status;
+        lastFetchTime = now;
+        return status;
+    }
+#endif
+
     QString json = runPowerShellCommand(
         QStringLiteral("Get-MpComputerStatus | Select-Object RealTimeProtectionEnabled, AntivirusSignatureVersion, AntivirusSignatureLastUpdated, AMServiceVersion | ConvertTo-Json")
     );
@@ -384,6 +414,11 @@ DefenderStatus DefenderEngine::getStatus()
             status.signatureVersion = obj.value(QStringLiteral("AntivirusSignatureVersion")).toString();
             status.engineVersion = obj.value(QStringLiteral("AMServiceVersion")).toString();
         }
+    }
+
+    if (!status.signatureVersion.isEmpty()) {
+        cachedStatus = status;
+        lastFetchTime = now;
     }
     return status;
 }
@@ -511,6 +546,58 @@ bool DefenderEngine::setControlledFolderAccess(bool enable)
     QString cmd = QStringLiteral("Set-MpPreference -EnableControlledFolderAccess %1")
                   .arg(enable ? QStringLiteral("Enabled") : QStringLiteral("Disabled"));
     runPowerShellCommand(cmd);
+    return true;
+}
+
+bool DefenderEngine::isAsrRulesEnabled()
+{
+    QString out = runPowerShellCommand(QStringLiteral("(Get-MpPreference).AttackSurfaceReductionRules_Actions"));
+    return out.contains(QStringLiteral("1"));
+}
+
+bool DefenderEngine::enableAsrRules(bool enable)
+{
+    int action = enable ? 1 : 0;
+    QString cmd = QStringLiteral(
+        "Set-MpPreference -AttackSurfaceReductionRules_Ids "
+        "@('be9ba2d9-53ea-44a7-ac61-757b0ee57755',"
+        "'d4f940ab-401b-4efc-aadc-ad5f3c50688a',"
+        "'3b576869-a4ec-4529-8536-b80a7769e8ac',"
+        "'9e6c4e1f-7d60-422f-82fb-6d977e5600dd',"
+        "'d1e49aac-8f56-4280-b9ba-993a6d77406c',"
+        "'b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4') "
+        "-AttackSurfaceReductionRules_Actions @(%1,%1,%1,%1,%1,%1)"
+    ).arg(action);
+    runPowerShellCommand(cmd);
+    return true;
+}
+
+bool DefenderEngine::setScheduledScan(bool enable, int dayOfWeek, const QTime &time)
+{
+    if (!enable) {
+        runPowerShellCommand(QStringLiteral("Set-MpPreference -ScanScheduleDay 8"));
+        return true;
+    }
+    QString timeStr = time.toString(QStringLiteral("hh:mm:ss"));
+    QString cmd = QStringLiteral("Set-MpPreference -ScanScheduleDay %1 -ScanScheduleQuickScanTime '%2'")
+                  .arg(dayOfWeek).arg(timeStr);
+    runPowerShellCommand(cmd);
+    return true;
+}
+
+bool DefenderEngine::addDefenderExclusion(const QString &path)
+{
+    if (path.isEmpty()) return false;
+    QString clean = QDir::toNativeSeparators(path);
+    runPowerShellCommand(QStringLiteral("Add-MpPreference -ExclusionPath '%1'").arg(clean));
+    return true;
+}
+
+bool DefenderEngine::removeDefenderExclusion(const QString &path)
+{
+    if (path.isEmpty()) return false;
+    QString clean = QDir::toNativeSeparators(path);
+    runPowerShellCommand(QStringLiteral("Remove-MpPreference -ExclusionPath '%1'").arg(clean));
     return true;
 }
 

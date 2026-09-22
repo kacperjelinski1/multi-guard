@@ -40,6 +40,7 @@ void Settings::load()
     m_realTimeProtection   = s.value("scan/realTimeShield",     m_realTimeProtection).toBool();
     m_ransomwareProtection = s.value("scan/ransomwareShield",   m_ransomwareProtection).toBool();
     m_webShield            = s.value("web/shieldEnabled",       m_webShield).toBool();
+    m_asrProtection        = s.value("scan/asrProtection",      m_asrProtection).toBool();
     m_scanUsbOnInsert      = s.value("scan/usbOnInsert",        m_scanUsbOnInsert).toBool();
     m_scheduledScan        = s.value("scan/scheduled",          m_scheduledScan).toString();
     m_scheduledTime        = s.value("scan/scheduledTime",      m_scheduledTime).toString();
@@ -79,6 +80,7 @@ void Settings::save()
     s.setValue("scan/realTimeShield",       m_realTimeProtection);
     s.setValue("scan/ransomwareShield",     m_ransomwareProtection);
     s.setValue("web/shieldEnabled",         m_webShield);
+    s.setValue("scan/asrProtection",        m_asrProtection);
     s.setValue("scan/usbOnInsert",          m_scanUsbOnInsert);
     s.setValue("scan/scheduled",            m_scheduledScan);
     s.setValue("scan/scheduledTime",        m_scheduledTime);

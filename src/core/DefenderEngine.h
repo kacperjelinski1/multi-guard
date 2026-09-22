@@ -5,6 +5,7 @@
 #include <QStringList>
 #include <QProcess>
 #include <QDateTime>
+#include <QTime>
 #include <QList>
 #include "Scanner.h"
 
@@ -67,6 +68,17 @@ public:
 
     bool isControlledFolderAccessEnabled();
     bool setControlledFolderAccess(bool enable);
+
+    // Attack Surface Reduction (ASR)
+    bool isAsrRulesEnabled();
+    bool enableAsrRules(bool enable);
+
+    // Defender Scheduled Scan
+    bool setScheduledScan(bool enable, int dayOfWeek = 0, const QTime &time = QTime(12, 0));
+
+    // Dynamic Exclusion Management
+    bool addDefenderExclusion(const QString &path);
+    bool removeDefenderExclusion(const QString &path);
 
     // Telemetry & Status
     DefenderStatus getStatus();

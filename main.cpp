@@ -196,25 +196,28 @@ int main(int argc, char *argv[])
     parser.process(a);
 
 #ifdef Q_OS_WIN
-    // 7.5) Single Instance check:
-    // A new launch (e.g. from desktop) closes any existing instance cleanly,
-    // sweeps dead tray icons from Windows Explorer, and starts fresh with a single tray icon.
+    // 7.5) Single Instance check via IPC:
+    // If Multi-Guard is already running, pass arguments (or activate window) and exit immediately.
     const QString ipcName = QStringLiteral("MultiGuard_SingleInstance_IPC");
+    const QStringList initialArgs = parser.positionalArguments();
     {
         QLocalSocket socket;
         socket.connectToServer(ipcName);
         if (socket.waitForConnected(300)) {
-            socket.write("QUIT\n");
+            if (!initialArgs.isEmpty()) {
+                socket.write("SCAN:" + initialArgs.join(QStringLiteral("|||")).toUtf8() + "\n");
+            } else {
+                socket.write("SHOW\n");
+            }
             socket.flush();
-            socket.waitForBytesWritten(300);
-            socket.waitForDisconnected(600);
+            socket.waitForBytesWritten(500);
+            socket.waitForDisconnected(500);
+            return 0; // Seamless handoff to running instance, exit immediately!
         }
     }
 
-    // Terminate any leftover instances of Multi-Guard
+    // If no running instance responded, terminate any orphaned ghost processes and refresh tray
     terminateOtherInstances();
-
-    // Refresh Windows taskbar notification area to eliminate ghost tray icons
     refreshSystemTray();
 #endif
 
@@ -223,7 +226,7 @@ int main(int argc, char *argv[])
     verax::MainWindow w;
 
 #ifdef Q_OS_WIN
-    // Listen for future launches so they can request clean exit
+    // Listen for future launches so they can request scans or window activation
     QLocalServer::removeServer(ipcName);
     QLocalServer *ipcServer = new QLocalServer(&a);
     if (ipcServer->listen(ipcName)) {
@@ -231,8 +234,31 @@ int main(int argc, char *argv[])
             QLocalSocket *client = ipcServer->nextPendingConnection();
             if (!client) return;
             QObject::connect(client, &QLocalSocket::readyRead, [client, &w]() {
-                QByteArray msg = client->readAll();
-                if (msg.contains("QUIT")) {
+                QByteArray raw = client->readAll().trimmed();
+                if (raw.startsWith("SCAN:")) {
+                    QString payload = QString::fromUtf8(raw.mid(5));
+                    QStringList targets = payload.split(QStringLiteral("|||"), Qt::SkipEmptyParts);
+                    w.showNormal();
+                    w.raise();
+                    w.activateWindow();
+                    HWND hWnd = (HWND)w.winId();
+                    if (hWnd) {
+                        ShowWindow(hWnd, SW_RESTORE);
+                        SetForegroundWindow(hWnd);
+                    }
+                    if (!targets.isEmpty()) {
+                        w.scanCustomTargets(targets);
+                    }
+                } else if (raw == "SHOW") {
+                    w.showNormal();
+                    w.raise();
+                    w.activateWindow();
+                    HWND hWnd = (HWND)w.winId();
+                    if (hWnd) {
+                        ShowWindow(hWnd, SW_RESTORE);
+                        SetForegroundWindow(hWnd);
+                    }
+                } else if (raw.contains("QUIT")) {
                     if (w.trayIcon()) {
                         w.trayIcon()->hide();
                     }
