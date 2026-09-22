@@ -318,8 +318,8 @@ void MainWindow::wireUi()
     if (ui->cbRansomwareProtection)
         ui->cbRansomwareProtection->setChecked(s.ransomwareProtection());
 
-    if (ui->cbWebDnsShield)
-        ui->cbWebDnsShield->setChecked(s.webShield());
+    if (auto *cbWeb = findChild<QCheckBox*>("cbWebDnsShield"))
+        cbWeb->setChecked(s.webShield());
 
     if (ui->listExclusions) {
         ui->listExclusions->clear();
@@ -393,9 +393,9 @@ void MainWindow::wireSignals()
     if (ui->btnGenSessionCode)  connect(ui->btnGenSessionCode,  &QPushButton::clicked, this, &MainWindow::onGenerateSessionCode);
     if (ui->btnCopySessionCode) connect(ui->btnCopySessionCode, &QPushButton::clicked, this, &MainWindow::onCopySessionCode);
     if (ui->btnUpdateSignatures) connect(ui->btnUpdateSignatures, &QPushButton::clicked, this, &MainWindow::onUpdateSignatures);
-    if (ui->btnUpdateSignaturesSettings) connect(ui->btnUpdateSignaturesSettings, &QPushButton::clicked, this, &MainWindow::onUpdateSignatures);
-    if (ui->btnCheckAppUpdate) connect(ui->btnCheckAppUpdate, &QPushButton::clicked, this, &MainWindow::onCheckUpdatesClicked);
-    if (ui->btnCheckUpdatesAbout) connect(ui->btnCheckUpdatesAbout, &QPushButton::clicked, this, &MainWindow::onCheckUpdatesClicked);
+    if (auto *btn = findChild<QPushButton*>("btnUpdateSignaturesSettings")) connect(btn, &QPushButton::clicked, this, &MainWindow::onUpdateSignatures);
+    if (auto *btn = findChild<QPushButton*>("btnCheckAppUpdate")) connect(btn, &QPushButton::clicked, this, &MainWindow::onCheckUpdatesClicked);
+    if (auto *btn = findChild<QPushButton*>("btnCheckUpdatesAbout")) connect(btn, &QPushButton::clicked, this, &MainWindow::onCheckUpdatesClicked);
 
     if (ui->btnAddFolder)        connect(ui->btnAddFolder, &QPushButton::clicked, this, &MainWindow::onAddFolder);
     if (ui->btnAddFile)          connect(ui->btnAddFile,   &QPushButton::clicked, this, &MainWindow::onAddFile);
@@ -440,17 +440,17 @@ void MainWindow::wireSignals()
     });
 
     // Firewall Page
-    if (ui->btnToggleFirewall)  connect(ui->btnToggleFirewall,  &QPushButton::clicked, this, &MainWindow::onToggleFirewallClicked);
-    if (ui->btnResetFirewall)   connect(ui->btnResetFirewall,   &QPushButton::clicked, this, &MainWindow::onResetFirewallClicked);
-    if (ui->btnBlockSMB)        connect(ui->btnBlockSMB,        &QPushButton::clicked, this, &MainWindow::onBlockSMBClicked);
-    if (ui->btnBlockRPC)        connect(ui->btnBlockRPC,        &QPushButton::clicked, this, &MainWindow::onBlockRPCClicked);
-    if (ui->btnBlockRDP)        connect(ui->btnBlockRDP,        &QPushButton::clicked, this, &MainWindow::onBlockRDPClicked);
-    if (ui->btnAddBlockApp)     connect(ui->btnAddBlockApp,     &QPushButton::clicked, this, &MainWindow::onAddBlockAppClicked);
-    if (ui->btnRefreshFwRules)  connect(ui->btnRefreshFwRules,  &QPushButton::clicked, this, &MainWindow::onRefreshFwRulesClicked);
+    if (auto *btn = findChild<QPushButton*>("btnToggleFirewall"))  connect(btn, &QPushButton::clicked, this, &MainWindow::onToggleFirewallClicked);
+    if (auto *btn = findChild<QPushButton*>("btnResetFirewall"))   connect(btn, &QPushButton::clicked, this, &MainWindow::onResetFirewallClicked);
+    if (auto *btn = findChild<QPushButton*>("btnBlockSMB"))        connect(btn, &QPushButton::clicked, this, &MainWindow::onBlockSMBClicked);
+    if (auto *btn = findChild<QPushButton*>("btnBlockRPC"))        connect(btn, &QPushButton::clicked, this, &MainWindow::onBlockRPCClicked);
+    if (auto *btn = findChild<QPushButton*>("btnBlockRDP"))        connect(btn, &QPushButton::clicked, this, &MainWindow::onBlockRDPClicked);
+    if (auto *btn = findChild<QPushButton*>("btnAddBlockApp"))     connect(btn, &QPushButton::clicked, this, &MainWindow::onAddBlockAppClicked);
+    if (auto *btn = findChild<QPushButton*>("btnRefreshFwRules"))  connect(btn, &QPushButton::clicked, this, &MainWindow::onRefreshFwRulesClicked);
 
     // Browser Protection Page
-    if (ui->btnInstallBrowserExt) connect(ui->btnInstallBrowserExt, &QPushButton::clicked, this, &MainWindow::onInstallBrowserExtClicked);
-    if (ui->btnTestBlockScreen)   connect(ui->btnTestBlockScreen,   &QPushButton::clicked, this, &MainWindow::onTestBlockScreenClicked);
+    if (auto *btn = findChild<QPushButton*>("btnInstallBrowserExt")) connect(btn, &QPushButton::clicked, this, &MainWindow::onInstallBrowserExtClicked);
+    if (auto *btn = findChild<QPushButton*>("btnTestBlockScreen"))   connect(btn, &QPushButton::clicked, this, &MainWindow::onTestBlockScreenClicked);
 
     if (ui->cbContextMenu)         connect(ui->cbContextMenu,         &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
     if (ui->cbMinimizeToTray)      connect(ui->cbMinimizeToTray,      &QCheckBox::toggled, this, &MainWindow::onSettingsSaved);
@@ -476,8 +476,8 @@ void MainWindow::wireSignals()
             RansomwareShield::instance().setEnabled(v);
         });
     }
-    if (ui->cbWebDnsShield) {
-        connect(ui->cbWebDnsShield, &QCheckBox::toggled, this, [](bool v){
+    if (auto *cb = findChild<QCheckBox*>("cbWebDnsShield")) {
+        connect(cb, &QCheckBox::toggled, this, [](bool v){
             Settings::instance().setWebShield(v);
             WebShield::instance().setEnabled(v);
         });
@@ -773,7 +773,7 @@ void MainWindow::primeScanUi(const QString &phaseLabel)
     if (ui->lblScanCurrent) ui->lblScanCurrent->setText(phaseLabel);
     if (ui->lblScanCount)   ui->lblScanCount->setText(tr("Przeskanowano: 0"));
     if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Zagrożenia: 0"));
-    if (ui->scanProgressBar) ui->scanProgressBar->setValue(0);
+    if (auto *pb = findChild<QProgressBar*>("scanProgressBar")) pb->setValue(0);
     updateChromeStatus("scanning", tr("Skanowanie..."));
     QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 }
@@ -993,7 +993,7 @@ void MainWindow::onStopScan()
     if (ui->lblScanCurrent) ui->lblScanCurrent->setText(tr("Skanowanie zostało przerwane przez użytkownika."));
     if (ui->lblScanCount)   ui->lblScanCount->setText(tr("Przeskanowano: 0"));
     if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Zagrożenia: 0"));
-    if (ui->scanProgressBar) ui->scanProgressBar->setValue(0);
+    if (auto *pb = findChild<QProgressBar*>("scanProgressBar")) pb->setValue(0);
     updateChromeStatus("idle", tr("Przerwano"));
 }
 
@@ -1010,7 +1010,7 @@ void MainWindow::onScannerStarted()
         ui->scanRing->setValue(0.0);
         ui->scanRing->setCenterText("");
     }
-    if (ui->scanProgressBar) ui->scanProgressBar->setValue(0);
+    if (auto *pb = findChild<QProgressBar*>("scanProgressBar")) pb->setValue(0);
     if (ui->lblScanCount)   ui->lblScanCount->setText(tr("Przeskanowano: 0"));
     if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Zagrożenia: 0"));
     m_lastScanThreats = 0;
@@ -1041,8 +1041,8 @@ void MainWindow::onScannerProgress(int pct, qint64 done, qint64 total)
             ui->scanRing->setCenterText(QStringLiteral("%1").arg(done));
         }
     }
-    if (ui->scanProgressBar) {
-        ui->scanProgressBar->setValue(boundedPct);
+    if (auto *pb = findChild<QProgressBar*>("scanProgressBar")) {
+        pb->setValue(boundedPct);
     }
     if (ui->lblScanCount) {
         if (total > 0) {
@@ -1186,8 +1186,8 @@ void MainWindow::onScannerFinished(ScanReport report)
                                         ? tr("Zagrożenia: %1").arg(report.threatsFound)
                                         : tr("Bezpiecznie"));
     }
-    if (ui->scanProgressBar) {
-        ui->scanProgressBar->setValue(100);
+    if (auto *pb = findChild<QProgressBar*>("scanProgressBar")) {
+        pb->setValue(100);
     }
 
     SignatureDb::instance().pushHistory(report.startedAt, report.finishedAt, report.filesScanned, report.threatsFound, QString());
@@ -2727,14 +2727,14 @@ void MainWindow::applyLicenseGating()
         }
     }
 
-    if (ui->cbWebDnsShield) {
+    if (auto *cbWeb = findChild<QCheckBox*>("cbWebDnsShield")) {
         bool canWeb = lm.hasCapability(LicenseCapability::WebProtection);
-        ui->cbWebDnsShield->setEnabled(canWeb);
+        cbWeb->setEnabled(canWeb);
         if (!canWeb) {
-            ui->cbWebDnsShield->setChecked(false);
-            ui->cbWebDnsShield->setToolTip(tr("Wymagana licencja Multi-Guard"));
+            cbWeb->setChecked(false);
+            cbWeb->setToolTip(tr("Wymagana licencja Multi-Guard"));
         } else {
-            ui->cbWebDnsShield->setToolTip(QString());
+            cbWeb->setToolTip(QString());
         }
     }
 
@@ -2930,18 +2930,18 @@ void MainWindow::initFirewallPage()
     const bool enabled = FirewallManager::instance().isFirewallEnabled();
     const QString profile = FirewallManager::instance().activeProfile();
 
-    if (ui->lblFwStatusHead) {
-        ui->lblFwStatusHead->setText(enabled ? tr("Stan: Zapora aktywna i włączona") : tr("Stan: Zapora wyłączona!"));
-        ui->lblFwStatusHead->setStyleSheet(enabled ? "color: #38bdf8; font-size: 15px; font-weight: bold;" : "color: #f87171; font-size: 15px; font-weight: bold;");
+    if (auto *lblHead = findChild<QLabel*>("lblFwStatusHead")) {
+        lblHead->setText(enabled ? tr("Stan: Zapora aktywna i włączona") : tr("Stan: Zapora wyłączona!"));
+        lblHead->setStyleSheet(enabled ? "color: #38bdf8; font-size: 15px; font-weight: bold;" : "color: #f87171; font-size: 15px; font-weight: bold;");
     }
-    if (ui->lblFwStatusDesc) {
-        ui->lblFwStatusDesc->setText(enabled ? tr("Multi-Guard aktywnie filtruje ruch sieciowy i chroni porty komunikacyjne.") : tr("Uwaga! Ruch sieciowy nie jest filtrowany. Komputer jest podatny na ataki sieciowe."));
+    if (auto *lblDesc = findChild<QLabel*>("lblFwStatusDesc")) {
+        lblDesc->setText(enabled ? tr("Multi-Guard aktywnie filtruje ruch sieciowy i chroni porty komunikacyjne.") : tr("Uwaga! Ruch sieciowy nie jest filtrowany. Komputer jest podatny na ataki sieciowe."));
     }
-    if (ui->lblFwProfile) {
-        ui->lblFwProfile->setText(tr("Profil sieci: %1").arg(profile));
+    if (auto *lblProf = findChild<QLabel*>("lblFwProfile")) {
+        lblProf->setText(tr("Profil sieci: %1").arg(profile));
     }
-    if (ui->btnToggleFirewall) {
-        ui->btnToggleFirewall->setText(enabled ? tr("Wyłącz zaporę") : tr("Włącz zaporę"));
+    if (auto *btnToggle = findChild<QPushButton*>("btnToggleFirewall")) {
+        btnToggle->setText(enabled ? tr("Wyłącz zaporę") : tr("Włącz zaporę"));
     }
 
     onRefreshFwRulesClicked();
@@ -2995,16 +2995,17 @@ void MainWindow::onAddBlockAppClicked()
 
 void MainWindow::onRefreshFwRulesClicked()
 {
-    if (!ui->tableFwRules) return;
-    ui->tableFwRules->setRowCount(0);
+    auto *table = findChild<QTableWidget*>("tableFwRules");
+    if (!table) return;
+    table->setRowCount(0);
     const auto rules = FirewallManager::instance().loadActiveRules();
-    ui->tableFwRules->setRowCount(rules.size());
+    table->setRowCount(rules.size());
     for (int i = 0; i < rules.size(); ++i) {
         const auto &r = rules[i];
-        ui->tableFwRules->setItem(i, 0, new QTableWidgetItem(r.name));
-        ui->tableFwRules->setItem(i, 1, new QTableWidgetItem(r.direction));
-        ui->tableFwRules->setItem(i, 2, new QTableWidgetItem(r.action));
-        ui->tableFwRules->setItem(i, 3, new QTableWidgetItem(!r.port.isEmpty() ? r.port : r.program));
+        table->setItem(i, 0, new QTableWidgetItem(r.name));
+        table->setItem(i, 1, new QTableWidgetItem(r.direction));
+        table->setItem(i, 2, new QTableWidgetItem(r.action));
+        table->setItem(i, 3, new QTableWidgetItem(!r.port.isEmpty() ? r.port : r.program));
     }
 }
 
@@ -3016,9 +3017,9 @@ void MainWindow::initBrowserProtectionPage()
     const auto browsers = BrowserProtectionManager::instance().detectedBrowsers();
     for (const auto &b : browsers) {
         QLabel *lbl = nullptr;
-        if (b.id == "chrome") lbl = ui->lblChromeStatus;
-        else if (b.id == "edge") lbl = ui->lblEdgeStatus;
-        else if (b.id == "brave") lbl = ui->lblBraveStatus;
+        if (b.id == "chrome") lbl = findChild<QLabel*>("lblChromeStatus");
+        else if (b.id == "edge") lbl = findChild<QLabel*>("lblEdgeStatus");
+        else if (b.id == "brave") lbl = findChild<QLabel*>("lblBraveStatus");
 
         if (lbl) {
             if (b.installed) {
@@ -3031,10 +3032,10 @@ void MainWindow::initBrowserProtectionPage()
         }
     }
 
-    if (ui->lblStatSitesNum)
-        ui->lblStatSitesNum->setText(QString::number(BrowserProtectionManager::instance().blockedWebsitesCount()));
-    if (ui->lblStatDownloadsNum)
-        ui->lblStatDownloadsNum->setText(QString::number(BrowserProtectionManager::instance().blockedDownloadsCount()));
+    if (auto *lblSites = findChild<QLabel*>("lblStatSitesNum"))
+        lblSites->setText(QString::number(BrowserProtectionManager::instance().blockedWebsitesCount()));
+    if (auto *lblDl = findChild<QLabel*>("lblStatDownloadsNum"))
+        lblDl->setText(QString::number(BrowserProtectionManager::instance().blockedDownloadsCount()));
 }
 
 void MainWindow::onInstallBrowserExtClicked()
