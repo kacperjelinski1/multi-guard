@@ -113,7 +113,7 @@ QString DefenderEngine::runPowerShellCommand(const QString &command)
 #endif
 }
 
-bool DefenderEngine::startScan(Scanner::ScanMode mode, const QStringList &customPaths)
+bool DefenderEngine::startScan(ScanMode mode, const QStringList &customPaths)
 {
     if (m_isScanning) {
         Logger::warn(QStringLiteral("DefenderEngine: Skanowanie jest już w toku."));
@@ -127,10 +127,10 @@ bool DefenderEngine::startScan(Scanner::ScanMode mode, const QStringList &custom
     QString scanTypeName;
     QStringList args;
 
-    if (mode == Scanner::Quick) {
+    if (mode == Quick) {
         scanTypeName = tr("Szybkie skanowanie Microsoft Defender");
         args << QStringLiteral("-Scan") << QStringLiteral("-ScanType") << QStringLiteral("1");
-    } else if (mode == Scanner::Full) {
+    } else if (mode == Full) {
         scanTypeName = tr("Pełne skanowanie systemu Microsoft Defender");
         args << QStringLiteral("-Scan") << QStringLiteral("-ScanType") << QStringLiteral("2");
     } else {

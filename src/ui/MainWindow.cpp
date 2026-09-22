@@ -1160,7 +1160,7 @@ void MainWindow::onQuickScan()
     Toaster::show(this, tr("Rozpoczęto szybkie skanowanie Microsoft Defender"), Toaster::Info);
 
     if (DefenderEngine::instance().isAvailable()) {
-        DefenderEngine::instance().startScan(Scanner::Quick);
+        DefenderEngine::instance().startScan(DefenderEngine::Quick);
     } else {
         ScanRequest req = buildQuickDefaults();
         ShieldEngine::instance().startScan(req);
@@ -1185,7 +1185,7 @@ void MainWindow::onFullScan()
     Toaster::show(this, tr("Rozpoczęto pełne skanowanie Microsoft Defender"), Toaster::Info);
 
     if (DefenderEngine::instance().isAvailable()) {
-        DefenderEngine::instance().startScan(Scanner::Full);
+        DefenderEngine::instance().startScan(DefenderEngine::Full);
     } else {
         ScanRequest req = buildFullDefaults();
         ShieldEngine::instance().startScan(req);
@@ -1249,7 +1249,7 @@ void MainWindow::onStartScanFromConfig()
     Toaster::show(this, tr("Rozpoczęto skanowanie wyznaczonych obiektów"), Toaster::Info);
 
     if (DefenderEngine::instance().isAvailable()) {
-        DefenderEngine::instance().startScan(Scanner::Custom, targets);
+        DefenderEngine::instance().startScan(DefenderEngine::Custom, targets);
     } else {
         ScanRequest req;
         req.targets = targets;
@@ -1526,16 +1526,17 @@ void MainWindow::onScannerFinished(ScanReport report)
 void MainWindow::initDefenderIntegration()
 {
     connect(&DefenderEngine::instance(), &DefenderEngine::scanStarted, this, [this](const QString &scanType){
+        m_pendingReport.clear();
         primeScanUi(scanType);
         m_activeScanPhase = scanType;
     });
 
     connect(&DefenderEngine::instance(), &DefenderEngine::scanProgress, this, [this](int percent, const QString &statusText){
-        if (ui->pbScan) ui->pbScan->setValue(percent);
-        if (ui->lblScanStatus) ui->lblScanStatus->setText(statusText);
-        if (ui->dashRing) {
-            ui->dashRing->setValue(percent / 100.0);
-            ui->dashRing->setCenterText(QStringLiteral("%1%").arg(percent));
+        if (auto *pb = findChild<QProgressBar*>("scanProgressBar")) pb->setValue(percent);
+        if (ui->lblScanCurrent) ui->lblScanCurrent->setText(statusText);
+        if (ui->scanRing) {
+            ui->scanRing->setValue(percent / 100.0);
+            ui->scanRing->setCenterText(QStringLiteral("%1%").arg(percent));
         }
     });
 
@@ -1544,9 +1545,9 @@ void MainWindow::initDefenderIntegration()
 
     connect(&DefenderEngine::instance(), &DefenderEngine::scanFinished, this, [this](bool ok, int threatsCount, const QList<ThreatInfo> &threats){
         Q_UNUSED(ok);
+        Q_UNUSED(threats);
         ScanReport rep;
         rep.filesScanned = 11500;
-        rep.threats = threats;
         rep.threatsFound = threatsCount;
         rep.finishedAt = QDateTime::currentSecsSinceEpoch();
         onScannerFinished(rep);

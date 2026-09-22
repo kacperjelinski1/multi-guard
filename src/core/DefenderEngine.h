@@ -31,6 +31,12 @@ struct DefenderQuarantineItem {
 class DefenderEngine : public QObject {
     Q_OBJECT
 public:
+    enum ScanMode {
+        Quick = 0,
+        Full = 1,
+        Custom = 2
+    };
+
     static DefenderEngine& instance();
 
     // Check if Windows Defender tooling is available
@@ -38,7 +44,7 @@ public:
     QString mpCmdRunPath() const;
 
     // Scans
-    bool startScan(Scanner::ScanMode mode, const QStringList &customPaths = {});
+    bool startScan(ScanMode mode, const QStringList &customPaths = {});
     void cancelScan();
     bool isScanning() const { return m_isScanning; }
 
@@ -81,7 +87,7 @@ private:
     bool      m_isScanning = false;
     QProcess *m_scanProcess = nullptr;
 
-    Scanner::ScanMode m_currentMode = Scanner::Quick;
+    ScanMode m_currentMode = Quick;
     QList<ThreatInfo> m_detectedThreats;
     int m_simulatedPercent = 0;
 };
