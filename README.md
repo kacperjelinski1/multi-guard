@@ -81,17 +81,12 @@ Multi-Guard to **jedna zunifikowana aplikacja**, w której dostępność poszcze
 - Monitorowanie wrażliwych katalogów użytkownika (Dokumenty, Pulpit, Obrazy).
 - Zaawansowane pliki-pułapki (*canary files*) natychmiast wykrywające próby masowego szyfrowania i blokujące podejrzane procesy.
 
-### 3. Integracja z Windows Security Center (WSC)
-- Architektura integracji przygotowana pod oficjalne API Microsoft Virus Initiative (MVI).
-- Spójne raportowanie rzeczywistego stanu ochrony, silnika i bazy sygnatur.
-- Brak wymuszania zmian w Defenderze – decyzję o przełączeniu stanu ochrony podejmuje natywnie system Windows.
-
-### 4. Inteligentne Zarządzanie Oknem i Tray
+### 3. Inteligentne Zarządzanie Oknem i Tray
 - **Przycisk `X`**: Chowa okno do zasobnika systemowego (*system tray*) bez przerywania pracy w tle.
 - **Przycisk `-`**: Prawidłowo minimalizuje aplikację do paska zadań Windows z zachowaniem ikony w trayu.
 - **Menu zasobnika**: Szybkie skanowanie, podgląd stanu ochrony, pauzowanie tarcz, aktualizacje oraz bezpieczne zamykanie aplikacji.
 
-### 5. Narzędzia Serwisowe i Optymalizacyjne
+### 4. Narzędzia Serwisowe i Optymalizacyjne
 - **Naprawa Windows**: Naprawa pliku `hosts`, reinstalacja bibliotek VC++ Redistributable, naprawa reguł Zapory, usług kryptograficznych oraz sterowników.
 - **Niszczarka plików**: Nieodwracalne niszczenie danych metodą DoD 5220.22-M (3 przebiegi: 0x00, 0xFF, dane pseudolosowe).
 - **Raporty serwisowe**: Eksport oficjalnych raportów diagnostycznych stacji roboczej do formatu HTML.

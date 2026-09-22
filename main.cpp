@@ -9,9 +9,6 @@
 #include "src/core/Translator.h"
 #include "src/core/Logger.h"
 #include "src/core/LicenseManager.h"
-#include "src/core/WindowsSecurityIntegration.h"
-#include "src/core/WindowsSecurityCenterProvider.h"
-#include "src/core/AntivirusService.h"
 #include "src/ui/MainWindow.h"
 #include "src/utils/ThemeManager.h"
 
@@ -106,33 +103,6 @@ static void terminateOtherInstances()
 
 int main(int argc, char *argv[])
 {
-    // 0) Service / Headless dispatch before any GUI or hardening init
-    for (int i = 1; i < argc; ++i) {
-        if (strcmp(argv[i], "--service") == 0 || strcmp(argv[i], "--service-headless") == 0) {
-            return verax::AntivirusService::runService(argc, argv);
-        }
-        if (strcmp(argv[i], "--install-service") == 0) {
-            bool ok = verax::AntivirusService::installService();
-            printf("Install service: %s\n", ok ? "SUCCESS" : "FAILED");
-            return ok ? 0 : 1;
-        }
-        if (strcmp(argv[i], "--uninstall-service") == 0) {
-            bool ok = verax::AntivirusService::uninstallService();
-            printf("Uninstall service: %s\n", ok ? "SUCCESS" : "FAILED");
-            return ok ? 0 : 1;
-        }
-        if (strcmp(argv[i], "--start-service") == 0) {
-            bool ok = verax::AntivirusService::startService();
-            printf("Start service: %s\n", ok ? "SUCCESS" : "FAILED");
-            return ok ? 0 : 1;
-        }
-        if (strcmp(argv[i], "--stop-service") == 0) {
-            bool ok = verax::AntivirusService::stopService();
-            printf("Stop service: %s\n", ok ? "SUCCESS" : "FAILED");
-            return ok ? 0 : 1;
-        }
-    }
-
     // 1) HARDEN FIRST - before any other init. Kills DLL planting.
     shield::harden();
 
@@ -221,29 +191,9 @@ int main(int argc, char *argv[])
         QObject::tr("Run silent scan and exit"));
     QCommandLineOption optTray(QStringList{"t","tray"},
         QObject::tr("Start minimized to system tray"));
-    QCommandLineOption optUninstall(QStringList{"uninstall"},
-        QObject::tr("Perform silent uninstallation cleanup and exit"));
-    QCommandLineOption optWscDiag(QStringList{"diag", "wsc-diag"},
-        QObject::tr("Run comprehensive system & security diagnostics and exit"));
     parser.addOption(optScan);
     parser.addOption(optTray);
-    parser.addOption(optUninstall);
-    parser.addOption(optWscDiag);
     parser.process(a);
-
-    if (parser.isSet(optWscDiag)) {
-        verax::WscDiagnosticReport rep = verax::WindowsSecurityCenterProvider::instance().runDiagnostics();
-        QTextStream ts(stdout);
-        ts << rep.formattedSummary() << Qt::endl;
-        return 0;
-    }
-
-    if (parser.isSet(optUninstall)) {
-        verax::Logger::info("main: unregistering antivirus due to --uninstall");
-        verax::AntivirusService::uninstallService();
-        verax::WindowsSecurityCenterProvider::instance().unregisterProduct();
-        return 0;
-    }
 
 #ifdef Q_OS_WIN
     // 7.5) Single Instance check:

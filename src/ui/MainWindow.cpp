@@ -22,8 +22,6 @@
 #include "../core/AuditLogger.h"
 #include "../core/ReportGenerator.h"
 #include "../core/LicenseManager.h"
-#include "../core/WindowsSecurityIntegration.h"
-#include "../core/WindowsSecurityCenterProvider.h"
 #include "../core/FirewallManager.h"
 #include "../core/BrowserProtectionManager.h"
 #include "../utils/ContextMenuManager.h"
@@ -132,10 +130,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(&RealTimeShield::instance(), &RealTimeShield::threatDetected,
             this, &MainWindow::onRealTimeThreatDetected);
-    connect(&RealTimeShield::instance(), &RealTimeShield::statusChanged,
-            &WindowsSecurityCenterProvider::instance(), &WindowsSecurityCenterProvider::onRtpStatusChanged);
-    connect(&SignatureDb::instance(), &SignatureDb::updateFinished,
-            &WindowsSecurityCenterProvider::instance(), &WindowsSecurityCenterProvider::onSignaturesUpdated);
 
     if (LicenseManager::instance().isValid() && Settings::instance().realTimeProtection()) {
         RealTimeShield::instance().start();
@@ -162,12 +156,6 @@ MainWindow::MainWindow(QWidget *parent)
         populateRepairCards();
     });
 
-    // Verify Windows Security Center provider integration
-    QTimer::singleShot(1500, this, [this]{
-#ifdef Q_OS_WIN
-        WindowsSecurityCenterProvider::instance().refreshStatus();
-#endif
-    });
 
     // Silent on-startup version check. Delayed 3 s so the first paint and
     // any heavy initialisation (Settings, fonts, signature DB seeding) all
@@ -233,9 +221,6 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
-#ifdef Q_OS_WIN
-    WindowsSecurityCenterProvider::instance().notifyShutdown();
-#endif
     if (m_tray) {
         m_tray->hide();
     }
@@ -2958,13 +2943,9 @@ void MainWindow::applyLicenseGating()
 
         updateChromeStatus("threat", tr("Multi-Guard Nieaktywowany"));
 
-        WindowsSecurityCenterProvider::instance().refreshStatus();
         updateTrayLicenseState();
         return;
     }
-
-    // Refresh Windows Security Center provider state once active and licensed
-    WindowsSecurityCenterProvider::instance().refreshStatus();
 
     // License is valid: restore sidebar navigation buttons
     const QList<QPushButton*> navButtons = ui->sidebar->findChildren<QPushButton*>();
@@ -3191,9 +3172,6 @@ void MainWindow::restartWithNewLicense(const QString &key)
         ui->lblLockedStatus->setText(tr("<font color='#4ade80'><b>Klucz zaakceptowany (%1)!</b> Ponowne uruchamianie...</font>")
                                          .arg(LicenseManager::instance().tierName()));
     }
-
-    // Update Security Center status
-    WindowsSecurityCenterProvider::instance().refreshStatus();
 
     QMessageBox msgBox(this);
     msgBox.setWindowTitle(tr("Zmiana licencji"));
