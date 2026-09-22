@@ -43,8 +43,9 @@ public:
     bool isAvailable() const;
     QString mpCmdRunPath() const;
 
-    // Scans
+    // Advanced Scans
     bool startScan(ScanMode mode, const QStringList &customPaths = {});
+    bool startOfflineScan();
     void cancelScan();
     bool isScanning() const { return m_isScanning; }
 
@@ -55,6 +56,18 @@ public:
     bool isRealTimeProtectionEnabled();
     bool setRealTimeProtection(bool enable);
 
+    bool isCloudProtectionEnabled();
+    bool setCloudProtection(bool enable);
+
+    bool isBehaviorMonitoringEnabled();
+    bool setBehaviorMonitoring(bool enable);
+
+    bool isNetworkProtectionEnabled();
+    bool setNetworkProtection(bool enable);
+
+    bool isControlledFolderAccessEnabled();
+    bool setControlledFolderAccess(bool enable);
+
     // Telemetry & Status
     DefenderStatus getStatus();
 
@@ -62,6 +75,7 @@ public:
     QList<DefenderQuarantineItem> getQuarantineItems();
     bool restoreQuarantinedItem(const QString &threatName);
     bool removeQuarantinedItem(const QString &threatName);
+    bool purgeAllQuarantine();
 
 signals:
     void scanStarted(const QString &scanType);
@@ -82,6 +96,7 @@ private:
 
     void locateMpCmdRun();
     static QString runPowerShellCommand(const QString &command);
+    void startNextCustomTarget();
 
     QString   m_mpCmdRunPath;
     bool      m_isScanning = false;
@@ -90,6 +105,9 @@ private:
     ScanMode m_currentMode = Quick;
     QList<ThreatInfo> m_detectedThreats;
     int m_simulatedPercent = 0;
+
+    QStringList m_pendingCustomPaths;
+    int m_totalCustomPaths = 0;
 };
 
 } // namespace verax

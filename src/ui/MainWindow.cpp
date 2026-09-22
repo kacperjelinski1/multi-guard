@@ -1040,7 +1040,12 @@ void MainWindow::scanCustomTargets(const QStringList &targets)
     primeScanUi(tr("Skanowanie wybranego elementu..."));
     m_activeScanPhase = tr("Skanowanie...");
     Toaster::show(this, tr("Rozpoczęto skanowanie wybranego elementu"), Toaster::Info);
-    ShieldEngine::instance().startScan(req);
+
+    if (DefenderEngine::instance().isAvailable()) {
+        DefenderEngine::instance().startScan(DefenderEngine::Custom, targets);
+    } else {
+        ShieldEngine::instance().startScan(req);
+    }
 }
 
 void MainWindow::onRealTimeThreatDetected(const verax::ThreatInfo &info)
@@ -1120,7 +1125,11 @@ void MainWindow::onScanMemory()
     req.threshold = Settings::instance().heuristicThreshold();
     req.action    = Settings::instance().detectionAction();
 
-    ShieldEngine::instance().startScan(req);
+    if (DefenderEngine::instance().isAvailable()) {
+        DefenderEngine::instance().startScan(DefenderEngine::Custom, procPaths);
+    } else {
+        ShieldEngine::instance().startScan(req);
+    }
 }
 
 void MainWindow::onUsbDriveInserted(const QString &drivePath)
@@ -1572,12 +1581,19 @@ void MainWindow::initDefenderIntegration()
         }
     });
 
-    DefenderStatus st = DefenderEngine::instance().getStatus();
-    if (auto *lbl = findChild<QLabel*>("statusMod1")) {
-        lbl->setText(st.realTimeProtectionEnabled ? tr("● Aktywna") : tr("○ Wyłączona"));
-        lbl->setStyleSheet(st.realTimeProtectionEnabled ? QStringLiteral("color: #00F076; font-weight: 600; font-size: 8.5pt;")
-                                                       : QStringLiteral("color: #EF4444; font-weight: 600; font-size: 8.5pt;"));
-    }
+    QTimer::singleShot(100, this, [this]{
+        DefenderStatus st = DefenderEngine::instance().getStatus();
+        if (auto *lbl = findChild<QLabel*>("statusMod1")) {
+            lbl->setText(st.realTimeProtectionEnabled ? tr("● Aktywna") : tr("○ Wyłączona"));
+            lbl->setStyleSheet(st.realTimeProtectionEnabled ? QStringLiteral("color: #00F076; font-weight: 600; font-size: 8.5pt;")
+                                                           : QStringLiteral("color: #EF4444; font-weight: 600; font-size: 8.5pt;"));
+        }
+        if (!st.signatureVersion.isEmpty()) {
+            if (auto *lbl = findChild<QLabel*>("lblDbVersion")) {
+                lbl->setText(tr("Wersja sygnatur: %1").arg(st.signatureVersion));
+            }
+        }
+    });
 }
 
 void MainWindow::onToggleRealTimeClicked()
@@ -1674,9 +1690,13 @@ void MainWindow::populateQuarantineTable()
             const auto &de = defEntries[i];
             auto *cbItem = new QTableWidgetItem();
             cbItem->setCheckState(Qt::Unchecked);
+            cbItem->setData(Qt::UserRole, -1);
+            cbItem->setData(Qt::UserRole + 1, de.name);
             t->setItem(rowIdx, 0, cbItem);
 
             auto *tName = new QTableWidgetItem(de.name);
+            tName->setData(Qt::UserRole, -1);
+            tName->setData(Qt::UserRole + 1, de.name);
             tName->setForeground(QColor("#FFFFFF"));
             t->setItem(rowIdx, 1, tName);
 
@@ -1711,59 +1731,7 @@ void MainWindow::populateQuarantineTable()
             rowIdx++;
         }
     } else {
-        // Pixel-perfect sample threats from AEGIS design mockup
-        struct ThreatDemo {
-            const char* name;
-            const char* type;
-            const char* color;
-            const char* date;
-            const char* path;
-        };
-        static const ThreatDemo demos[] = {
-            { "Trojan.GenericKD.701", "Trojan", "#EF4444", "20.09.2026", "C:\\Users\\...\\AppData\\Local\\Temp\\svchost_upd.exe" },
-            { "Adware.ToolBar", "Adware", "#F97316", "18.09.2026", "C:\\ProgramData\\SearchExtension\\addon.dll" },
-            { "Win32/Agent.A", "Wirus", "#EF4444", "15.09.2026", "C:\\Users\\...\\Downloads\\installer_patch.exe" },
-            { "PUP.Optional.InstallCore", "PUP", "#EAB308", "12.09.2026", "C:\\Program Files\\Bundle\\helper.exe" },
-            { "Ransom.Win32.Locky", "Ransomware", "#EF4444", "10.09.2026", "C:\\Users\\...\\Documents\\invoice_992.vbs" }
-        };
-        t->setRowCount(5);
-        for (int i = 0; i < 5; ++i) {
-            auto *cbItem = new QTableWidgetItem();
-            cbItem->setCheckState(Qt::Unchecked);
-            t->setItem(i, 0, cbItem);
-
-            auto *tName = new QTableWidgetItem(QString::fromUtf8(demos[i].name));
-            tName->setForeground(QColor("#FFFFFF"));
-            t->setItem(i, 1, tName);
-
-            auto *tType = new QTableWidgetItem(QString::fromUtf8(demos[i].type));
-            tType->setForeground(QColor(demos[i].color));
-            t->setItem(i, 2, tType);
-
-            auto *tDate = new QTableWidgetItem(QString::fromUtf8(demos[i].date));
-            tDate->setForeground(QColor("#8FA3BF"));
-            t->setItem(i, 3, tDate);
-
-            auto *tPath = new QTableWidgetItem(QString::fromUtf8(demos[i].path));
-            tPath->setForeground(QColor("#8FA3BF"));
-            t->setItem(i, 4, tPath);
-
-            auto *btnTrash = new QPushButton();
-            btnTrash->setIcon(QIcon(QStringLiteral(":/assets/icons/icon_trash.svg")));
-            btnTrash->setIconSize(QSize(16, 16));
-            btnTrash->setFixedSize(32, 28);
-            btnTrash->setCursor(Qt::PointingHandCursor);
-            btnTrash->setToolTip(tr("Usuń z kwarantanny"));
-            btnTrash->setStyleSheet(QStringLiteral(
-                "QPushButton { background: transparent; border: none; border-radius: 6px; padding: 4px; }"
-                "QPushButton:hover { background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.5); }"
-            ));
-            connect(btnTrash, &QPushButton::clicked, this, [this, i]() {
-                auto *tbl = findChild<QTableWidget*>("tableQuarantine");
-                if (tbl && i < tbl->rowCount()) tbl->removeRow(i);
-            });
-            t->setCellWidget(i, 5, btnTrash);
-        }
+        t->setRowCount(0);
     }
 
     if (ui->lblQuarantineSummary) {
@@ -1785,11 +1753,11 @@ void MainWindow::populateQuarantineTable()
 
         QString html;
         html += QStringLiteral("<table style='border-collapse: collapse; width: 100%; margin: 0; padding: 0;'>");
-        int qCount = Quarantine::instance().count();
-        html += makeRow(QStringLiteral("#10B981"), tr("Stan"), qCount > 0 ? tr("⚠️ Zablokowane zagrożenia") : tr("🟢 Bezpiecznie (Brak)"));
-        html += makeRow(QStringLiteral("#F59E0B"), tr("W kwarantannie"), QStringLiteral("%1 obiektów").arg(qCount));
+        int totalItems = items.size() + defEntries.size();
+        html += makeRow(QStringLiteral("#10B981"), tr("Stan"), totalItems > 0 ? tr("⚠️ Zablokowane zagrożenia") : tr("🟢 Bezpiecznie (Brak)"));
+        html += makeRow(QStringLiteral("#F59E0B"), tr("W kwarantannie"), QStringLiteral("%1 obiektów").arg(totalItems));
         html += makeRow(QStringLiteral("#6366F1"), tr("Rozmiar danych"), FileOps::humanSize(Quarantine::instance().totalBytes()));
-        html += makeRow(QStringLiteral("#38BDF8"), tr("Izolacja"), tr("Szyfrowany skarbiec"));
+        html += makeRow(QStringLiteral("#38BDF8"), tr("Izolacja"), tr("Microsoft Defender & Skarbiec"));
         html += QStringLiteral("</table>");
         ui->lblQuarantineSummary->setText(html);
     }
@@ -1800,12 +1768,19 @@ void MainWindow::onQuarantineRefresh() { populateQuarantineTable(); }
 void MainWindow::onQuarantineRestoreSelected()
 {
     if (!ui->tableQuarantine) return;
-    const auto rows = ui->tableQuarantine->selectionModel()->selectedRows();
     int ok = 0;
-    for (int i = rows.size() - 1; i >= 0; --i) {
-        const int id = rows[i].data(Qt::UserRole).toInt();
-        if (verax::Quarantine::instance().restore(id)) {
-            ++ok;
+    for (int r = ui->tableQuarantine->rowCount() - 1; r >= 0; --r) {
+        auto *item = ui->tableQuarantine->item(r, 0);
+        bool selected = (item && item->checkState() == Qt::Checked) ||
+                        ui->tableQuarantine->selectionModel()->isRowSelected(r, QModelIndex());
+        if (!selected) continue;
+
+        int id = item ? item->data(Qt::UserRole).toInt() : 0;
+        if (id > 0) {
+            if (verax::Quarantine::instance().restore(id)) ++ok;
+        } else if (id == -1 && item) {
+            QString threatName = item->data(Qt::UserRole + 1).toString();
+            if (DefenderEngine::instance().restoreQuarantinedItem(threatName)) ++ok;
         }
     }
     Toaster::show(this, tr("%n item(s) restored", "", ok), Toaster::Success);
@@ -1815,12 +1790,19 @@ void MainWindow::onQuarantineRestoreSelected()
 void MainWindow::onQuarantineDeleteSelected()
 {
     if (!ui->tableQuarantine) return;
-    const auto rows = ui->tableQuarantine->selectionModel()->selectedRows();
     int ok = 0;
-    for (int i = rows.size() - 1; i >= 0; --i) {
-        const int id = rows[i].data(Qt::UserRole).toInt();
-        if (verax::Quarantine::instance().permanentDelete(id)) {
-            ++ok;
+    for (int r = ui->tableQuarantine->rowCount() - 1; r >= 0; --r) {
+        auto *item = ui->tableQuarantine->item(r, 0);
+        bool selected = (item && item->checkState() == Qt::Checked) ||
+                        ui->tableQuarantine->selectionModel()->isRowSelected(r, QModelIndex());
+        if (!selected) continue;
+
+        int id = item ? item->data(Qt::UserRole).toInt() : 0;
+        if (id > 0) {
+            if (verax::Quarantine::instance().permanentDelete(id)) ++ok;
+        } else if (id == -1 && item) {
+            QString threatName = item->data(Qt::UserRole + 1).toString();
+            if (DefenderEngine::instance().removeQuarantinedItem(threatName)) ++ok;
         }
     }
     Toaster::show(this, tr("%n item(s) deleted permanently", "", ok), Toaster::Warn);

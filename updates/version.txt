@@ -1,14 +1,12 @@
-1.1.8.0
-Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-1.1.8.0.exe
+1.1.8.1
+Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-1.1.8.1.exe
 Changelog=>
-Multi-Guard Endpoint Security 1.1.8.0:
-- Pełna integracja z silnikiem Microsoft Defender (MpCmdRun.exe, PowerShell, WMI)
-- Nowoczesna nakładka GUI na ochronę Microsoft Defender z zachowaniem wszystkich funkcji Multi-Guard
-- Bezpośrednie wywoływanie szybkiego, pełnego i niestandardowego skanowania Defenderem
-- Sterowanie ochroną w czasie rzeczywistym i zaporą sieciową Defender Firewall
-- Zunifikowana kwarantanna z możliwością przywracania i usuwania zagrożeń Defendera
-- Błyskawiczne pobieranie oficjalnych definicji z chmury Microsoftu
-- Pełna integracja wyszukiwarki funkcji na górnym pasku
-- Monitor telemetrii sprzętowej CPU/RAM/GPU, czyszczenie dysku i menedżer autostartu
-- Bezpieczny mechanizm cichej aktualizacji z zachowaniem licencji bez ponownego podawania klucza
-- Usprawnione menu systemowego zasobnika (Tray)
+Multi-Guard Endpoint Security 1.1.8.1:
+- Dopracowany silnik integracji z Microsoft Defender (kolejkowanie wielu ścieżek, skanowanie pamięci i nośników USB)
+- Zaawansowane funkcje Defendera: skanowanie offline (Start-MpWDOScan), ochrona w chmurze (MAPS), monitor zachowań i ochrona sieciowa
+- Zabezpieczenie przed ransomware: obsługa Controlled Folder Access
+- Synchronizacja kwarantanny: bezpieczne usuwanie i przywracanie zagrożeń z bazy Defendera i lokalnego skarbca
+- Automatyczne skanowanie nowo podłączanych nośników USB silnikiem Defender z poziomu powiadomień Cyber HUD
+- Wyeliminowanie fałszywych próbek w kwarantannie przy czystym systemie
+- Asynchroniczne odpytywanie stanu Defendera eliminujące opóźnienia startowe UI
+
