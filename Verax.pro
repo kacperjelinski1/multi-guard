@@ -92,6 +92,7 @@ SOURCES += \
     src/core/ReportGenerator.cpp \
     src/core/Ed25519.cpp \
     src/core/LicenseManager.cpp \
+    src/core/DefenderEngine.cpp \
     src/core/FirewallManager.cpp \
     src/core/BrowserProtectionManager.cpp \
     src/core/tweetnacl.c
@@ -100,6 +101,7 @@ HEADERS += \
     Version.h \
     harden.h \
     src/core/ShieldEngine.h \
+    src/core/DefenderEngine.h \
     src/core/Scanner.h \
     src/core/SignatureDb.h \
     src/core/Quarantine.h \

@@ -137,6 +137,8 @@ private:
     void populateQuarantineTable();
     void populateRepairCards();
     void populateAboutPage();
+    void initDefenderIntegration();
+    void onToggleRealTimeClicked();
     void setActiveNav(PageIndex idx);
     void setupTrayIcon();
     void updateTrayLicenseState();

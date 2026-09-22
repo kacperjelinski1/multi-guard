@@ -19,8 +19,8 @@
 // ─── Version (single source of truth) ─────────────────────────────────
 #define APP_VERSION_MAJOR   1
 #define APP_VERSION_MINOR   1
-#define APP_VERSION_PATCH   7
-#define APP_VERSION_BUILD   2
+#define APP_VERSION_PATCH   8
+#define APP_VERSION_BUILD   0
 
 // Auto-derived — DO NOT EDIT BELOW
 #define _VR_STR(x) #x

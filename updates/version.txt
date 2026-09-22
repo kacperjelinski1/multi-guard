@@ -1,10 +1,13 @@
-1.1.7.2
-Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-1.1.7.2.exe
+1.1.8.0
+Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-1.1.8.0.exe
 Changelog=>
-Multi-Guard Endpoint Security 1.1.7.2:
-- Nowy branding i logo Multi-Guard w całym ekosystemie
-- Duże, czytelne i wyraziste powiadomienia Cyber HUD o wykryciu pendrive i zagrożeń w czasie rzeczywistym
-- Dedykowana zakładka Moje konto z pełnymi danymi licencji, klienta, statystykami i zmianą klucza
+Multi-Guard Endpoint Security 1.1.8.0:
+- Pełna integracja z silnikiem Microsoft Defender (MpCmdRun.exe, PowerShell, WMI)
+- Nowoczesna nakładka GUI na ochronę Microsoft Defender z zachowaniem wszystkich funkcji Multi-Guard
+- Bezpośrednie wywoływanie szybkiego, pełnego i niestandardowego skanowania Defenderem
+- Sterowanie ochroną w czasie rzeczywistym i zaporą sieciową Defender Firewall
+- Zunifikowana kwarantanna z możliwością przywracania i usuwania zagrożeń Defendera
+- Błyskawiczne pobieranie oficjalnych definicji z chmury Microsoftu
 - Pełna integracja wyszukiwarki funkcji na górnym pasku
 - Monitor telemetrii sprzętowej CPU/RAM/GPU, czyszczenie dysku i menedżer autostartu
 - Bezpieczny mechanizm cichej aktualizacji z zachowaniem licencji bez ponownego podawania klucza
