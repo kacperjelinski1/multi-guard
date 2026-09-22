@@ -1,5 +1,6 @@
 // PageTransition.cpp - 220ms smooth page fade
 #include "PageTransition.h"
+#include <QWidget>
 #include <QStackedWidget>
 #include <QPropertyAnimation>
 #include <QGraphicsOpacityEffect>

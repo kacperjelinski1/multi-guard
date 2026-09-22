@@ -6,6 +6,7 @@
 #include <QPropertyAnimation>
 #include <QSvgRenderer>
 #include <QTimer>
+#include <QVector>
 #include <cmath>
 #include "../core/Settings.h"
 
