@@ -1,0 +1,2493 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AEGIS Security — Ultra-Dark Cyber UI (1:1 Exact Reference)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-window: #030812;
+      --bg-sidebar: #030812;
+      --bg-header: #050E1B;
+      --card-bg: rgba(10, 24, 42, 0.72);
+      --card-border: rgba(30, 65, 105, 0.55);
+      --card-hover-border: rgba(0, 196, 255, 0.5);
+      --emerald: #00F076;
+      --emerald-dark: #00D26A;
+      --emerald-glow: rgba(0, 240, 118, 0.4);
+      --cyan: #00C4FF;
+      --cyan-soft: #38BDF8;
+      --cyan-glow: rgba(0, 196, 255, 0.4);
+      --text-main: #FFFFFF;
+      --text-muted: #8FA3BF;
+      --text-dim: #4B6380;
+      --danger: #EF4444;
+      --warning: #F59E0B;
+      --toggle-off: #142840;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background: #020509;
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* Top Quick Switcher */
+    .demo-bar {
+      background: #050F1C;
+      border-bottom: 1px solid #0D2238;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 14px;
+      overflow-x: auto;
+      z-index: 100;
+    }
+    .demo-bar-title {
+      font-size: 10.5px;
+      font-weight: 800;
+      color: var(--cyan);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      margin-right: 6px;
+      white-space: nowrap;
+    }
+    .demo-tab-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .demo-tab-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+    .demo-tab-btn.active {
+      background: rgba(0, 240, 118, 0.15);
+      border-color: var(--emerald);
+      color: var(--emerald);
+      box-shadow: 0 0 12px var(--emerald-glow);
+    }
+
+    /* Main Window Frame */
+    .app-window {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-window);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Header Bar */
+    .chrome-bar {
+      height: 50px;
+      background: var(--bg-header);
+      border-bottom: 1px solid #0D1E33;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      position: relative;
+      z-index: 30;
+    }
+    .search-box {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      background: rgba(16, 34, 56, 0.75);
+      border: 1px solid rgba(38, 72, 115, 0.45);
+      border-radius: 18px;
+      padding: 6px 16px;
+      width: 320px;
+      gap: 10px;
+      transition: border 0.15s, background 0.15s, box-shadow 0.15s;
+    }
+    .search-box:focus-within {
+      border-color: var(--cyan);
+      background: rgba(20, 42, 70, 0.9);
+      box-shadow: 0 0 12px rgba(0, 196, 255, 0.25);
+    }
+    .search-box img { width: 14px; height: 14px; opacity: 0.75; }
+    .search-box input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 11.5px;
+      width: 100%;
+    }
+    .search-box input::placeholder { color: var(--text-muted); }
+
+    .header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .bell-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px;
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+    .bell-btn:hover { background: rgba(255, 255, 255, 0.06); }
+    .bell-btn img { width: 18px; height: 18px; }
+    .bell-dot {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      width: 6px;
+      height: 6px;
+      background: var(--emerald);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--emerald);
+    }
+
+    .profile-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 34, 56, 0.6);
+      border: 1px solid rgba(35, 68, 108, 0.4);
+      border-radius: 20px;
+      padding: 3px 12px 3px 4px;
+      cursor: pointer;
+      transition: border 0.15s;
+    }
+    .profile-pill:hover { border-color: var(--cyan); }
+    .profile-img {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid var(--cyan);
+    }
+    .profile-info { display: flex; flex-direction: column; }
+    .profile-name { font-size: 11px; font-weight: 700; color: #fff; line-height: 12px; }
+    .profile-tier { font-size: 8.5px; font-weight: 700; color: var(--cyan); text-transform: uppercase; letter-spacing: 0.4px; }
+
+    .win-controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #7A92AB;
+      font-size: 13px;
+      margin-left: 6px;
+    }
+    .win-controls span { cursor: pointer; transition: color 0.15s; }
+    .win-controls span:hover { color: #fff; }
+
+    /* Layout Body */
+    .app-body {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Left Sidebar */
+    .sidebar {
+      width: 220px;
+      background: var(--bg-sidebar);
+      border-right: 1px solid #0D1E33;
+      display: flex;
+      flex-direction: column;
+      padding: 16px 10px;
+      z-index: 20;
+    }
+    .brand-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 0 8px 16px 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      margin-bottom: 12px;
+    }
+    .brand-logo-img { width: 34px; height: 34px; }
+    .brand-title-wrap h1 { font-size: 15px; font-weight: 800; color: #fff; letter-spacing: 1.2px; }
+    .brand-title-wrap p { font-size: 8.5px; color: var(--text-muted); }
+
+    .sidebar-menu {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .sidebar-btn {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border-left: 3px solid transparent;
+      color: var(--text-muted);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .sidebar-btn:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: #fff;
+    }
+    .sidebar-btn.active {
+      background: rgba(14, 40, 65, 0.85);
+      border-left-color: var(--emerald);
+      box-shadow: inset 3px 0 10px -2px var(--emerald-glow);
+      color: #fff;
+      font-weight: 700;
+    }
+    .sidebar-btn img {
+      width: 17px;
+      height: 17px;
+      opacity: 0.75;
+      filter: grayscale(100%);
+      transition: transform 0.15s, opacity 0.15s, filter 0.15s;
+    }
+    .sidebar-btn.active img {
+      opacity: 1;
+      filter: drop-shadow(0 0 8px #00F076) drop-shadow(0 0 14px rgba(0, 240, 118, 0.5));
+    }
+    .sidebar-btn:hover img { transform: scale(1.05); opacity: 0.95; }
+
+    .sidebar-spacer { flex: 1; min-height: 15px; }
+    .sidebar-badge-bottom {
+      padding: 10px 12px;
+      font-size: 8px;
+      color: var(--text-dim);
+      line-height: 13px;
+    }
+
+    /* Content Area */
+    .viewport {
+      flex: 1;
+      position: relative;
+      overflow-y: auto;
+      background:
+        url('assets/aegis_cyber_hud_bg.png') center / cover no-repeat,
+        #030812;
+    }
+
+    /* ══════════════════════════════════════════════════
+       INDIVIDUAL PAGE BACKGROUNDS (1:1 per Screen)
+       ══════════════════════════════════════════════════ */
+    .page-section {
+      display: none;
+      min-height: 100%;
+      padding: 24px 34px;
+      position: relative;
+    }
+    .page-section.active {
+      display: block;
+      animation: pageIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @keyframes pageIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Screen 1 (Pulpit): FULL MOUNTAIN PANORAMA (mountain_bg.jpg) */
+    #sec-1 {
+      background:
+        radial-gradient(ellipse 800px 380px at 70% 25%, rgba(0, 196, 255, 0.22) 0%, transparent 70%),
+        url('assets/mountain_bg.jpg') right top / cover no-repeat;
+    }
+
+    /* Screen 2 (Skanowanie Wybór): Deep Cyber Night with Center Ambient Glow */
+    #sec-2 {
+      background:
+        radial-gradient(circle 520px at 50% 60%, rgba(0, 196, 255, 0.16) 0%, transparent 70%);
+    }
+
+    /* Screen 3 (Skanowanie Postęp): AURORA BOREALIS Swirling from Top Right */
+    #sec-3 {
+      background:
+        radial-gradient(ellipse 700px 420px at 95% 8%, rgba(0, 240, 118, 0.42) 0%, rgba(0, 196, 255, 0.28) 40%, transparent 75%),
+        linear-gradient(135deg, transparent 52%, rgba(0, 240, 118, 0.18) 85%, transparent 100%);
+    }
+
+    /* Screen 4 (Ochrona www): Atmospheric Right Cyber Nebula */
+    #sec-4 {
+      background:
+        radial-gradient(ellipse 650px 400px at 85% 45%, rgba(0, 196, 255, 0.18) 0%, transparent 70%);
+    }
+
+    /* Screen 5 (Firewall): VIVID GREEN-CYAN LIGHT STREAK from bottom left */
+    #sec-5 {
+      background:
+        radial-gradient(ellipse 600px 380px at 16% 80%, rgba(0, 240, 118, 0.38) 0%, rgba(0, 196, 255, 0.25) 45%, transparent 75%),
+        radial-gradient(circle 480px at 90% 30%, rgba(0, 196, 255, 0.15) 0%, transparent 65%);
+    }
+
+    /* Screen 6 (Kwarantanna): Deep Vignette & Cyan Top-Right Glow */
+    #sec-6 {
+      background:
+        radial-gradient(ellipse 620px 360px at 85% 20%, rgba(0, 196, 255, 0.16) 0%, transparent 70%);
+    }
+
+    /* Screen 7 (Optymalizacja): RADIANT EMERALD HALO BEHIND GAUGE */
+    #sec-7 {
+      background:
+        radial-gradient(circle 440px at 170px 220px, rgba(0, 240, 118, 0.45) 0%, rgba(0, 196, 255, 0.22) 50%, transparent 75%);
+    }
+
+    /* Screen 8 (Zdalna naprawa): DIAGONAL COSMIC FLARE BEAM */
+    #sec-8 {
+      background:
+        linear-gradient(125deg, transparent 40%, rgba(0, 196, 255, 0.32) 80%, transparent 100%),
+        radial-gradient(ellipse 520px 320px at 90% 12%, rgba(0, 196, 255, 0.38) 0%, transparent 65%);
+    }
+
+    /* Screen 9 (Ustawienia): Midnight Navy HUD Glow */
+    #sec-9 {
+      background:
+        radial-gradient(circle 520px at 75% 25%, rgba(0, 196, 255, 0.14) 0%, transparent 70%);
+    }
+
+    /* Glass Cards */
+    .glass-card {
+      background: rgba(10, 22, 38, 0.62);
+      border: 1px solid rgba(0, 240, 118, 0.16);
+      border-radius: 12px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.45);
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+    .glass-card:hover {
+      border-color: rgba(0, 240, 118, 0.45);
+      box-shadow: 0 6px 24px rgba(0, 240, 118, 0.18);
+    }
+
+    /* Neon Glow Utility Classes (Authentic Electric Neon) */
+    .neon-glow-green {
+      filter: drop-shadow(0 0 4px #00F076) drop-shadow(0 0 12px rgba(0, 240, 118, 0.85)) drop-shadow(0 0 24px rgba(0, 240, 118, 0.45));
+    }
+    .neon-glow-cyan {
+      filter: drop-shadow(0 0 4px #00C4FF) drop-shadow(0 0 12px rgba(0, 196, 255, 0.85)) drop-shadow(0 0 24px rgba(0, 196, 255, 0.45));
+    }
+    .neon-glow-gold {
+      filter: drop-shadow(0 0 4px #FFD000) drop-shadow(0 0 12px rgba(255, 208, 0, 0.85)) drop-shadow(0 0 24px rgba(255, 208, 0, 0.45));
+    }
+    .neon-glow-red {
+      filter: drop-shadow(0 0 4px #FF334B) drop-shadow(0 0 12px rgba(255, 51, 75, 0.85)) drop-shadow(0 0 24px rgba(255, 51, 75, 0.45));
+    }
+
+    /* Page Header */
+    .page-header h2 { font-size: 21px; font-weight: 800; color: #fff; margin-bottom: 3px; }
+    .page-header p { font-size: 11px; color: var(--text-muted); margin-bottom: 20px; }
+
+    /* Switch Component (iOS Toggle) */
+    .toggle-switch {
+      width: 36px;
+      height: 20px;
+      background: var(--emerald);
+      border-radius: 12px;
+      position: relative;
+      cursor: pointer;
+      transition: background 0.2s ease, box-shadow 0.2s ease;
+      box-shadow: 0 0 10px var(--emerald-glow);
+    }
+    .toggle-switch.off {
+      background: var(--toggle-off);
+      box-shadow: none;
+    }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      background: #FFFFFF;
+      border-radius: 50%;
+      top: 3px;
+      right: 3px;
+      transition: transform 0.2s ease;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+    .toggle-switch.off::after {
+      transform: translateX(-16px);
+    }
+
+    /* Tabs Bar (Subtabs) */
+    .subtabs-nav {
+      display: flex;
+      gap: 22px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      padding-bottom: 10px;
+      margin-bottom: 22px;
+    }
+    .subtab-link {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      position: relative;
+      transition: color 0.15s ease;
+    }
+    .subtab-link:hover { color: #fff; }
+    .subtab-link.active {
+      color: #fff;
+      font-weight: 700;
+    }
+    .subtab-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: -11px;
+      left: 0;
+      right: 0;
+      height: 2.5px;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+      border-radius: 2px;
+    }
+
+    .subtab-pane { display: none; }
+    .subtab-pane.active { display: block; animation: pageIn 0.18s ease; }
+
+    /* ══════════════════════════════════════════════════
+       SCREEN 1: PULPIT (SEAMLESS MOUNTAIN PANORAMA)
+       ══════════════════════════════════════════════════ */
+    .pulpit-hero-region {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-top: 10px;
+      margin-bottom: 30px;
+      position: relative;
+    }
+    .pulpit-hero-left {
+      max-width: 550px;
+    }
+    .pulpit-hero-left h2 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.2px;
+      margin-bottom: 6px;
+    }
+    .pulpit-hero-left p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .hero-btn-row {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    .btn-emerald-cta {
+      background: linear-gradient(135deg, #00F076 0%, #00D26A 100%);
+      color: #040B16;
+      font-size: 12.5px;
+      font-weight: 800;
+      padding: 11px 26px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 0 26px var(--emerald-glow);
+      transition: all 0.15s ease;
+    }
+    .btn-emerald-cta:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-glass-cta {
+      background: rgba(16, 34, 58, 0.65);
+      border: 1px solid rgba(45, 80, 125, 0.5);
+      backdrop-filter: blur(10px);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 11px 22px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-glass-cta:hover { background: rgba(22, 45, 78, 0.85); }
+
+    .pulpit-hero-right {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      margin-right: 40px;
+    }
+    .hero-signature {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 12px;
+    }
+    .hero-tagline-text {
+      font-size: 9.5px;
+      color: #6E85A0;
+      letter-spacing: 0.3px;
+    }
+    .hero-script-font {
+      font-family: 'Caveat', cursive;
+      font-size: 26px;
+      color: rgba(0, 240, 118, 0.45);
+      transform: rotate(-5deg);
+    }
+    .hero-ring-glow {
+      width: 116px;
+      height: 116px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0, 240, 118, 0.32) 0%, rgba(4, 15, 30, 0.85) 75%);
+      border: 3.5px solid var(--emerald);
+      box-shadow: 0 0 42px var(--emerald-glow), inset 0 0 25px rgba(0, 240, 118, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    .hero-ring-glow::before {
+      content: '';
+      position: absolute;
+      inset: -12px;
+      border-radius: 50%;
+      border: 1.5px dashed rgba(0, 240, 118, 0.45);
+      animation: spinDash 28s linear infinite;
+    }
+    @keyframes spinDash { 100% { transform: rotate(360deg); } }
+    .hero-ring-glow span { font-size: 46px; color: var(--emerald); font-weight: 800; }
+
+    /* Screen 1 Modules Grid */
+    .modules-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .module-item {
+      padding: 22px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+    .module-item:hover {
+      border-color: rgba(0, 240, 118, 0.5);
+      box-shadow: 0 0 22px rgba(0, 240, 118, 0.2);
+      transform: translateY(-2px);
+    }
+    .module-icon-wrap {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: rgba(0, 240, 118, 0.09);
+      border: 1.5px solid rgba(0, 240, 118, 0.55);
+      box-shadow: 0 0 18px rgba(0, 240, 118, 0.3), inset 0 0 10px rgba(0, 240, 118, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .module-icon-wrap img {
+      width: 32px;
+      height: 32px;
+      filter: drop-shadow(0 0 2px #00F076) drop-shadow(0 0 8px rgba(0, 240, 118, 0.9));
+    }
+    .module-name { font-size: 11.5px; font-weight: 700; color: #fff; }
+    .module-status { font-size: 10px; font-weight: 700; color: var(--emerald); display: flex; align-items: center; gap: 4px; }
+
+    /* Screen 1 Bottom 3 Cards */
+    .bottom-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .info-tile {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      cursor: pointer;
+    }
+    .info-tile:hover {
+      border-color: rgba(0, 196, 255, 0.45);
+      transform: translateY(-2px);
+    }
+    .info-tile-icon { width: 26px; height: 26px; }
+    .info-tile-text h4 { font-size: 12px; font-weight: 700; color: #fff; }
+    .info-tile-text p { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ══════════════════════════════════════════════════
+       SCREEN 2: SKANOWANIE (WYBÓR)
+       ══════════════════════════════════════════════════ */
+    .scan-modes-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .scan-mode-tile {
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+    }
+    .scan-mode-tile.selected {
+      background: rgba(18, 42, 70, 0.95);
+      border-color: var(--cyan);
+      box-shadow: 0 0 25px var(--cyan-glow), inset 0 0 15px rgba(0, 196, 255, 0.15);
+    }
+    .scan-mode-tile img { width: 32px; height: 32px; margin-bottom: 14px; }
+    .scan-mode-tile h3 { font-size: 13.5px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+    .scan-mode-tile p { font-size: 10px; color: var(--text-muted); line-height: 14px; }
+    .scan-mode-tile .time-pill {
+      margin-top: 10px;
+      font-size: 9.5px;
+      color: var(--cyan);
+      background: rgba(0, 196, 255, 0.14);
+      padding: 2px 10px;
+      border-radius: 10px;
+    }
+
+    .btn-blue-action {
+      display: block;
+      width: 100%;
+      background: linear-gradient(135deg, #198FFD 0%, #0077E6 100%);
+      color: #fff;
+      font-size: 13.5px;
+      font-weight: 700;
+      padding: 13px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      margin-bottom: 28px;
+      box-shadow: 0 0 24px rgba(25, 143, 253, 0.5);
+      transition: filter 0.15s ease;
+    }
+    .btn-blue-action:hover { filter: brightness(1.1); }
+
+    .table-header-flex {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .table-header-flex h4 { font-size: 13px; font-weight: 700; color: #fff; }
+    .table-header-flex a { font-size: 11px; color: var(--cyan); text-decoration: none; }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+    }
+    .data-table tr {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .data-table td, .data-table th {
+      padding: 11px 16px;
+      color: var(--text-muted);
+      text-align: left;
+    }
+    .data-table tr:last-child { border-bottom: none; }
+
+    /* ══════════════════════════════════════════════════
+       SCREEN 3: SKANOWANIE W TOKU
+       ══════════════════════════════════════════════════ */
+    .scanning-active-box {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+      padding: 28px 32px;
+      margin-bottom: 24px;
+    }
+    .conic-ring-progress {
+      width: 136px;
+      height: 136px;
+      border-radius: 50%;
+      background: conic-gradient(var(--cyan) 0deg, var(--emerald) 245deg, rgba(255, 255, 255, 0.08) 245deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 40px var(--cyan-glow), 0 0 20px var(--emerald-glow);
+      position: relative;
+    }
+    .conic-ring-inner {
+      width: 108px;
+      height: 108px;
+      border-radius: 50%;
+      background: #061220;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      font-weight: 800;
+      color: #fff;
+    }
+    .scan-stats-block {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      flex: 1;
+    }
+    .stat-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--text-muted);
+      border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
+      padding-bottom: 5px;
+    }
+    .stat-line strong { color: #fff; }
+
+    .scan-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 9px 24px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      cursor: pointer;
+    }
+    .btn-danger-outline {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 9px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .chk-inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    .tip-banner {
+      background: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: 8px;
+      padding: 13px 18px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .tip-banner img { width: 22px; height: 22px; }
+    .tip-banner p { font-size: 11px; color: #FCD34D; }
+
+    /* ══════════════════════════════════════════════════
+       SCREEN 4: OCHRONA PRZEGLĄDARKI
+       ══════════════════════════════════════════════════ */
+    .browsers-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .browser-box {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+    }
+    .browser-emoji { font-size: 26px; }
+    .browser-status-ok { font-size: 10px; font-weight: 700; color: var(--emerald); }
+
+    .split-col-layout {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 20px;
+    }
+    .toggles-group {
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+    .toggle-item-box {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 9px 14px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 11.5px;
+      color: #fff;
+    }
+    .threat-stats-panel { padding: 18px; }
+    .threat-stats-panel h4 { font-size: 12.5px; font-weight: 700; margin-bottom: 16px; color: #fff; }
+    .threat-line {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .badge-danger-sq {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid var(--danger);
+      color: var(--danger);
+      font-size: 10.5px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ══════════════════════════════════════════════════
+       SCREEN 5: FIREWALL
+       ══════════════════════════════════════════════════ */
+    .rules-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .rule-card {
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* ══════════════════════════════════════════════════
+       SCREEN 6: KWARANTANNA
+       ══════════════════════════════════════════════════ */
+    .quarantine-actions-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    /* ══════════════════════════════════════════════════
+       SCREEN 7: WYDAJNOŚĆ / OPTYMALIZACJA
+       ══════════════════════════════════════════════════ */
+    .opt-split-grid {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+    }
+    .opt-radial-card {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+    .gauge-circle {
+      width: 124px;
+      height: 124px;
+      border-radius: 50%;
+      background: conic-gradient(var(--emerald) 0deg, var(--emerald) 330deg, rgba(255, 255, 255, 0.08) 330deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 35px var(--emerald-glow), inset 0 0 15px rgba(0, 240, 118, 0.2);
+      margin-bottom: 14px;
+      position: relative;
+    }
+    .gauge-circle.cleaning {
+      animation: spinGauge 1s linear infinite;
+    }
+    @keyframes spinGauge { 100% { transform: rotate(360deg); } }
+    .gauge-circle-inner {
+      width: 98px;
+      height: 98px;
+      border-radius: 50%;
+      background: #061220;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .opt-tiles-column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .opt-tile-row {
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .opt-icon-sq {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: rgba(0, 240, 118, 0.1);
+      border: 1px solid rgba(0, 240, 118, 0.4);
+      box-shadow: 0 0 14px rgba(0, 240, 118, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .opt-icon-sq img { width: 18px; height: 18px; }
+    .btn-opt-action {
+      background: rgba(0, 240, 118, 0.15);
+      border: 1px solid var(--emerald);
+      color: var(--emerald);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 18px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-opt-action:hover {
+      background: var(--emerald);
+      color: #030812;
+      box-shadow: 0 0 12px var(--emerald-glow);
+    }
+    .btn-opt-action.done {
+      background: rgba(0, 240, 118, 0.25);
+      color: #fff;
+      border-color: var(--emerald);
+      cursor: default;
+    }
+
+    /* ══════════════════════════════════════════════════
+       SCREEN 8: ZDALNA NAPRAWA
+       ══════════════════════════════════════════════════ */
+    .remote-two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+    .session-code-text {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 14px 0;
+    }
+    .trust-badges-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+    .trust-badge-card {
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 10.5px;
+      color: var(--text-muted);
+    }
+    .trust-badge-card img { width: 16px; height: 16px; }
+
+    /* ══════════════════════════════════════════════════
+       SCREEN 9: USTAWIENIA
+       ══════════════════════════════════════════════════ */
+    .settings-list-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 700px;
+    }
+    .settings-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 18px;
+      font-size: 12px;
+      color: #fff;
+    }
+    .dropdown-styled {
+      background: rgba(18, 36, 60, 0.85);
+      border: 1px solid rgba(40, 75, 120, 0.6);
+      color: #fff;
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      outline: none;
+    }
+
+    /* Notification Popover */
+    .notif-popover {
+      position: absolute;
+      top: 56px;
+      right: 20px;
+      width: 330px;
+      background: rgba(8, 18, 32, 0.95);
+      border: 1px solid rgba(0, 196, 255, 0.35);
+      border-radius: 12px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.6);
+      padding: 16px;
+      z-index: 50;
+      display: none;
+      animation: popoverIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .notif-popover.open { display: block; }
+    @keyframes popoverIn {
+      from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .notif-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .notif-header h4 { font-size: 12px; font-weight: 700; color: #fff; }
+    .notif-clear-btn { font-size: 10px; color: var(--cyan); background: none; border: none; cursor: pointer; }
+    .notif-item {
+      display: flex;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-size: 10.5px;
+      color: var(--text-muted);
+    }
+    .notif-item strong { color: #fff; }
+    .notif-item:last-child { border-bottom: none; }
+
+    /* Alert Toast */
+    .toast-banner {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      background: rgba(0, 240, 118, 0.15);
+      border: 1px solid var(--emerald);
+      box-shadow: 0 0 20px var(--emerald-glow);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 11.5px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 99;
+      transform: translateY(60px);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .toast-banner.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* ══════════════════════════════════════════════════
+       RESPONSIVE DESIGN (Adaptive Layout)
+       ══════════════════════════════════════════════════ */
+    .data-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Medium Displays & Laptops (<= 1150px) */
+    @media (max-width: 1150px) {
+      .modules-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+      }
+      .bottom-row {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+      }
+      .scan-modes-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+      }
+      .browsers-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+      }
+      .split-col-layout {
+        grid-template-columns: 1fr;
+      }
+      .opt-split-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+      .opt-radial-card {
+        max-width: 360px;
+        margin: 0 auto 10px auto;
+      }
+      .remote-two-col {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      .trust-badges-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .pulpit-hero-region {
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+      .pulpit-hero-right {
+        margin-right: 0;
+      }
+    }
+
+    /* Small Displays & Compact Views (<= 850px) */
+    @media (max-width: 850px) {
+      .sidebar {
+        width: 68px;
+        padding: 16px 6px;
+      }
+      .sidebar-brand-text,
+      .sidebar-btn span,
+      .sidebar-badge-bottom {
+        display: none !important;
+      }
+      .sidebar-btn {
+        justify-content: center;
+        padding: 10px 0;
+        gap: 0;
+      }
+      .sidebar-btn.active::before {
+        left: 2px;
+      }
+      .sidebar-brand {
+        justify-content: center;
+        padding: 0 0 16px 0;
+      }
+      .search-box {
+        position: static;
+        transform: none;
+        width: 170px;
+        padding: 5px 10px;
+      }
+      .profile-info {
+        display: none;
+      }
+      .profile-pill {
+        padding: 2px;
+        border-radius: 50%;
+      }
+      .header-right {
+        gap: 8px;
+      }
+      .modules-row {
+        grid-template-columns: 1fr;
+      }
+      .scan-modes-row {
+        grid-template-columns: 1fr;
+      }
+      .browsers-row {
+        grid-template-columns: 1fr;
+      }
+      .bottom-row {
+        grid-template-columns: 1fr;
+      }
+      .pulpit-hero-left h2 {
+        font-size: 22px;
+      }
+      .page-section {
+        padding: 16px;
+      }
+      .subtabs-nav {
+        overflow-x: auto;
+        gap: 14px;
+        padding-bottom: 6px;
+      }
+      .subtab-link {
+        white-space: nowrap;
+      }
+      .session-code-text {
+        font-size: 22px;
+      }
+      .hero-btn-row {
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Quick Switcher Bar -->
+  <div class="demo-bar">
+    <span class="demo-bar-title">Podgląd 9 Ekranów (1:1):</span>
+    <button class="demo-tab-btn active" onclick="gotoScreen(1)">1. Pulpit</button>
+    <button class="demo-tab-btn" onclick="gotoScreen(2)">2. Skanowanie (Wybór)</button>
+    <button class="demo-tab-btn" onclick="gotoScreen(3)">3. Skanowanie (W toku)</button>
+    <button class="demo-tab-btn" onclick="gotoScreen(4)">4. Ochrona przeglądarki</button>
+    <button class="demo-tab-btn" onclick="gotoScreen(5)">5. Firewall</button>
+    <button class="demo-tab-btn" onclick="gotoScreen(6)">6. Kwarantanna</button>
+    <button class="demo-tab-btn" onclick="gotoScreen(7)">7. Optymalizacja</button>
+    <button class="demo-tab-btn" onclick="gotoScreen(8)">8. Zdalna naprawa</button>
+    <button class="demo-tab-btn" onclick="gotoScreen(9)">9. Ustawienia</button>
+  </div>
+
+  <!-- Main Frameless Window -->
+  <div class="app-window">
+
+    <!-- Top Chrome Header -->
+    <header class="chrome-bar">
+      <div class="search-box">
+        <img src="assets/icons/icon_search.svg" alt="Search">
+        <input type="text" placeholder="Szukaj funkcji, ustawień...">
+      </div>
+
+      <div class="header-right">
+        <button class="bell-btn" onclick="toggleNotifPopover()" title="Powiadomienia">
+          <img src="assets/icons/icon_bell.svg" alt="Bell">
+          <span class="bell-dot"></span>
+        </button>
+
+        <div class="profile-pill">
+          <img class="profile-img" src="assets/user_avatar.png" alt="Avatar">
+          <div class="profile-info">
+            <span class="profile-name">Kacper</span>
+            <span class="profile-tier">Premium</span>
+          </div>
+        </div>
+
+        <div class="win-controls">
+          <span title="Minimalizuj">&#8722;</span>
+          <span title="Zamknij" style="color:#FF5C5C">&#10005;</span>
+        </div>
+      </div>
+
+      <!-- Notifications Popover -->
+      <div class="notif-popover" id="notif-box">
+        <div class="notif-header">
+          <h4>Powiadomienia systemowe</h4>
+          <button class="notif-clear-btn" onclick="clearNotifs()">Wyczyść</button>
+        </div>
+        <div id="notif-list">
+          <div class="notif-item">
+            <span>🛡️</span>
+            <div><strong>Zablokowano atak:</strong> 185.220.101.5 przez unknown.exe (10:18)</div>
+          </div>
+          <div class="notif-item">
+            <span>🟢</span>
+            <div><strong>Baza wirusów zaktualizowana:</strong> Wersja 2026.09.22.01 (10:24)</div>
+          </div>
+          <div class="notif-item">
+            <span>⚡</span>
+            <div><strong>Szybkie skanowanie ukończone:</strong> Nie znaleziono zagrożeń.</div>
+          </div>
+          <div class="notif-item">
+            <span>👑</span>
+            <div><strong>Licencja Premium:</strong> Aktywna do 22.09.2027.</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- App Body: Sidebar + Viewport -->
+    <div class="app-body">
+
+      <!-- Left Sidebar with all direct cards/items requested by user -->
+      <aside class="sidebar">
+        <div class="brand-header">
+          <img class="brand-logo-img" src="assets/aegis_logo.svg" alt="AEGIS">
+          <div class="brand-title-wrap">
+            <h1>AEGIS</h1>
+            <p>Ochrona. Poczuj spokój.</p>
+          </div>
+        </div>
+
+        <nav class="sidebar-menu">
+          <div class="sidebar-btn active" id="btn-side-1" onclick="gotoScreen(1)">
+            <img src="assets/icons/nav_home_active.svg" alt="Pulpit">
+            <span>Pulpit</span>
+          </div>
+          <div class="sidebar-btn" id="btn-side-2" onclick="gotoScreen(2)">
+            <img src="assets/icons/nav_scan.svg" alt="Skanowanie">
+            <span>Skanowanie</span>
+          </div>
+          <div class="sidebar-btn" id="btn-side-4" onclick="gotoScreen(4)">
+            <img src="assets/icons/nav_globe.svg" alt="Ochrona przeglądarki">
+            <span>Ochrona przeglądarki</span>
+          </div>
+          <div class="sidebar-btn" id="btn-side-5" onclick="gotoScreen(5)">
+            <img src="assets/icons/nav_firewall.svg" alt="Firewall">
+            <span>Firewall</span>
+          </div>
+          <div class="sidebar-btn" id="btn-side-6" onclick="gotoScreen(6)">
+            <img src="assets/icons/nav_quarantine.svg" alt="Kwarantanna">
+            <span>Kwarantanna</span>
+          </div>
+          <div class="sidebar-btn" id="btn-side-7" onclick="gotoScreen(7)">
+            <img src="assets/icons/nav_perf.svg" alt="Wydajność">
+            <span>Wydajność</span>
+          </div>
+          <div class="sidebar-btn" id="btn-side-8" onclick="gotoScreen(8)">
+            <img src="assets/icons/nav_tools.svg" alt="Narzędzia">
+            <span>Narzędzia</span>
+          </div>
+
+          <div class="sidebar-spacer"></div>
+
+          <div class="sidebar-btn" id="btn-side-acc">
+            <img src="assets/icons/nav_account.svg" alt="Konto">
+            <span>Moje konto</span>
+          </div>
+          <div class="sidebar-btn" id="btn-side-9" onclick="gotoScreen(9)">
+            <img src="assets/icons/nav_settings.svg" alt="Ustawienia">
+            <span>Ustawienia</span>
+          </div>
+        </nav>
+
+        <div class="sidebar-badge-bottom">
+          <p><strong>Aegis 2.1.0</strong></p>
+          <p>Security for a better tomorrow</p>
+        </div>
+      </aside>
+
+      <!-- Viewport Area -->
+      <main class="viewport">
+
+        <!-- ──────────────── SCREEN 1: PULPIT (FULL MOUNTAIN PANORAMA) ──────────────── -->
+        <section class="page-section active" id="sec-1">
+          <div class="pulpit-hero-region">
+            <div class="pulpit-hero-left">
+              <h2>Twój komputer jest chroniony</h2>
+              <p>Wszystkie moduły działają prawidłowo.</p>
+              <div class="hero-btn-row">
+                <button class="btn-emerald-cta" onclick="startScanSimulation()">Szybkie skanowanie</button>
+                <button class="btn-glass-cta" onclick="gotoScreen(2)">Więcej opcji &#9662;</button>
+              </div>
+            </div>
+
+            <div class="pulpit-hero-right">
+              <div class="hero-signature">
+                <span class="hero-tagline-text">Bezpieczeństwo na wyższym poziomie.</span>
+                <span class="hero-script-font">Aegis</span>
+              </div>
+              <div class="hero-ring-glow">
+                <span>&#10003;</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="modules-row">
+            <div class="glass-card module-item" onclick="gotoScreen(2)">
+              <div class="module-icon-wrap"><img src="assets/icons/module_shield.svg" alt="RTP"></div>
+              <div class="module-name">Ochrona w czasie rzeczywistym</div>
+              <div class="module-status">&#9679; Aktywna</div>
+            </div>
+            <div class="glass-card module-item" onclick="gotoScreen(4)">
+              <div class="module-icon-wrap"><img src="assets/icons/module_globe.svg" alt="Browser"></div>
+              <div class="module-name">Ochrona przeglądarki</div>
+              <div class="module-status">&#9679; Aktywna</div>
+            </div>
+            <div class="glass-card module-item" onclick="gotoScreen(5)">
+              <div class="module-icon-wrap"><img src="assets/icons/module_firewall.svg" alt="Firewall"></div>
+              <div class="module-name">Firewall</div>
+              <div class="module-status">&#9679; Aktywny</div>
+            </div>
+            <div class="glass-card module-item" onclick="gotoScreen(4)">
+              <div class="module-icon-wrap"><img src="assets/icons/module_mail.svg" alt="Mail"></div>
+              <div class="module-name">Ochrona poczty</div>
+              <div class="module-status">&#9679; Aktywna</div>
+            </div>
+          </div>
+
+          <div class="bottom-row">
+            <div class="glass-card info-tile" onclick="gotoScreen(6)">
+              <img class="info-tile-icon neon-glow-green" src="assets/icons/icon_check.svg" alt="Threats">
+              <div class="info-tile-text">
+                <h4>Brak zagrożeń</h4>
+                <p>Ostatnie skanowanie: dzisiaj 10:24</p>
+              </div>
+            </div>
+            <div class="glass-card info-tile" onclick="triggerToast('Baza sygnatur jest aktualna (wersja 2026.09.22.01)')">
+              <img class="info-tile-icon neon-glow-green" src="assets/icons/icon_database.svg" alt="DB">
+              <div class="info-tile-text">
+                <h4>Baza wirusów</h4>
+                <p><span style="color:var(--emerald); font-weight:700">Zaktualizowana</span> 22.09.2026, 12:00</p>
+              </div>
+            </div>
+            <div class="glass-card info-tile" onclick="gotoScreen(9)">
+              <img class="info-tile-icon neon-glow-green" src="assets/icons/icon_crown.svg" alt="Crown">
+              <div class="info-tile-text">
+                <h4>Subskrypcja Premium</h4>
+                <p>Ważna do: 22.09.2027</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ──────────────── SCREEN 2: SKANOWANIE (WYBÓR) ──────────────── -->
+        <section class="page-section" id="sec-2">
+          <div class="page-header">
+            <h2>Skanowanie</h2>
+            <p>Wybierz typ skanowania, aby sprawdzić komputer pod kątem zagrożeń.</p>
+          </div>
+
+          <div class="scan-modes-row">
+            <div class="glass-card scan-mode-tile selected" onclick="pickScanTile(this)">
+              <img src="assets/icons/icon_lightning.svg" class="neon-glow-cyan" alt="Quick">
+              <h3>Szybkie</h3>
+              <p>Najważniejsze obszary systemu</p>
+              <span class="time-pill">~ 2-5 min</span>
+            </div>
+            <div class="glass-card scan-mode-tile" onclick="pickScanTile(this)">
+              <img src="assets/icons/icon_pc.svg" class="neon-glow-cyan" alt="Full">
+              <h3>Pełne</h3>
+              <p>Cały komputer</p>
+              <span class="time-pill">~ 30-90 min</span>
+            </div>
+            <div class="glass-card scan-mode-tile" onclick="pickScanTile(this)">
+              <img src="assets/icons/icon_folder.svg" class="neon-glow-cyan" alt="Custom">
+              <h3>Niestandardowe</h3>
+              <p>Wybrane pliki i foldery</p>
+            </div>
+            <div class="glass-card scan-mode-tile" onclick="pickScanTile(this)">
+              <img src="assets/icons/icon_usb.svg" class="neon-glow-cyan" alt="USB">
+              <h3>Nośniki USB</h3>
+              <p>Pendrive, dyski zewnętrzne</p>
+            </div>
+          </div>
+
+          <button class="btn-blue-action" onclick="startScanSimulation()">Rozpocznij skanowanie</button>
+
+          <div class="table-header-flex">
+            <h4>Ostatnie skanowania</h4>
+            <a href="#" onclick="gotoScreen(6); return false;">Zobacz wszystkie &gt;</a>
+          </div>
+
+          <div class="glass-card">
+            <table class="data-table">
+              <tr>
+                <td>22.09.2026 10:24</td>
+                <td>Szybkie skanowanie</td>
+                <td style="color:var(--emerald); font-weight:700">&#10003; Nie znaleziono zagrożeń</td>
+                <td>2 min 14 s</td>
+              </tr>
+              <tr>
+                <td>18.09.2026 21:13</td>
+                <td>Pełne skanowanie</td>
+                <td style="color:var(--emerald); font-weight:700">&#10003; Nie znaleziono zagrożeń</td>
+                <td>1 godz. 12 min</td>
+              </tr>
+              <tr>
+                <td>15.09.2026 16:42</td>
+                <td>Skanowanie niestandardowe</td>
+                <td style="color:var(--danger); font-weight:700">&#9888; 3 zagrożenia</td>
+                <td>8 min 36 s</td>
+              </tr>
+            </table>
+          </div>
+        </section>
+
+        <!-- ──────────────── SCREEN 3: SKANOWANIE W TOKU ──────────────── -->
+        <section class="page-section" id="sec-3">
+          <div class="page-header">
+            <h2>Skanowanie systemu</h2>
+            <p>Trwa skanowanie... <code id="scan-path-label" style="color:var(--cyan)">C:\Windows\System32\drivers\etc\hosts</code></p>
+          </div>
+
+          <div class="glass-card scanning-active-box">
+            <div class="conic-ring-progress" id="scan-progress-ring">
+              <div class="conic-ring-inner" id="scan-pct-label">68%</div>
+            </div>
+
+            <div class="scan-stats-block">
+              <div class="stat-line"><span>Przeskanowane pliki:</span><strong id="stat-files-count">125 432</strong></div>
+              <div class="stat-line"><span>Zainfekowane:</span><strong style="color:var(--emerald)">0</strong></div>
+              <div class="stat-line"><span>Podejrzane:</span><strong style="color:var(--warning)">1</strong></div>
+              <div class="stat-line"><span>Czas:</span><strong id="stat-time-val">12 min 18 s</strong></div>
+              <div class="stat-line"><span>Szacowany czas:</span><strong id="stat-eta-val">5 min 42 s</strong></div>
+            </div>
+          </div>
+
+          <div class="scan-actions-row">
+            <button class="btn-secondary" id="btn-pause-scan" onclick="togglePauseScan()">Pauza</button>
+            <button class="btn-danger-outline" onclick="gotoScreen(2)">Zatrzymaj</button>
+            <label class="chk-inline">
+              <input type="checkbox"> Automatycznie wyłącz komputer po zakończeniu
+            </label>
+          </div>
+
+          <div class="tip-banner">
+            <img src="assets/icons/icon_bulb.svg" class="neon-glow-amber" alt="Bulb">
+            <p><strong>Wskazówka:</strong> Regularne skanowanie pozwala wykryć zagrożenia, zanim wyrządzą szkody.</p>
+          </div>
+        </section>
+
+        <!-- ──────────────── SCREEN 4: OCHRONA PRZEGLĄDARKI ──────────────── -->
+        <section class="page-section" id="sec-4">
+          <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <h2>Ochrona przeglądarki</h2>
+              <p>Chroni przed niebezpiecznymi stronami, phishingiem i złośliwymi pobraniami.</p>
+            </div>
+            <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+          </div>
+
+          <!-- 4 Browser Cards -->
+          <div class="browsers-row">
+            <div class="glass-card browser-box">
+              <div class="browser-emoji">🌐</div>
+              <strong style="font-size:12px">Google Chrome</strong>
+              <span class="browser-status-ok">Ochrona aktywna</span>
+            </div>
+            <div class="glass-card browser-box">
+              <div class="browser-emoji">🌊</div>
+              <strong style="font-size:12px">Microsoft Edge</strong>
+              <span class="browser-status-ok">Ochrona aktywna</span>
+            </div>
+            <div class="glass-card browser-box">
+              <div class="browser-emoji">🦊</div>
+              <strong style="font-size:12px">Mozilla Firefox</strong>
+              <span class="browser-status-ok">Ochrona aktywna</span>
+            </div>
+            <div class="glass-card browser-box">
+              <div class="browser-emoji">🧭</div>
+              <strong style="font-size:12px">Inne przeglądarki</strong>
+              <span style="font-size:10px; color:var(--text-muted)">Monitoring</span>
+            </div>
+          </div>
+
+          <!-- Browser Subtabs -->
+          <div class="subtabs-nav">
+            <div class="subtab-link active" onclick="switchBrowserTab(this, 'browser-tab-protection')">Ochrona</div>
+            <div class="subtab-link" onclick="switchBrowserTab(this, 'browser-tab-stats')">Statystyki</div>
+            <div class="subtab-link" onclick="switchBrowserTab(this, 'browser-tab-settings')">Ustawienia</div>
+          </div>
+
+          <!-- Tab 1: Ochrona -->
+          <div class="subtab-pane active" id="browser-tab-protection">
+            <div class="split-col-layout">
+              <div class="toggles-group">
+                <div class="toggle-item-box">
+                  <span>Blokowanie niebezpiecznych stron</span>
+                  <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+                </div>
+                <div class="toggle-item-box">
+                  <span>Ochrona przed phishingiem</span>
+                  <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+                </div>
+                <div class="toggle-item-box">
+                  <span>Skanowanie pobieranych plików</span>
+                  <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+                </div>
+                <div class="toggle-item-box">
+                  <span>Kontrola rozszerzeń</span>
+                  <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+                </div>
+                <div class="toggle-item-box">
+                  <span>Ochrona płatności online</span>
+                  <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+                </div>
+              </div>
+
+              <div class="glass-card threat-stats-panel">
+                <h4>Zablokowane zagrożenia (ostatnie 7 dni)</h4>
+                <div class="threat-line">
+                  <span class="badge-danger-sq">38</span>
+                  <span>Niebezpieczne strony</span>
+                </div>
+                <div class="threat-line">
+                  <span class="badge-danger-sq">12</span>
+                  <span>Próby phishingu</span>
+                </div>
+                <div class="threat-line">
+                  <span class="badge-danger-sq">6</span>
+                  <span>Złośliwe pobrania</span>
+                </div>
+                <div class="threat-line">
+                  <span class="badge-danger-sq">214</span>
+                  <span>Trackery i reklamy</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Statystyki -->
+          <div class="subtab-pane" id="browser-tab-stats">
+            <div class="glass-card" style="padding:22px">
+              <h4 style="font-size:13px; font-weight:700; margin-bottom:14px; color:#fff">Tygodniowy rozkład blokad sieciowych</h4>
+              <p style="font-size:11px; color:var(--text-muted); margin-bottom:20px">Łącznie przechwycono 270 niebezpiecznych żądań HTTP/HTTPS w bieżącym tygodniu.</p>
+              <div style="display:flex; gap:16px; align-items:flex-end; height:120px; padding:0 20px 10px 20px; border-bottom:1px solid rgba(255,255,255,0.08)">
+                <div style="flex:1; background:rgba(0,196,255,0.4); height:45%; border-radius:4px 4px 0 0"></div>
+                <div style="flex:1; background:rgba(0,196,255,0.6); height:75%; border-radius:4px 4px 0 0"></div>
+                <div style="flex:1; background:rgba(0,196,255,0.5); height:55%; border-radius:4px 4px 0 0"></div>
+                <div style="flex:1; background:rgba(0,240,118,0.7); height:90%; border-radius:4px 4px 0 0"></div>
+                <div style="flex:1; background:rgba(0,196,255,0.7); height:70%; border-radius:4px 4px 0 0"></div>
+                <div style="flex:1; background:rgba(0,196,255,0.85); height:85%; border-radius:4px 4px 0 0"></div>
+                <div style="flex:1; background:var(--emerald); height:100%; border-radius:4px 4px 0 0"></div>
+              </div>
+              <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-dim); margin-top:8px">
+                <span>Pn</span><span>Wt</span><span>Śr</span><span>Czw</span><span>Pt</span><span>Sob</span><span>Ndz (Dziś)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Ustawienia -->
+          <div class="subtab-pane" id="browser-tab-settings">
+            <div class="glass-card" style="padding:20px; max-width:650px">
+              <div class="toggle-item-box" style="margin-bottom:10px">
+                <span>Tryb ścisły (Strict Mode)</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="toggle-item-box" style="margin-bottom:10px">
+                <span>Automatyczna aktualizacja białej listy domen</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="toggle-item-box">
+                <span>Powiadomienia w rogu ekranu o zablokowanym skrypcie</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ──────────────── SCREEN 5: FIREWALL ──────────────── -->
+        <section class="page-section" id="sec-5">
+          <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+              <h2>Firewall</h2>
+              <p>Kontroluje połączenia sieciowe i chroni przed nieautoryzowanym dostępem.</p>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px">
+              <div class="toggle-switch" id="firewall-master-switch" onclick="toggleFirewallMaster(this)"></div>
+              <span id="firewall-master-label" style="font-size:12px; font-weight:700">Włączony</span>
+            </div>
+          </div>
+
+          <!-- Firewall Subtabs -->
+          <div class="subtabs-nav">
+            <div class="subtab-link active" onclick="switchFirewallTab(this, 'fw-tab-apps')">Aplikacje</div>
+            <div class="subtab-link" onclick="switchFirewallTab(this, 'fw-tab-rules')">Reguły</div>
+            <div class="subtab-link" onclick="switchFirewallTab(this, 'fw-tab-activity')">Aktywność</div>
+            <div class="subtab-link" onclick="switchFirewallTab(this, 'fw-tab-settings')">Ustawienia</div>
+          </div>
+
+          <!-- Firewall Tab 1: Aplikacje -->
+          <div class="subtab-pane active" id="fw-tab-apps">
+            <div class="table-header-flex">
+              <h4>Ostatnia aktywność sieciowa</h4>
+              <a href="#">Zobacz wszystkie &gt;</a>
+            </div>
+
+            <div class="glass-card" style="padding:10px 16px">
+              <table class="data-table">
+                <tr>
+                  <td><img src="assets/icons/icon_pc.svg" style="width:14px; vertical-align:middle; margin-right:6px"><strong>chrome.exe</strong></td>
+                  <td>Wychodzące</td>
+                  <td>142.250.184.110</td>
+                  <td>443</td>
+                  <td style="color:var(--emerald); font-weight:700">&#9679; Dozwolone</td>
+                  <td>10:24</td>
+                </tr>
+                <tr>
+                  <td><img src="assets/icons/icon_pc.svg" style="width:14px; vertical-align:middle; margin-right:6px"><strong>discord.exe</strong></td>
+                  <td>Wychodzące</td>
+                  <td>162.159.135.233</td>
+                  <td>443</td>
+                  <td style="color:var(--emerald); font-weight:700">&#9679; Dozwolone</td>
+                  <td>10:22</td>
+                </tr>
+                <tr>
+                  <td><img src="assets/icons/icon_pc.svg" style="width:14px; vertical-align:middle; margin-right:6px"><strong>steam.exe</strong></td>
+                  <td>Wychodzące</td>
+                  <td>104.74.12.34</td>
+                  <td>443</td>
+                  <td style="color:var(--emerald); font-weight:700">&#9679; Dozwolone</td>
+                  <td>10:21</td>
+                </tr>
+                <tr>
+                  <td><img src="assets/icons/icon_pc.svg" style="width:14px; vertical-align:middle; margin-right:6px"><strong>svchost.exe</strong></td>
+                  <td>Wychodzące</td>
+                  <td>20.199.120.80</td>
+                  <td>443</td>
+                  <td style="color:var(--emerald); font-weight:700">&#9679; Dozwolone</td>
+                  <td>10:20</td>
+                </tr>
+                <tr>
+                  <td><img src="assets/icons/icon_pc.svg" style="width:14px; vertical-align:middle; margin-right:6px"><strong>unknown.exe</strong></td>
+                  <td>Wychodzące</td>
+                  <td>185.220.101.5</td>
+                  <td>53</td>
+                  <td style="color:var(--danger); font-weight:700">&#9679; Zablokowane</td>
+                  <td>10:18</td>
+                </tr>
+              </table>
+            </div>
+
+            <div style="text-align:right; margin-top:14px">
+              <button class="btn-opt-action" onclick="triggerToast('Otwarto kreator nowej reguły Firewall')">+ Dodaj regułę</button>
+            </div>
+          </div>
+
+          <!-- Firewall Tab 2: Reguły -->
+          <div class="subtab-pane" id="fw-tab-rules">
+            <div class="rules-list">
+              <div class="glass-card rule-card">
+                <div>
+                  <h4 style="font-size:12.5px; font-weight:700; color:#fff">Blokuj ruch przychodzący bez zaproszenia (Inbound Stealth)</h4>
+                  <p style="font-size:10px; color:var(--text-muted)">Wszystkie porty nieprzypisane do usług nasłuchujących są odrzucane po cichu.</p>
+                </div>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card rule-card">
+                <div>
+                  <h4 style="font-size:12.5px; font-weight:700; color:#fff">Ochrona portów SMB & RDP (445, 3389)</h4>
+                  <p style="font-size:10px; color:var(--text-muted)">Blokowanie zdalnego dostępu i robaków sieciowych w sieciach publicznych.</p>
+                </div>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card rule-card">
+                <div>
+                  <h4 style="font-size:12.5px; font-weight:700; color:#fff">Reguła DNS dla niepodpisanych aplikacji</h4>
+                  <p style="font-size:10px; color:var(--text-muted)">Wymagaj autoryzacji użytkownika przed pierwszym zapytaniem DNS.</p>
+                </div>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Firewall Tab 3: Aktywność -->
+          <div class="subtab-pane" id="fw-tab-activity">
+            <div class="glass-card" style="padding:22px">
+              <h4 style="font-size:13px; font-weight:700; margin-bottom:14px; color:#fff">Monitor przepustowości sieciowej w czasie rzeczywistym</h4>
+              <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px">
+                <div class="glass-card" style="padding:14px; text-align:center">
+                  <span style="font-size:10px; color:var(--text-muted)">Pobieranie:</span>
+                  <div style="font-size:18px; font-weight:800; color:var(--cyan); margin-top:4px">1.8 MB/s</div>
+                </div>
+                <div class="glass-card" style="padding:14px; text-align:center">
+                  <span style="font-size:10px; color:var(--text-muted)">Wysyłanie:</span>
+                  <div style="font-size:18px; font-weight:800; color:var(--emerald); margin-top:4px">240 KB/s</div>
+                </div>
+                <div class="glass-card" style="padding:14px; text-align:center">
+                  <span style="font-size:10px; color:var(--text-muted)">Aktywne sesje:</span>
+                  <div style="font-size:18px; font-weight:800; color:#fff; margin-top:4px">34</div>
+                </div>
+              </div>
+              <p style="font-size:11px; color:var(--text-muted)">Wszystkie gniazda TCP/UDP są stale weryfikowane przez moduł AEGIS Network Shield.</p>
+            </div>
+          </div>
+
+          <!-- Firewall Tab 4: Ustawienia -->
+          <div class="subtab-pane" id="fw-tab-settings">
+            <div class="glass-card" style="padding:20px; max-width:650px">
+              <div class="toggle-item-box" style="margin-bottom:10px">
+                <span>Powiadamiaj o nowych aplikacjach żądających dostępu</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="toggle-item-box" style="margin-bottom:10px">
+                <span>Automatycznie blokuj skanowanie portów (Port Scan Protection)</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="toggle-item-box">
+                <span>Filtrowanie ruchu IPv6</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ──────────────── SCREEN 6: KWARANTANNA ──────────────── -->
+        <section class="page-section" id="sec-6">
+          <div class="page-header">
+            <h2>Kwarantanna</h2>
+            <p>Zagrożenia w kwarantannie są bezpiecznie izolowane i nie mogą uszkodzić systemu.</p>
+          </div>
+
+          <div class="glass-card" style="padding:10px 16px">
+            <table class="data-table">
+              <thead>
+                <tr style="font-weight:700; color:#fff">
+                  <th style="width:30px"><input type="checkbox" id="quarantine-chk-master" onchange="toggleAllQuarantine(this)"></th>
+                  <th>Nazwa zagrożenia</th>
+                  <th>Typ</th>
+                  <th>Data</th>
+                  <th>Lokalizacja</th>
+                  <th>Akcja</th>
+                </tr>
+              </thead>
+              <tbody id="quarantine-tbody">
+                <tr>
+                  <td><input type="checkbox" class="q-chk"></td>
+                  <td><strong>Trojan.GenericKD.701</strong></td>
+                  <td style="color:var(--danger); font-weight:700">Trojan</td>
+                  <td>20.09.2026</td>
+                  <td><code>C:\Users\...\AppData\...</code></td>
+                  <td><img src="assets/icons/icon_trash.svg" class="neon-glow-red" style="width:15px; cursor:pointer" alt="Delete" onclick="deleteQuarantineRow(this)"></td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="q-chk"></td>
+                  <td><strong>Adware.ToolBar</strong></td>
+                  <td style="color:var(--warning); font-weight:700">Adware</td>
+                  <td>18.09.2026</td>
+                  <td><code>C:\ProgramData\...</code></td>
+                  <td><img src="assets/icons/icon_trash.svg" class="neon-glow-red" style="width:15px; cursor:pointer" alt="Delete" onclick="deleteQuarantineRow(this)"></td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="q-chk"></td>
+                  <td><strong>Win32/Agent.A</strong></td>
+                  <td style="color:var(--danger); font-weight:700">Wirus</td>
+                  <td>15.09.2026</td>
+                  <td><code>C:\Users\...\Downloads\...</code></td>
+                  <td><img src="assets/icons/icon_trash.svg" class="neon-glow-red" style="width:15px; cursor:pointer" alt="Delete" onclick="deleteQuarantineRow(this)"></td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="q-chk"></td>
+                  <td><strong>PUP.Optional.InstallCore</strong></td>
+                  <td style="color:var(--cyan); font-weight:700">PUP</td>
+                  <td>12.09.2026</td>
+                  <td><code>C:\Program Files\...</code></td>
+                  <td><img src="assets/icons/icon_trash.svg" class="neon-glow-red" style="width:15px; cursor:pointer" alt="Delete" onclick="deleteQuarantineRow(this)"></td>
+                </tr>
+                <tr>
+                  <td><input type="checkbox" class="q-chk"></td>
+                  <td><strong>Ransom.Win32.Locky</strong></td>
+                  <td style="color:var(--danger); font-weight:700">Ransomware</td>
+                  <td>10.09.2026</td>
+                  <td><code>C:\Users\...\Documents\...</code></td>
+                  <td><img src="assets/icons/icon_trash.svg" class="neon-glow-red" style="width:15px; cursor:pointer" alt="Delete" onclick="deleteQuarantineRow(this)"></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="quarantine-actions-row">
+            <button class="btn-secondary" onclick="triggerToast('Przywrócono wybrane pliki z kwarantanny')">Przywróć</button>
+            <button class="btn-danger-outline" onclick="deleteSelectedQuarantine()">Usuń</button>
+            <label class="chk-inline">
+              <input type="checkbox" onchange="document.getElementById('quarantine-chk-master').click()"> Zaznacz wszystko
+            </label>
+          </div>
+        </section>
+
+        <!-- ──────────────── SCREEN 7: WYDAJNOŚĆ / OPTYMALIZACJA ──────────────── -->
+        <section class="page-section" id="sec-7">
+          <div class="page-header">
+            <h2>Optymalizacja</h2>
+            <p>Zwiększ wydajność swojego komputera i popraw jego stabilność.</p>
+          </div>
+
+          <div class="opt-split-grid">
+            <div class="glass-card opt-radial-card">
+              <div class="gauge-circle" id="opt-gauge-ring">
+                <div class="gauge-circle-inner" id="opt-gauge-val">92<span style="font-size:12px; color:var(--text-muted)">/100</span></div>
+              </div>
+              <h3 id="opt-health-title" style="font-size:14px; font-weight:800; color:#fff; margin-bottom:4px">Świetna kondycja</h3>
+              <p id="opt-health-sub" style="font-size:10px; color:var(--text-muted); margin-bottom:18px">Twój system działa z optymalną prędkością.</p>
+              <button class="btn-emerald-cta" id="btn-run-opt" style="width:100%" onclick="runFullOptimization()">Optymalizuj teraz &gt;</button>
+            </div>
+
+            <div class="opt-tiles-column">
+              <div class="glass-card opt-tile-row">
+                <div style="display:flex; align-items:center; gap:14px">
+                  <div class="opt-icon-sq"><img src="assets/icons/icon_trash.svg" class="neon-glow-green" alt="Trash"></div>
+                  <div>
+                    <h4 style="font-size:12px; font-weight:700; color:#fff">Niepotrzebne pliki</h4>
+                    <p id="val-opt-files" style="font-size:10px; color:var(--text-muted)">Znaleziono: 1,2 GB</p>
+                  </div>
+                </div>
+                <button class="btn-opt-action" onclick="cleanTile(this, 'val-opt-files', 'Oczyszczono 1,2 GB plików tymczasowych!')">Oczyść</button>
+              </div>
+
+              <div class="glass-card opt-tile-row">
+                <div style="display:flex; align-items:center; gap:14px">
+                  <div class="opt-icon-sq"><img src="assets/icons/icon_registry.svg" class="neon-glow-green" alt="Registry"></div>
+                  <div>
+                    <h4 style="font-size:12px; font-weight:700; color:#fff">Błędy rejestru</h4>
+                    <p id="val-opt-reg" style="font-size:10px; color:var(--text-muted)">Znaleziono: 12</p>
+                  </div>
+                </div>
+                <button class="btn-opt-action" onclick="cleanTile(this, 'val-opt-reg', 'Naprawiono 12 wpisów rejestru!')">Napraw</button>
+              </div>
+
+              <div class="glass-card opt-tile-row">
+                <div style="display:flex; align-items:center; gap:14px">
+                  <div class="opt-icon-sq"><img src="assets/icons/icon_rocket.svg" class="neon-glow-green" alt="Startup"></div>
+                  <div>
+                    <h4 style="font-size:12px; font-weight:700; color:#fff">Programy startowe</h4>
+                    <p id="val-opt-start" style="font-size:10px; color:var(--text-muted)">Znaleziono: 3</p>
+                  </div>
+                </div>
+                <button class="btn-opt-action" onclick="cleanTile(this, 'val-opt-start', 'Zoptymalizowano procesy startowe!')">Zarządzaj</button>
+              </div>
+
+              <div class="glass-card opt-tile-row">
+                <div style="display:flex; align-items:center; gap:14px">
+                  <div class="opt-icon-sq"><img src="assets/icons/icon_duplicates.svg" class="neon-glow-green" alt="Duplicates"></div>
+                  <div>
+                    <h4 style="font-size:12px; font-weight:700; color:#fff">Duplikaty plików</h4>
+                    <p id="val-opt-dups" style="font-size:10px; color:var(--text-muted)">Znaleziono: 482 MB</p>
+                  </div>
+                </div>
+                <button class="btn-opt-action" onclick="cleanTile(this, 'val-opt-dups', 'Usunięto zduplikowane pliki!')">Usuń</button>
+              </div>
+
+              <div class="glass-card opt-tile-row">
+                <div style="display:flex; align-items:center; gap:14px">
+                  <div class="opt-icon-sq"><img src="assets/icons/icon_tuning.svg" class="neon-glow-green" alt="Tuning"></div>
+                  <div>
+                    <h4 style="font-size:12px; font-weight:700; color:#fff">Optymalizacja systemu</h4>
+                    <p id="val-opt-sys" style="font-size:10px; color:var(--text-muted)">Zalecone działania: 5</p>
+                  </div>
+                </div>
+                <button class="btn-opt-action" onclick="cleanTile(this, 'val-opt-sys', 'Zastosowano 5 zalecanych poprawek!')">Zastosuj</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ──────────────── SCREEN 8: ZDALNA NAPRAWA ──────────────── -->
+        <section class="page-section" id="sec-8">
+          <div class="page-header">
+            <h2>Zdalna naprawa</h2>
+            <p>Uzyskaj pomoc od naszego zespołu lub udostępnij dostęp zaufanej osobie.</p>
+          </div>
+
+          <div class="remote-two-col">
+            <div class="glass-card" style="padding:22px">
+              <h3 style="font-size:14px; font-weight:700; color:#fff">Pozwól na pomoc</h3>
+              <p style="font-size:11px; color:var(--text-muted); margin-top:4px">Wygeneruj kod, aby umożliwić specjaliście połączenie z Twoim komputerem.</p>
+              
+              <div style="margin-top:16px">
+                <span style="font-size:10.5px; color:var(--text-muted)">Twój kod sesji:</span>
+                <div class="session-code-text">
+                  <span id="remote-session-code">482 913 706</span>
+                  <img src="assets/icons/icon_copy.svg" style="width:17px; cursor:pointer" alt="Copy" title="Kopiuj kod" onclick="copySessionCode()">
+                </div>
+                <span style="font-size:9.5px; color:var(--text-dim)">Kod ważny przez: 10 minut</span>
+              </div>
+
+              <div style="margin-top:20px">
+                <button class="btn-blue-action" style="padding:8px 18px; width:auto; font-size:11px" onclick="generateNewSessionCode()">Utwórz nowy kod</button>
+              </div>
+            </div>
+
+            <div class="glass-card" style="padding:22px">
+              <h3 style="font-size:14px; font-weight:700; color:#fff">Połącz się z komputerem</h3>
+              <p style="font-size:11px; color:var(--text-muted); margin-top:4px">Wprowadź kod sesji, aby uzyskać zdalny dostęp:</p>
+              
+              <div style="margin-top:20px; display:flex; gap:10px">
+                <input type="text" id="input-remote-code" placeholder="Wpisz kod sesji" style="flex:1; background:rgba(18, 36, 60, 0.8); border:1px solid rgba(40, 75, 120, 0.6); border-radius:6px; color:#fff; padding:8px 12px; outline:none; font-size:12px">
+                <button class="btn-blue-action" style="margin:0; width:auto; padding:8px 22px; font-size:12px" onclick="connectRemoteSession()">Połącz</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="trust-badges-grid">
+            <div class="glass-card trust-badge-card">
+              <img src="assets/icons/icon_lightning.svg" class="neon-glow-cyan" alt="Speed">
+              <span>Szybka pomoc</span>
+            </div>
+            <div class="glass-card trust-badge-card">
+              <img src="assets/icons/nav_shield.svg" class="neon-glow-green" alt="Shield">
+              <span>Bezpieczne połączenie</span>
+            </div>
+            <div class="glass-card trust-badge-card">
+              <img src="assets/icons/icon_check.svg" class="neon-glow-green" alt="Check">
+              <span>Pełna kontrola (za zgodą)</span>
+            </div>
+            <div class="glass-card trust-badge-card">
+              <img src="assets/icons/icon_pc.svg" class="neon-glow-cyan" alt="PC">
+              <span>Brak instalacji po stronie klienta</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ──────────────── SCREEN 9: USTAWIENIA ──────────────── -->
+        <section class="page-section" id="sec-9">
+          <div class="page-header">
+            <h2>Ustawienia</h2>
+          </div>
+
+          <!-- Settings Subtabs -->
+          <div class="subtabs-nav">
+            <div class="subtab-link active" onclick="switchSettingsTab(this, 'set-tab-general')">Ogólne</div>
+            <div class="subtab-link" onclick="switchSettingsTab(this, 'set-tab-protection')">Ochrona</div>
+            <div class="subtab-link" onclick="switchSettingsTab(this, 'set-tab-scan')">Skanowanie</div>
+            <div class="subtab-link" onclick="switchSettingsTab(this, 'set-tab-privacy')">Prywatność</div>
+            <div class="subtab-link" onclick="switchSettingsTab(this, 'set-tab-perf')">Wydajność</div>
+            <div class="subtab-link" onclick="switchSettingsTab(this, 'set-tab-adv')">Zaawansowane</div>
+          </div>
+
+          <!-- Settings Tab 1: Ogólne -->
+          <div class="subtab-pane active" id="set-tab-general">
+            <div class="settings-list-wrap">
+              <div class="glass-card settings-item-row">
+                <div style="display:flex; align-items:center; gap:12px">
+                  <img src="assets/icons/icon_pc.svg" class="neon-glow-green" style="width:16px; height:16px" alt="PC">
+                  <span>Uruchamiaj z systemem Windows</span>
+                </div>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card settings-item-row">
+                <div style="display:flex; align-items:center; gap:12px">
+                  <img src="assets/icons/icon_tray.svg" class="neon-glow-green" style="width:16px; height:16px" alt="Tray">
+                  <span>Minimalizuj do zasobnika</span>
+                </div>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card settings-item-row">
+                <div style="display:flex; align-items:center; gap:12px">
+                  <img src="assets/icons/icon_palette.svg" class="neon-glow-green" style="width:16px; height:16px" alt="Theme">
+                  <span>Motyw</span>
+                </div>
+                <select class="dropdown-styled">
+                  <option>Ciemny (Nexus)</option>
+                  <option>Jasny</option>
+                </select>
+              </div>
+              <div class="glass-card settings-item-row">
+                <div style="display:flex; align-items:center; gap:12px">
+                  <img src="assets/icons/icon_globe.svg" class="neon-glow-green" style="width:16px; height:16px" alt="Language">
+                  <span>Język</span>
+                </div>
+                <select class="dropdown-styled">
+                  <option>Polski</option>
+                  <option>English</option>
+                </select>
+              </div>
+              <div class="glass-card settings-item-row">
+                <div style="display:flex; align-items:center; gap:12px">
+                  <img src="assets/icons/icon_bell.svg" class="neon-glow-green" style="width:16px; height:16px" alt="Notifications">
+                  <span>Powiadomienia</span>
+                </div>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card settings-item-row">
+                <div style="display:flex; align-items:center; gap:12px">
+                  <img src="assets/icons/icon_wand.svg" class="neon-glow-green" style="width:16px; height:16px" alt="Animations">
+                  <span>Animacje interfejsu</span>
+                </div>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card settings-item-row">
+                <div style="display:flex; align-items:center; gap:12px">
+                  <img src="assets/icons/icon_refresh.svg" class="neon-glow-green" style="width:16px; height:16px" alt="Updates">
+                  <span>Sprawdzaj aktualizacje automatycznie</span>
+                </div>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Settings Tab 2: Ochrona -->
+          <div class="subtab-pane" id="set-tab-protection">
+            <div class="settings-list-wrap">
+              <div class="glass-card settings-item-row">
+                <span>Ochrona w czasie rzeczywistym (Real-Time Shield)</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card settings-item-row">
+                <span>Ochrona behawioralna (AI Heuristic Shield)</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card settings-item-row">
+                <span>Skanowanie nośników USB przy podłączeniu</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card settings-item-row">
+                <span>Integracja z Windows Security Center (WSC)</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Settings Tab 3: Skanowanie -->
+          <div class="subtab-pane" id="set-tab-scan">
+            <div class="settings-list-wrap">
+              <div class="glass-card settings-item-row">
+                <span>Skanowanie archiwów ZIP, RAR, 7z</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card settings-item-row">
+                <span>Poziom czułości heurystyki</span>
+                <select class="dropdown-styled">
+                  <option>Wysoki (agresywny)</option>
+                  <option>Średni (zalecany)</option>
+                  <option>Niski</option>
+                </select>
+              </div>
+              <div class="glass-card settings-item-row">
+                <span>Automatyczna kwarantanna wykrytych zagrożeń</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Settings Tab 4: Prywatność -->
+          <div class="subtab-pane" id="set-tab-privacy">
+            <div class="settings-list-wrap">
+              <div class="glass-card settings-item-row">
+                <span>Czyszczenie śladów przeglądania przy zamknięciu</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card settings-item-row">
+                <span>Blokowanie telemetrii Windows</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Settings Tab 5: Wydajność -->
+          <div class="subtab-pane" id="set-tab-perf">
+            <div class="settings-list-wrap">
+              <div class="glass-card settings-item-row">
+                <span>Tryb gracza (wstrzymaj powiadomienia i skany)</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card settings-item-row">
+                <span>Oszczędzanie energii na baterii</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+              <div class="glass-card settings-item-row">
+                <span>Sprzętowa akceleracja graficzna GUI</span>
+                <div class="toggle-switch" onclick="this.classList.toggle('off')"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Settings Tab 6: Zaawansowane -->
+          <div class="subtab-pane" id="set-tab-adv">
+            <div class="settings-list-wrap">
+              <div class="glass-card settings-item-row">
+                <span>Usługa systemowa Windows (MultiGuardService)</span>
+                <span style="color:var(--emerald); font-weight:700">● Działa (PID: 3412)</span>
+              </div>
+              <div class="glass-card settings-item-row">
+                <span>Wersja silnika antywirusowego</span>
+                <span>2.1.0-Release</span>
+              </div>
+              <div class="glass-card settings-item-row">
+                <span>Wersja bazy sygnatur</span>
+                <span>2026.09.22.01 (UP_TO_DATE)</span>
+              </div>
+              <div style="display:flex; gap:10px; margin-top:10px">
+                <button class="btn-secondary" onclick="triggerToast('Logi diagnostyczne zapisane do pliku debug.log')">Eksportuj logi</button>
+                <button class="btn-danger-outline" onclick="triggerToast('Przywrócono ustawienia fabryczne')">Resetuj ustawienia</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- Alert Toast Component -->
+  <div class="toast-banner" id="global-toast">
+    <span>✓</span>
+    <span id="toast-text">Pomyślnie zaktualizowano!</span>
+  </div>
+
+  <script>
+    // Direct Sidebar & Top Navigation between all screens
+    function gotoScreen(idx) {
+      document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.demo-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+
+      const sec = document.getElementById('sec-' + idx);
+      if (sec) sec.classList.add('active');
+
+      const dBtns = document.querySelectorAll('.demo-tab-btn');
+      if (dBtns[idx - 1]) dBtns[idx - 1].classList.add('active');
+
+      // Update sidebar active buttons and glowing emerald icons
+      const s1 = document.getElementById('btn-side-1');
+      const s2 = document.getElementById('btn-side-2');
+      const s4 = document.getElementById('btn-side-4');
+      const s5 = document.getElementById('btn-side-5');
+      const s6 = document.getElementById('btn-side-6');
+      const s7 = document.getElementById('btn-side-7');
+      const s8 = document.getElementById('btn-side-8');
+      const s9 = document.getElementById('btn-side-9');
+
+      // Reset all sidebar icons to neutral slate #8FA3BF
+      s1.querySelector('img').src = 'assets/icons/nav_home.svg';
+      s2.querySelector('img').src = 'assets/icons/nav_scan.svg';
+      s4.querySelector('img').src = 'assets/icons/nav_globe.svg';
+      s5.querySelector('img').src = 'assets/icons/nav_firewall.svg';
+      s6.querySelector('img').src = 'assets/icons/nav_quarantine.svg';
+      s7.querySelector('img').src = 'assets/icons/nav_perf.svg';
+      s8.querySelector('img').src = 'assets/icons/nav_tools.svg';
+      s9.querySelector('img').src = 'assets/icons/nav_settings.svg';
+
+      if (idx === 1) {
+        s1.classList.add('active');
+        s1.querySelector('img').src = 'assets/icons/nav_home_active.svg';
+      } else if (idx === 2 || idx === 3) {
+        s2.classList.add('active');
+        s2.querySelector('img').src = 'assets/icons/nav_scan_active.svg';
+      } else if (idx === 4) {
+        s4.classList.add('active');
+        s4.querySelector('img').src = 'assets/icons/icon_globe_active.svg';
+      } else if (idx === 5) {
+        s5.classList.add('active');
+        s5.querySelector('img').src = 'assets/icons/icon_firewall_active.svg';
+      } else if (idx === 6) {
+        s6.classList.add('active');
+        s6.querySelector('img').src = 'assets/icons/icon_quarantine_active.svg';
+      } else if (idx === 7) {
+        s7.classList.add('active');
+        s7.querySelector('img').src = 'assets/icons/nav_perf_active.svg';
+      } else if (idx === 8) {
+        s8.classList.add('active');
+        s8.querySelector('img').src = 'assets/icons/nav_tools_active.svg';
+      } else if (idx === 9) {
+        s9.classList.add('active');
+        s9.querySelector('img').src = 'assets/icons/nav_settings_active.svg';
+      }
+    }
+
+    // Subtab Switchers
+    function switchBrowserTab(el, targetId) {
+      el.parentElement.querySelectorAll('.subtab-link').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('sec-4').querySelectorAll('.subtab-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById(targetId).classList.add('active');
+    }
+
+    function switchFirewallTab(el, targetId) {
+      el.parentElement.querySelectorAll('.subtab-link').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('sec-5').querySelectorAll('.subtab-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById(targetId).classList.add('active');
+    }
+
+    function switchSettingsTab(el, targetId) {
+      el.parentElement.querySelectorAll('.subtab-link').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('sec-9').querySelectorAll('.subtab-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById(targetId).classList.add('active');
+    }
+
+    // Scan tile picker
+    function pickScanTile(el) {
+      document.querySelectorAll('.scan-mode-tile').forEach(t => t.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    // Live Scan Simulation
+    let scanTimer = null;
+    let scanPct = 68;
+    let scanFiles = 125432;
+    let isPaused = false;
+
+    function startScanSimulation() {
+      gotoScreen(3);
+      if (scanTimer) clearInterval(scanTimer);
+      scanPct = 0;
+      scanFiles = 1000;
+      isPaused = false;
+      document.getElementById('btn-pause-scan').textContent = 'Pauza';
+
+      const paths = [
+        'C:\\Windows\\System32\\drivers\\etc\\hosts',
+        'C:\\Windows\\System32\\ntoskrnl.exe',
+        'C:\\Program Files\\Common Files\\System\\crypt32.dll',
+        'C:\\Users\\Kacper\\AppData\\Local\\Temp\\cache_741.tmp',
+        'C:\\Windows\\SysWOW64\\kernelbase.dll',
+        'C:\\Users\\Kacper\\Downloads\\installer_setup.exe',
+        'C:\\Windows\\System32\\lsass.exe'
+      ];
+
+      scanTimer = setInterval(() => {
+        if (isPaused) return;
+        scanPct += 2;
+        scanFiles += Math.floor(Math.random() * 850) + 120;
+        
+        if (scanPct > 100) {
+          scanPct = 100;
+          clearInterval(scanTimer);
+          triggerToast('Skanowanie zakończone: 0 zagrożeń!');
+        }
+
+        const deg = Math.floor((scanPct / 100) * 360);
+        document.getElementById('scan-progress-ring').style.background = 
+          `conic-gradient(var(--cyan) 0deg, var(--emerald) ${deg}deg, rgba(255, 255, 255, 0.08) ${deg}deg)`;
+        document.getElementById('scan-pct-label').textContent = scanPct + '%';
+        document.getElementById('stat-files-count').textContent = scanFiles.toLocaleString('pl-PL');
+        document.getElementById('scan-path-label').textContent = paths[Math.floor(Math.random() * paths.length)];
+      }, 350);
+    }
+
+    function togglePauseScan() {
+      isPaused = !isPaused;
+      document.getElementById('btn-pause-scan').textContent = isPaused ? 'Wznów' : 'Pauza';
+      triggerToast(isPaused ? 'Skanowanie wstrzymane' : 'Skanowanie wznowione');
+    }
+
+    // Optimization Full Simulation
+    function runFullOptimization() {
+      const ring = document.getElementById('opt-gauge-ring');
+      const val = document.getElementById('opt-gauge-val');
+      const btn = document.getElementById('btn-run-opt');
+      const title = document.getElementById('opt-health-title');
+
+      ring.classList.add('cleaning');
+      btn.textContent = 'Optymalizowanie...';
+      btn.style.filter = 'brightness(0.8)';
+      title.textContent = 'Czyszczenie systemu w toku...';
+
+      setTimeout(() => {
+        ring.classList.remove('cleaning');
+        val.innerHTML = '100<span style="font-size:12px; color:var(--text-muted)">/100</span>';
+        ring.style.background = 'conic-gradient(var(--emerald) 0deg, var(--emerald) 360deg)';
+        btn.textContent = 'Zoptymalizowano ✓';
+        btn.style.filter = 'none';
+        title.textContent = 'Doskonała kondycja (100%)';
+        document.getElementById('opt-health-sub').textContent = 'Wszystkie zasoby zostały wyczyszczone i zoptymalizowane.';
+
+        // Mark all tiles clean
+        document.getElementById('val-opt-files').textContent = 'Oczyszczono: 0 B';
+        document.getElementById('val-opt-reg').textContent = 'Błędy: 0';
+        document.getElementById('val-opt-start').textContent = 'Procesy zoptymalizowane';
+        document.getElementById('val-opt-dups').textContent = 'Zwolniono: 482 MB';
+        document.getElementById('val-opt-sys').textContent = 'Wszystkie reguły aktywne';
+
+        document.querySelectorAll('.btn-opt-action').forEach(b => {
+          b.textContent = 'Wykonano ✓';
+          b.classList.add('done');
+        });
+
+        triggerToast('System zoptymalizowany na 100%! Zwolniono 1,68 GB pamięci.');
+      }, 1400);
+    }
+
+    function cleanTile(btn, textId, msg) {
+      btn.textContent = '...';
+      setTimeout(() => {
+        btn.textContent = 'Wykonano ✓';
+        btn.classList.add('done');
+        document.getElementById(textId).textContent = 'Zoptymalizowano ✓';
+        triggerToast(msg);
+      }, 500);
+    }
+
+    // Quarantine management
+    function toggleAllQuarantine(master) {
+      document.querySelectorAll('.q-chk').forEach(c => c.checked = master.checked);
+    }
+
+    function deleteQuarantineRow(icon) {
+      const row = icon.closest('tr');
+      row.style.opacity = '0';
+      row.style.transition = 'opacity 0.2s';
+      setTimeout(() => {
+        row.remove();
+        triggerToast('Usunięto obiekt z kwarantanny');
+      }, 200);
+    }
+
+    function deleteSelectedQuarantine() {
+      const chks = document.querySelectorAll('.q-chk:checked');
+      if (chks.length === 0) {
+        triggerToast('Zaznacz co najmniej jedno zagrożenie');
+        return;
+      }
+      chks.forEach(c => c.closest('tr').remove());
+      triggerToast('Usunięto trwale zaznaczone zagrożenia');
+    }
+
+    // Remote Session Codes
+    function copySessionCode() {
+      const code = document.getElementById('remote-session-code').textContent;
+      navigator.clipboard.writeText(code);
+      triggerToast('Skopiowano kod sesji: ' + code);
+    }
+
+    function generateNewSessionCode() {
+      const p1 = Math.floor(100 + Math.random() * 900);
+      const p2 = Math.floor(100 + Math.random() * 900);
+      const p3 = Math.floor(100 + Math.random() * 900);
+      const code = `${p1} ${p2} ${p3}`;
+      document.getElementById('remote-session-code').textContent = code;
+      triggerToast('Wygenerowano nowy kod sesji: ' + code);
+    }
+
+    function connectRemoteSession() {
+      const val = document.getElementById('input-remote-code').value.trim();
+      if (!val) {
+        triggerToast('Wprowadź 9-cyfrowy kod sesji zdalnej');
+        return;
+      }
+      triggerToast('Nawiązywanie bezpiecznego połączenia TLS z ' + val + '...');
+    }
+
+    // Firewall master switch
+    function toggleFirewallMaster(el) {
+      el.classList.toggle('off');
+      const isOff = el.classList.contains('off');
+      document.getElementById('firewall-master-label').textContent = isOff ? 'Wyłączony' : 'Włączony';
+      triggerToast(isOff ? 'Firewall został wyłączony' : 'Firewall jest aktywny');
+    }
+
+    // Notifications Popover
+    function toggleNotifPopover() {
+      const box = document.getElementById('notif-box');
+      box.classList.toggle('open');
+    }
+
+    function clearNotifs() {
+      document.getElementById('notif-list').innerHTML = '<div style=\"text-align:center; padding:18px; color:var(--text-dim); font-size:11px\">Brak nowych powiadomień</div>';
+      triggerToast('Wyczyszczono historię powiadomień');
+    }
+
+    // Global Toast Notification
+    let toastTimeout = null;
+    function triggerToast(text) {
+      const t = document.getElementById('global-toast');
+      document.getElementById('toast-text').textContent = text;
+      t.classList.add('show');
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        t.classList.remove('show');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

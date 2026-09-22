@@ -90,7 +90,9 @@ SOURCES += \
     src/core/ReportGenerator.cpp \
     src/core/Ed25519.cpp \
     src/core/LicenseManager.cpp \
+    src/core/WindowsSecurityCenterProvider.cpp \
     src/core/WindowsSecurityIntegration.cpp \
+    src/core/AntivirusService.cpp \
     src/core/FirewallManager.cpp \
     src/core/BrowserProtectionManager.cpp \
     src/core/tweetnacl.c
@@ -138,7 +140,9 @@ HEADERS += \
     src/core/ReportGenerator.h \
     src/core/Ed25519.h \
     src/core/LicenseManager.h \
+    src/core/WindowsSecurityCenterProvider.h \
     src/core/WindowsSecurityIntegration.h \
+    src/core/AntivirusService.h \
     src/core/tweetnacl.h
 
 FORMS   += src/ui/mainwindow.ui

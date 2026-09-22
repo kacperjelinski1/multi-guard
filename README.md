@@ -82,10 +82,9 @@ Multi-Guard to **jedna zunifikowana aplikacja**, w której dostępność poszcze
 - Zaawansowane pliki-pułapki (*canary files*) natychmiast wykrywające próby masowego szyfrowania i blokujące podejrzane procesy.
 
 ### 3. Integracja z Windows Security Center (WSC)
-- Bezpośrednia rejestracja instancji `AntiVirusProduct` w `root\SecurityCenter2`.
-- W aplikacji **Zabezpieczenia Windows** wyświetla się:  
-  *„Multi-Guard Antivirus chroni Twoje urządzenie”*.
-- Automatyczne wyciszanie dublującego się monitorowania Microsoft Defender (`Set-MpPreference -DisableRealtimeMonitoring $true`).
+- Architektura integracji przygotowana pod oficjalne API Microsoft Virus Initiative (MVI).
+- Spójne raportowanie rzeczywistego stanu ochrony, silnika i bazy sygnatur.
+- Brak wymuszania zmian w Defenderze – decyzję o przełączeniu stanu ochrony podejmuje natywnie system Windows.
 
 ### 4. Inteligentne Zarządzanie Oknem i Tray
 - **Przycisk `X`**: Chowa okno do zasobnika systemowego (*system tray*) bez przerywania pracy w tle.

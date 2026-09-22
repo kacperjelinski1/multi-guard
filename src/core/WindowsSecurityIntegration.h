@@ -1,30 +1,33 @@
 #pragma once
 
 #include <QString>
+#include "WindowsSecurityCenterProvider.h"
 
 namespace verax {
 
+/**
+ * @brief WindowsSecurityIntegration
+ * 
+ * Fasada integracji z Windows Security Center zapewniająca wsteczną kompatybilność.
+ * Deleguje operacje do WindowsSecurityCenterProvider.
+ * Zgodna z wytycznymi Microsoftu - nie modyfikuje rejestru Defendera, nie dodaje
+ * automatycznych wykluczeń Add-MpPreference i nie forsuje zmian uprawnień.
+ */
 class WindowsSecurityIntegration {
 public:
     static const QString INSTANCE_GUID;
 
-    // Registers Multi-Guard as the active Antivirus provider in Windows Security Center (root\SecurityCenter2)
-    // and disables Microsoft Defender real-time monitoring to prevent conflicting scans.
+    // Odświeża stan produktu w module dostawcy WSC
     static bool registerAntivirus(const QString &installDir = QString(), const QString &exePath = QString());
 
-    // Updates the product state in SecurityCenter2 (active / snoozed / up-to-date)
+    // Odświeża stan produktu na podstawie parametrów
     static bool updateProductState(bool enabled, bool upToDate = true);
 
-    // Unregisters Multi-Guard from Windows Security Center (e.g. on uninstall)
+    // Wyrejestrowanie produktu (np. przy deinstalacji)
     static bool unregisterAntivirus();
 
-    // Thoroughly disables Microsoft Defender to avoid scanning conflicts and CPU contention
+    // Kompatybilność wsteczna - bezpieczne no-op (decyzję o stanie Defendera podejmuje wyłącznie system Windows)
     static bool disableDefender();
-
-    // Configures Defender exclusions and real-time monitoring preferences
-    static bool configureDefenderExclusions(const QString &installDir, const QString &exePath);
-
-    // Restores default Defender monitoring if Multi-Guard is uninstalled
     static bool restoreDefender();
 };
 

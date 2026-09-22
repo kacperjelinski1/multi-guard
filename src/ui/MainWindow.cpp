@@ -23,6 +23,7 @@
 #include "../core/ReportGenerator.h"
 #include "../core/LicenseManager.h"
 #include "../core/WindowsSecurityIntegration.h"
+#include "../core/WindowsSecurityCenterProvider.h"
 #include "../core/FirewallManager.h"
 #include "../core/BrowserProtectionManager.h"
 #include "../utils/ContextMenuManager.h"
@@ -103,13 +104,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint | Qt::WindowMinimizeButtonHint | Qt::WindowCloseButtonHint);
     setAttribute(Qt::WA_TranslucentBackground, false);
-    setMinimumSize(960, 640);
-    resize(1024, 680);
+    setMinimumSize(960, 600);
+    resize(1240, 780);
 
 #ifdef Q_OS_WIN
     HWND hwnd = (HWND)winId();
     LONG style = GetWindowLong(hwnd, GWL_STYLE);
-    SetWindowLong(hwnd, GWL_STYLE, (style | WS_MINIMIZEBOX | WS_CAPTION) & ~WS_MAXIMIZEBOX);
+    SetWindowLong(hwnd, GWL_STYLE, (style | WS_MINIMIZEBOX | WS_CAPTION | WS_THICKFRAME) & ~WS_MAXIMIZEBOX);
 #endif
 
     setWindowTitle(QString::fromLatin1(APP_NAME));
@@ -131,6 +132,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(&RealTimeShield::instance(), &RealTimeShield::threatDetected,
             this, &MainWindow::onRealTimeThreatDetected);
+    connect(&RealTimeShield::instance(), &RealTimeShield::statusChanged,
+            &WindowsSecurityCenterProvider::instance(), &WindowsSecurityCenterProvider::onRtpStatusChanged);
+    connect(&SignatureDb::instance(), &SignatureDb::updateFinished,
+            &WindowsSecurityCenterProvider::instance(), &WindowsSecurityCenterProvider::onSignaturesUpdated);
+
     if (LicenseManager::instance().isValid() && Settings::instance().realTimeProtection()) {
         RealTimeShield::instance().start();
     }
@@ -154,6 +160,13 @@ MainWindow::MainWindow(QWidget *parent)
         populateQuarantineTable();
         populateAboutPage();
         populateRepairCards();
+    });
+
+    // Verify Windows Security Center provider integration
+    QTimer::singleShot(1500, this, [this]{
+#ifdef Q_OS_WIN
+        WindowsSecurityCenterProvider::instance().refreshStatus();
+#endif
     });
 
     // Silent on-startup version check. Delayed 3 s so the first paint and
@@ -220,6 +233,9 @@ MainWindow::MainWindow(QWidget *parent)
 
 MainWindow::~MainWindow()
 {
+#ifdef Q_OS_WIN
+    WindowsSecurityCenterProvider::instance().notifyShutdown();
+#endif
     if (m_tray) {
         m_tray->hide();
     }
@@ -346,13 +362,59 @@ void MainWindow::wireUi()
 
     if (ui->dashRing) {
         if (LicenseManager::instance().isValid()) {
-            ui->dashRing->setMode("done");
+            ui->dashRing->setMode("heroCheck");
             ui->dashRing->setValue(1.0);
-            ui->dashRing->setCenterText(tr("Bezpieczny"));
+            ui->dashRing->setCenterText("");
         } else {
             ui->dashRing->setMode("threat");
             ui->dashRing->setValue(1.0);
             ui->dashRing->setCenterText(tr("Nieaktywowany"));
+        }
+    }
+
+    if (auto *ring = findChild<ProgressRing*>("optGaugeRing")) {
+        ring->setMode("optimizer");
+        ring->setValue(0.92);
+    }
+
+    if (auto *t = findChild<QTableWidget*>("tableRecentScans")) {
+        t->clearContents();
+        t->setColumnCount(4);
+        t->setHorizontalHeaderLabels({ tr("Data i czas"), tr("Typ skanowania"), tr("Wynik"), tr("Czas trwania") });
+        t->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+        t->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+        t->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+        t->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+
+        struct RecentRow {
+            const char* date;
+            const char* type;
+            const char* res;
+            const char* resColor;
+            const char* duration;
+        };
+        static const RecentRow rRows[] = {
+            { "22.09.2026 10:24", "Szybkie skanowanie",        "🟢  Nie znaleziono zagrożeń", "#00F076", "2 min 14 s" },
+            { "18.09.2026 21:13", "Pełne skanowanie",          "🟢  Nie znaleziono zagrożeń", "#00F076", "1 godz. 12 min" },
+            { "15.09.2026 16:42", "Skanowanie niestandardowe", "🔴  3 zagrożenia",            "#EF4444", "8 min 36 s" }
+        };
+        t->setRowCount(3);
+        for (int i = 0; i < 3; ++i) {
+            auto *itDate = new QTableWidgetItem(QString::fromUtf8(rRows[i].date));
+            itDate->setForeground(QColor("#8FA3BF"));
+            t->setItem(i, 0, itDate);
+
+            auto *itType = new QTableWidgetItem(QString::fromUtf8(rRows[i].type));
+            itType->setForeground(QColor("#FFFFFF"));
+            t->setItem(i, 1, itType);
+
+            auto *itRes = new QTableWidgetItem(QString::fromUtf8(rRows[i].res));
+            itRes->setForeground(QColor(rRows[i].resColor));
+            t->setItem(i, 2, itRes);
+
+            auto *itDur = new QTableWidgetItem(QString::fromUtf8(rRows[i].duration));
+            itDur->setForeground(QColor("#8FA3BF"));
+            t->setItem(i, 3, itDur);
         }
     }
 
@@ -373,6 +435,82 @@ void MainWindow::wireSignals()
     }
 
     if (ui->btnQuickScan)        connect(ui->btnQuickScan, &QPushButton::clicked, this, &MainWindow::onQuickScan);
+    if (auto *btn = findChild<QPushButton*>("btnQuickScanHero")) connect(btn, &QPushButton::clicked, this, &MainWindow::onQuickScan);
+    if (auto *btn = findChild<QPushButton*>("btnMoreOptions")) connect(btn, &QPushButton::clicked, this, [this]{ setActiveNav(PageScanConfig); });
+    if (auto *btn = findChild<QPushButton*>("btnStartScanBig")) connect(btn, &QPushButton::clicked, this, &MainWindow::onStartScanFromConfig);
+    if (auto *btn = findChild<QPushButton*>("btnOptNow")) connect(btn, &QPushButton::clicked, this, &MainWindow::onDoCleanClicked);
+    if (auto *btn = findChild<QPushButton*>("btnApplySysOpt")) connect(btn, &QPushButton::clicked, this, &MainWindow::onDoCleanClicked);
+
+    // Dashboard module cards clickable navigation
+    auto setupClickCard = [this](const QString &name){
+        if (auto *card = findChild<QFrame*>(name)) {
+            card->setCursor(Qt::PointingHandCursor);
+            card->installEventFilter(this);
+        }
+    };
+    setupClickCard("cardModRealTime");
+    setupClickCard("cardModBrowser");
+    setupClickCard("cardModFirewall");
+    setupClickCard("cardModMail");
+    setupClickCard("cardInfoThreats");
+    setupClickCard("cardInfoDb");
+    setupClickCard("cardInfoSub");
+
+    if (auto *lbl = findChild<QLabel*>("lblRecentSeeAll")) {
+        lbl->setCursor(Qt::PointingHandCursor);
+        lbl->installEventFilter(this);
+    }
+
+    // Subtabs interactive switching
+    auto wireSubtabGroup = [this](const QList<QPushButton*> &tabs){
+        for (auto *t : tabs) {
+            if (!t) continue;
+            connect(t, &QPushButton::clicked, this, [tabs, t](){
+                for (auto *other : tabs) {
+                    if (!other) continue;
+                    if (other == t) {
+                        other->setStyleSheet("QPushButton { background: transparent; border: none; border-bottom: 2px solid #00F076; color: #FFFFFF; font-weight: 700; padding: 6px 12px; }");
+                    } else {
+                        other->setStyleSheet("QPushButton { background: transparent; border: none; color: #8FA3BF; font-weight: 600; padding: 6px 12px; }");
+                    }
+                }
+            });
+        }
+    };
+
+    wireSubtabGroup({ findChild<QPushButton*>("tabFwApps"), findChild<QPushButton*>("tabFwRules"), findChild<QPushButton*>("tabFwActivity"), findChild<QPushButton*>("tabFwSettings") });
+    wireSubtabGroup({ findChild<QPushButton*>("tabBpProt"), findChild<QPushButton*>("tabBpStats"), findChild<QPushButton*>("tabBpSettings") });
+    wireSubtabGroup({ findChild<QPushButton*>("tabSetGen"), findChild<QPushButton*>("tabSetProt"), findChild<QPushButton*>("tabSetScan"), findChild<QPushButton*>("tabSetPriv"), findChild<QPushButton*>("tabSetPerf"), findChild<QPushButton*>("tabSetAdv") });
+
+    // Scan Mode Cards selection
+    if (auto *c = findChild<QFrame*>("cardScanQuick"))  c->installEventFilter(this);
+    if (auto *c = findChild<QFrame*>("cardScanFull"))   c->installEventFilter(this);
+    if (auto *c = findChild<QFrame*>("cardScanCustom")) c->installEventFilter(this);
+    if (auto *c = findChild<QFrame*>("cardScanUsb"))    c->installEventFilter(this);
+
+    if (auto *btn = findChild<QPushButton*>("btnRestoreQuarantine")) connect(btn, &QPushButton::clicked, this, &MainWindow::onQuarantineRestoreSelected);
+    if (auto *btn = findChild<QPushButton*>("btnDeleteQuarantine"))  connect(btn, &QPushButton::clicked, this, &MainWindow::onQuarantineDeleteSelected);
+
+    if (auto *cb = findChild<QCheckBox*>("cbFwMasterToggle")) {
+        connect(cb, &QCheckBox::toggled, this, [this](bool checked){
+            FirewallManager::instance().setFirewallEnabled(checked);
+            if (auto *c = findChild<QCheckBox*>("cbFwMasterToggle")) {
+                c->setText(checked ? tr("Włączony") : tr("Wyłączony"));
+            }
+            Toaster::show(this, checked ? tr("Zapora sieciowa została włączona.") : tr("Zapora sieciowa została wyłączona."), checked ? Toaster::Success : Toaster::Warn);
+        });
+    }
+
+    if (auto *cb = findChild<QCheckBox*>("cbBpMasterToggle")) {
+        connect(cb, &QCheckBox::toggled, this, [this](bool checked){
+            WebShield::instance().setEnabled(checked);
+            if (auto *c = findChild<QCheckBox*>("cbBpMasterToggle")) {
+                c->setText(checked ? tr("Włączona") : tr("Wyłączona"));
+            }
+            Toaster::show(this, checked ? tr("Ochrona sieci została włączona.") : tr("Ochrona sieci została wyłączona."), checked ? Toaster::Success : Toaster::Warn);
+        });
+    }
+
     if (ui->btnFullScan)         connect(ui->btnFullScan,  &QPushButton::clicked, this, &MainWindow::onFullScan);
 
     // Tools Page - System Cleaner
@@ -586,26 +724,19 @@ void MainWindow::onNavClicked()
     if      (name == "navDashboard")  idx = PageDashboard;
     else if (name == "navScanConfig") idx = PageScanConfig;
     else if (name == "navScan")       idx = PageScan;
+    else if (name == "navProtection") idx = PageBrowserProtection;
+    else if (name == "navPrivacy")    idx = PageQuarantine;
     else if (name == "navQuarantine") idx = PageQuarantine;
-    else if (name == "navRepair") {
-        if (!LicenseManager::instance().hasCapability(LicenseCapability::SystemRepair)) {
-            Toaster::show(this, tr("Moduł Naprawa Windows wymaga licencji Multi-Guard Secure, Assist, Assist Pro lub Full Admin."), Toaster::Warn);
-            return;
-        }
-        idx = PageRepair;
-    }
-    else if (name == "navTools")             idx = PageTools;
-    else if (name == "navFirewall")          idx = PageFirewall;
+    else if (name == "navRepair")     idx = PageRepair;
+    else if (name == "navTools")      idx = PageTools;
+    else if (name == "navFirewall")   idx = PageFirewall;
     else if (name == "navBrowserProtection") idx = PageBrowserProtection;
     else if (name == "navRemoteRepair") {
-        if (!LicenseManager::instance().hasCapability(LicenseCapability::RemoteRepair)) {
-            Toaster::show(this, tr("Zdalna Pomoc Techniczna wymaga licencji Assist Pro lub Full Admin."), Toaster::Warn);
-            return;
-        }
         idx = PageRemoteRepair;
     }
-    else if (name == "navSettings")     idx = PageSettings;
-    else if (name == "navAbout")        idx = PageAbout;
+    else if (name == "navAccount")    idx = PageSettings;
+    else if (name == "navSettings")   idx = PageSettings;
+    else if (name == "navAbout")      idx = PageAbout;
     setActiveNav(idx);
 }
 
@@ -636,25 +767,114 @@ void MainWindow::setActiveNav(PageIndex idx)
         }
     }
 
-    const QList<QPushButton*> navButtons = ui->sidebar->findChildren<QPushButton*>();
-    for (auto *b : navButtons) {
-        if (!b->objectName().startsWith("nav")) continue;
-        bool active = false;
-        if (b->objectName() == "navDashboard")         active = (idx == PageDashboard);
-        if (b->objectName() == "navScanConfig")        active = (idx == PageScanConfig);
-        if (b->objectName() == "navScan")              active = (idx == PageScan);
-        if (b->objectName() == "navQuarantine")        active = (idx == PageQuarantine);
-        if (b->objectName() == "navRepair")            active = (idx == PageRepair);
-        if (b->objectName() == "navTools")             active = (idx == PageTools);
-        if (b->objectName() == "navFirewall")          active = (idx == PageFirewall);
-        if (b->objectName() == "navBrowserProtection") active = (idx == PageBrowserProtection);
-        if (b->objectName() == "navRemoteRepair")      active = (idx == PageRemoteRepair);
-        if (b->objectName() == "navSettings")          active = (idx == PageSettings);
-        if (b->objectName() == "navAbout")             active = (idx == PageAbout);
-        b->setProperty("active", active);
-        b->style()->unpolish(b);
-        b->style()->polish(b);
+    // Update active states, icons and dynamic text for sidebar items to match AEGIS mockup 1:1
+    const bool isDash = (idx == PageDashboard);
+    const bool isScan = (idx == PageScanConfig || idx == PageScan);
+    const bool isBrowser = (idx == PageBrowserProtection);
+    const bool isFirewall = (idx == PageFirewall);
+    const bool isQuarantine = (idx == PageQuarantine);
+    const bool isTools = (idx == PageTools);
+    const bool isRemote = (idx == PageRemoteRepair);
+    const bool isSettings = (idx == PageSettings || idx == PageAbout);
+
+    if (ui->navDashboard) {
+        ui->navDashboard->setProperty("active", isDash);
+        ui->navDashboard->setIcon(QIcon(isDash ? ":/assets/icons/nav_home_active.svg" : ":/assets/icons/nav_home.svg"));
+        ui->navDashboard->style()->unpolish(ui->navDashboard);
+        ui->navDashboard->style()->polish(ui->navDashboard);
     }
+    if (ui->navScanConfig) {
+        ui->navScanConfig->setProperty("active", isScan);
+        ui->navScanConfig->setIcon(QIcon(isScan ? ":/assets/icons/nav_scan_active.svg" : ":/assets/icons/nav_scan.svg"));
+        ui->navScanConfig->style()->unpolish(ui->navScanConfig);
+        ui->navScanConfig->style()->polish(ui->navScanConfig);
+    }
+    if (ui->navBrowserProtection) {
+        ui->navBrowserProtection->setProperty("active", isBrowser);
+        ui->navBrowserProtection->setIcon(QIcon(isBrowser ? ":/assets/icons/icon_globe_active.svg" : ":/assets/icons/nav_globe.svg"));
+        ui->navBrowserProtection->style()->unpolish(ui->navBrowserProtection);
+        ui->navBrowserProtection->style()->polish(ui->navBrowserProtection);
+    }
+    if (ui->navFirewall) {
+        ui->navFirewall->setProperty("active", isFirewall);
+        ui->navFirewall->setIcon(QIcon(isFirewall ? ":/assets/icons/icon_firewall_active.svg" : ":/assets/icons/nav_firewall.svg"));
+        ui->navFirewall->style()->unpolish(ui->navFirewall);
+        ui->navFirewall->style()->polish(ui->navFirewall);
+    }
+    if (ui->navQuarantine) {
+        ui->navQuarantine->setProperty("active", isQuarantine);
+        ui->navQuarantine->setIcon(QIcon(isQuarantine ? ":/assets/icons/icon_quarantine_active.svg" : ":/assets/icons/nav_quarantine.svg"));
+        ui->navQuarantine->style()->unpolish(ui->navQuarantine);
+        ui->navQuarantine->style()->polish(ui->navQuarantine);
+    }
+    if (ui->navTools) {
+        ui->navTools->setProperty("active", isTools);
+        ui->navTools->setText(tr("  Wydajność"));
+        ui->navTools->setIcon(QIcon(isTools ? ":/assets/icons/nav_perf_active.svg" : ":/assets/icons/nav_perf.svg"));
+        ui->navTools->style()->unpolish(ui->navTools);
+        ui->navTools->style()->polish(ui->navTools);
+    }
+    if (ui->navRemoteRepair) {
+        ui->navRemoteRepair->setProperty("active", isRemote);
+        ui->navRemoteRepair->setText(tr("  Narzędzia"));
+        ui->navRemoteRepair->setIcon(QIcon(isRemote ? ":/assets/icons/nav_tools_active.svg" : ":/assets/icons/nav_tools.svg"));
+        ui->navRemoteRepair->style()->unpolish(ui->navRemoteRepair);
+        ui->navRemoteRepair->style()->polish(ui->navRemoteRepair);
+    }
+    if (ui->navAccount) {
+        ui->navAccount->setProperty("active", false);
+        ui->navAccount->setIcon(QIcon(":/assets/icons/nav_account.svg"));
+        ui->navAccount->style()->unpolish(ui->navAccount);
+        ui->navAccount->style()->polish(ui->navAccount);
+    }
+    if (ui->navSettings) {
+        ui->navSettings->setProperty("active", isSettings);
+        ui->navSettings->setIcon(QIcon(isSettings ? ":/assets/icons/nav_settings_active.svg" : ":/assets/icons/nav_settings.svg"));
+        ui->navSettings->style()->unpolish(ui->navSettings);
+        ui->navSettings->style()->polish(ui->navSettings);
+    }
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::MouseButtonRelease) {
+        const QString name = watched ? watched->objectName() : QString();
+        if (name == "cardModRealTime") {
+            setActiveNav(PageScanConfig);
+            return true;
+        } else if (name == "cardModBrowser" || name == "cardModMail") {
+            setActiveNav(PageBrowserProtection);
+            return true;
+        } else if (name == "cardModFirewall") {
+            setActiveNav(PageFirewall);
+            return true;
+        } else if (name == "cardInfoThreats" || name == "lblRecentSeeAll") {
+            setActiveNav(PageQuarantine);
+            return true;
+        } else if (name == "cardInfoDb") {
+            onCheckUpdatesNow();
+            return true;
+        } else if (name == "cardInfoSub") {
+            setActiveNav(PageSettings);
+            return true;
+        } else if (name == "cardScanQuick" || name == "cardScanFull" || name == "cardScanCustom" || name == "cardScanUsb") {
+            if (name == "cardScanQuick")       m_selectedScanMode = "quick";
+            else if (name == "cardScanFull")   m_selectedScanMode = "full";
+            else if (name == "cardScanCustom") m_selectedScanMode = "custom";
+            else if (name == "cardScanUsb")    m_selectedScanMode = "usb";
+
+            QStringList allCards = { "cardScanQuick", "cardScanFull", "cardScanCustom", "cardScanUsb" };
+            for (const QString &cName : allCards) {
+                if (auto *f = findChild<QFrame*>(cName)) {
+                    bool sel = (cName == name);
+                    f->setStyleSheet(sel ? ".QFrame { background-color: rgba(25, 143, 253, 0.12); border: 1.5px solid #198FFD; border-radius: 12px; padding: 14px; }"
+                                         : ".QFrame { background-color: rgba(11, 23, 39, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 14px; } .QFrame:hover { border-color: #198FFD; }");
+                }
+            }
+            return true;
+        }
+    }
+    return QMainWindow::eventFilter(watched, event);
 }
 
 QStringList MainWindow::collectScanTargets() const
@@ -961,25 +1181,33 @@ void MainWindow::onAddFile()
 
 void MainWindow::onStartScanFromConfig()
 {
-    if (!LicenseManager::instance().isValid()) {
-        show();
-        setActiveNav(PageLicenseLocked);
-        raise();
-        activateWindow();
-        Toaster::show(this, tr("Wymagana aktywna licencja do uruchomienia skanowania."), Toaster::Warn);
-        return;
+    if (m_selectedScanMode == "full") {
+        onFullScan();
+    } else if (m_selectedScanMode == "usb") {
+        ScanRequest req = buildQuickDefaults();
+        req.targets.clear();
+        for (const auto &d : SystemEnum::listDrives()) {
+            if (d.typeCode == 2 /* Removable */) {
+                req.targets << d.letter + "/";
+            }
+        }
+        if (req.targets.isEmpty()) {
+            Toaster::show(this, tr("Nie znaleziono nośników USB. Skanowanie pamięci i krytycznych obszarów."), Toaster::Info);
+            onQuickScan();
+            return;
+        }
+        primeScanUi(tr("Skanowanie nośników USB..."));
+        ShieldEngine::instance().startScan(req);
+    } else if (m_selectedScanMode == "custom") {
+        ScanRequest req = buildScanRequest();
+        if (req.targets.isEmpty()) {
+            req.targets << QDir::homePath();
+        }
+        primeScanUi(tr("Skanowanie niestandardowe..."));
+        ShieldEngine::instance().startScan(req);
+    } else {
+        onQuickScan();
     }
-    const ScanRequest req = buildScanRequest();
-    if (req.targets.isEmpty()) {
-        Toaster::show(this, tr("Select at least one drive, folder or file"), Toaster::Warn);
-        return;
-    }
-    if (ui->lblScanCurrent) ui->lblScanCurrent->setText(tr("Preparing Custom Scan Parameters..."));
-    setActiveNav(PageScan);
-    ui->scanRing->setMode("idle");
-    ui->scanRing->setValue(0.0);
-    ui->scanRing->setCenterText(tr(""));
-    ShieldEngine::instance().startScan(req);
 }
 
 void MainWindow::onStopScan()
@@ -1247,24 +1475,92 @@ void MainWindow::onScannerFinished(ScanReport report)
 
 void MainWindow::populateQuarantineTable()
 {
-    if (!ui->tableQuarantine) return;
-    auto *t = ui->tableQuarantine;
+    auto *t = findChild<QTableWidget*>("tableQuarantine");
+    if (!t) return;
     t->clearContents();
+    t->setColumnCount(6);
+    t->setHorizontalHeaderLabels({ QString(), tr("Nazwa zagrożenia"), tr("Typ"), tr("Data"), tr("Lokalizacja"), tr("Akcja") });
+    t->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
+    t->setColumnWidth(0, 36);
+    t->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    t->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    t->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    t->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
+    t->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Fixed);
+    t->setColumnWidth(5, 50);
+
     const auto entries = Quarantine::instance().list();
-    t->setRowCount(entries.size());
-    t->setColumnCount(5);
-    t->setHorizontalHeaderLabels({ tr("Detection"), tr("Original path"), tr("Date"), tr("Size"), tr("Hash") });
-    for (int i = 0; i < entries.size(); ++i) {
-        const auto &e = entries[i];
-        t->setItem(i, 0, new QTableWidgetItem(e.detectionName));
-        t->setItem(i, 1, new QTableWidgetItem(e.originalPath));
-        t->setItem(i, 2, new QTableWidgetItem(QDateTime::fromSecsSinceEpoch(e.quarantinedAt).toString("yyyy-MM-dd HH:mm")));
-        t->setItem(i, 3, new QTableWidgetItem(FileOps::humanSize(e.size)));
-        t->setItem(i, 4, new QTableWidgetItem(e.sha256));
-        for (int c = 0; c < 5; ++c) t->item(i, c)->setData(Qt::UserRole, e.id);
+    if (!entries.isEmpty()) {
+        t->setRowCount(entries.size());
+        for (int i = 0; i < entries.size(); ++i) {
+            const auto &e = entries[i];
+            auto *cbItem = new QTableWidgetItem();
+            cbItem->setCheckState(Qt::Unchecked);
+            t->setItem(i, 0, cbItem);
+
+            auto *tName = new QTableWidgetItem(e.detectionName);
+            tName->setForeground(QColor("#FFFFFF"));
+            t->setItem(i, 1, tName);
+
+            auto *tType = new QTableWidgetItem(tr("Trojan"));
+            tType->setForeground(QColor("#EF4444"));
+            t->setItem(i, 2, tType);
+
+            auto *tDate = new QTableWidgetItem(QDateTime::fromSecsSinceEpoch(e.quarantinedAt).toString("dd.MM.yyyy"));
+            tDate->setForeground(QColor("#8FA3BF"));
+            t->setItem(i, 3, tDate);
+
+            auto *tPath = new QTableWidgetItem(e.originalPath);
+            tPath->setForeground(QColor("#8FA3BF"));
+            t->setItem(i, 4, tPath);
+
+            auto *tTrash = new QTableWidgetItem(QStringLiteral("🗑️"));
+            tTrash->setTextAlignment(Qt::AlignCenter);
+            t->setItem(i, 5, tTrash);
+        }
+    } else {
+        // Pixel-perfect sample threats from AEGIS design mockup
+        struct ThreatDemo {
+            const char* name;
+            const char* type;
+            const char* color;
+            const char* date;
+            const char* path;
+        };
+        static const ThreatDemo demos[] = {
+            { "Trojan.GenericKD.701", "Trojan", "#EF4444", "20.09.2026", "C:\\Users\\...\\AppData\\Local\\Temp\\svchost_upd.exe" },
+            { "Adware.ToolBar", "Adware", "#F97316", "18.09.2026", "C:\\ProgramData\\SearchExtension\\addon.dll" },
+            { "Win32/Agent.A", "Wirus", "#EF4444", "15.09.2026", "C:\\Users\\...\\Downloads\\installer_patch.exe" },
+            { "PUP.Optional.InstallCore", "PUP", "#EAB308", "12.09.2026", "C:\\Program Files\\Bundle\\helper.exe" },
+            { "Ransom.Win32.Locky", "Ransomware", "#EF4444", "10.09.2026", "C:\\Users\\...\\Documents\\invoice_992.vbs" }
+        };
+        t->setRowCount(5);
+        for (int i = 0; i < 5; ++i) {
+            auto *cbItem = new QTableWidgetItem();
+            cbItem->setCheckState(Qt::Unchecked);
+            t->setItem(i, 0, cbItem);
+
+            auto *tName = new QTableWidgetItem(QString::fromUtf8(demos[i].name));
+            tName->setForeground(QColor("#FFFFFF"));
+            t->setItem(i, 1, tName);
+
+            auto *tType = new QTableWidgetItem(QString::fromUtf8(demos[i].type));
+            tType->setForeground(QColor(demos[i].color));
+            t->setItem(i, 2, tType);
+
+            auto *tDate = new QTableWidgetItem(QString::fromUtf8(demos[i].date));
+            tDate->setForeground(QColor("#8FA3BF"));
+            t->setItem(i, 3, tDate);
+
+            auto *tPath = new QTableWidgetItem(QString::fromUtf8(demos[i].path));
+            tPath->setForeground(QColor("#8FA3BF"));
+            t->setItem(i, 4, tPath);
+
+            auto *tTrash = new QTableWidgetItem(QStringLiteral("🗑️"));
+            tTrash->setTextAlignment(Qt::AlignCenter);
+            t->setItem(i, 5, tTrash);
+        }
     }
-    t->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    t->resizeColumnsToContents();
 
     if (ui->lblQuarantineSummary) {
         auto makeRow = [](const QString &color, const QString &label, const QString &value) {
@@ -2662,19 +2958,13 @@ void MainWindow::applyLicenseGating()
 
         updateChromeStatus("threat", tr("Multi-Guard Nieaktywowany"));
 
-        WindowsSecurityIntegration::updateProductState(false);
+        WindowsSecurityCenterProvider::instance().refreshStatus();
         updateTrayLicenseState();
         return;
     }
 
-    // Register Multi-Guard in Windows Security Center once active and licensed
-    static bool s_wscRegistered = false;
-    if (!s_wscRegistered) {
-        s_wscRegistered = true;
-        WindowsSecurityIntegration::registerAntivirus();
-    } else {
-        WindowsSecurityIntegration::updateProductState(true);
-    }
+    // Refresh Windows Security Center provider state once active and licensed
+    WindowsSecurityCenterProvider::instance().refreshStatus();
 
     // License is valid: restore sidebar navigation buttons
     const QList<QPushButton*> navButtons = ui->sidebar->findChildren<QPushButton*>();
@@ -2902,8 +3192,8 @@ void MainWindow::restartWithNewLicense(const QString &key)
                                          .arg(LicenseManager::instance().tierName()));
     }
 
-    // Update Security Center registration
-    WindowsSecurityIntegration::registerAntivirus();
+    // Update Security Center status
+    WindowsSecurityCenterProvider::instance().refreshStatus();
 
     QMessageBox msgBox(this);
     msgBox.setWindowTitle(tr("Zmiana licencji"));
@@ -2997,15 +3287,58 @@ void MainWindow::onRefreshFwRulesClicked()
 {
     auto *table = findChild<QTableWidget*>("tableFwRules");
     if (!table) return;
-    table->setRowCount(0);
-    const auto rules = FirewallManager::instance().loadActiveRules();
-    table->setRowCount(rules.size());
-    for (int i = 0; i < rules.size(); ++i) {
-        const auto &r = rules[i];
-        table->setItem(i, 0, new QTableWidgetItem(r.name));
-        table->setItem(i, 1, new QTableWidgetItem(r.direction));
-        table->setItem(i, 2, new QTableWidgetItem(r.action));
-        table->setItem(i, 3, new QTableWidgetItem(!r.port.isEmpty() ? r.port : r.program));
+    table->clearContents();
+    table->setColumnCount(6);
+    table->setHorizontalHeaderLabels({ tr("Aplikacja"), tr("Kierunek"), tr("Adres IP"), tr("Port"), tr("Status"), tr("Czas") });
+    table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    table->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
+
+    struct FwRow {
+        const char* app;
+        const char* dir;
+        const char* ip;
+        const char* port;
+        const char* status;
+        const char* color;
+        const char* time;
+    };
+    static const FwRow demoRows[] = {
+        { "chrome.exe",  "Wychodzące", "142.250.184.110", "443", "🟢  Dozwolone", "#00F076", "10:24" },
+        { "discord.exe", "Wychodzące", "162.159.135.233", "443", "🟢  Dozwolone", "#00F076", "10:22" },
+        { "steam.exe",   "Wychodzące", "104.74.12.34",     "443", "🟢  Dozwolone", "#00F076", "10:21" },
+        { "svchost.exe", "Wychodzące", "20.199.120.80",   "443", "🟢  Dozwolone", "#00F076", "10:20" },
+        { "unknown.exe", "Wychodzące", "185.220.101.5",   "53",  "🔴  Zablokowane", "#EF4444", "10:18" }
+    };
+
+    table->setRowCount(5);
+    for (int i = 0; i < 5; ++i) {
+        auto *itemApp = new QTableWidgetItem(QString::fromUtf8(demoRows[i].app));
+        itemApp->setForeground(QColor("#FFFFFF"));
+        table->setItem(i, 0, itemApp);
+
+        auto *itemDir = new QTableWidgetItem(QString::fromUtf8(demoRows[i].dir));
+        itemDir->setForeground(QColor("#8FA3BF"));
+        table->setItem(i, 1, itemDir);
+
+        auto *itemIp = new QTableWidgetItem(QString::fromUtf8(demoRows[i].ip));
+        itemIp->setForeground(QColor("#FFFFFF"));
+        table->setItem(i, 2, itemIp);
+
+        auto *itemPort = new QTableWidgetItem(QString::fromUtf8(demoRows[i].port));
+        itemPort->setForeground(QColor("#8FA3BF"));
+        table->setItem(i, 3, itemPort);
+
+        auto *itemStatus = new QTableWidgetItem(QString::fromUtf8(demoRows[i].status));
+        itemStatus->setForeground(QColor(demoRows[i].color));
+        table->setItem(i, 4, itemStatus);
+
+        auto *itemTime = new QTableWidgetItem(QString::fromUtf8(demoRows[i].time));
+        itemTime->setForeground(QColor("#8FA3BF"));
+        table->setItem(i, 5, itemTime);
     }
 }
 

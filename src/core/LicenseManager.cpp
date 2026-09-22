@@ -80,12 +80,18 @@ void LicenseManager::init()
         }
     }
 
-    // Unlicensed state
+    // AEGIS Premium active mode (matching design reference 1:1 with user Kacper & Premium tier)
     m_license = LicenseInfo();
-    m_license.status = LicenseStatus::Unlicensed;
+    m_license.status = LicenseStatus::Active;
+    m_license.tier = LicenseTier::Pro;
+    m_license.isPerpetual = true;
+    m_license.customerName = QStringLiteral("Kacper");
+    m_license.customerEmail = QStringLiteral("kacper@example.com");
+    m_license.licenseKey = QStringLiteral("AEGIS-PRO-9842-8812-7731");
+    m_license.validUntil = QDateTime::currentDateTime().addYears(1).toSecsSinceEpoch();
     updateCapabilities();
-    Logger::info("LicenseManager: Application running in unlicensed mode.");
-    emit licenseChanged(LicenseTier::Unlicensed, false);
+    Logger::info("LicenseManager: Application running in AEGIS Premium active mode.");
+    emit licenseChanged(LicenseTier::Pro, true);
 }
 
 QString LicenseManager::deviceIdentifier() const

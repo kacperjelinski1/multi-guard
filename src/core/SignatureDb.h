@@ -33,6 +33,14 @@ struct ByteSig {
     QString entryPatch;    // original prologue bytes hex e.g. "558BEC"
 };
 
+enum class SignatureStatus {
+    UP_TO_DATE,
+    OUT_OF_DATE,
+    UPDATE_REQUIRED,
+    UPDATE_IN_PROGRESS,
+    UPDATE_FAILED
+};
+
 class SignatureDb : public QObject {
     Q_OBJECT
 public:
@@ -42,6 +50,10 @@ public:
     void    close();
     bool    isOpen() const;
     bool    isJsonFallback() const { return m_jsonFallback; }
+
+    // Status bazy sygnatur
+    SignatureStatus status() const;
+    QString         statusString() const;
 
     // Schema bootstrap + seed import (works with both DB and JSON)
     bool    initSchema();
@@ -89,6 +101,7 @@ public:
 signals:
     void updateProgress(int pct);
     void updateFinished(int added, int total, const QString &error);
+    void statusChanged(verax::SignatureStatus newStatus);
 
 private:
     explicit SignatureDb(QObject *parent = nullptr);
@@ -111,6 +124,7 @@ private:
     bool          m_jsonFallback = false;
     QString       m_jsonPath;
     QJsonArray    m_jsonEntries;      // in-memory cache
+    bool          m_isUpdating = false;
 };
 
 } // namespace verax

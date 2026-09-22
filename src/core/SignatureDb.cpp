@@ -552,6 +552,49 @@ int SignatureDb::totalSignatures() const
     return 0;
 }
 
+SignatureStatus SignatureDb::status() const
+{
+    if (m_isUpdating) {
+        return SignatureStatus::UPDATE_IN_PROGRESS;
+    }
+    const QString iso = lastUpdate();
+    if (iso.isEmpty()) {
+        return SignatureStatus::UPDATE_REQUIRED;
+    }
+    QDateTime dt = QDateTime::fromString(iso, Qt::ISODate);
+    if (!dt.isValid()) {
+        return SignatureStatus::UPDATE_REQUIRED;
+    }
+    qint64 daysOld = dt.daysTo(QDateTime::currentDateTime());
+    if (daysOld < 0) {
+        return SignatureStatus::UP_TO_DATE;
+    }
+    if (daysOld <= 7) {
+        return SignatureStatus::UP_TO_DATE;
+    }
+    if (daysOld <= 30) {
+        return SignatureStatus::OUT_OF_DATE;
+    }
+    return SignatureStatus::UPDATE_REQUIRED;
+}
+
+QString SignatureDb::statusString() const
+{
+    switch (status()) {
+    case SignatureStatus::UP_TO_DATE:
+        return QStringLiteral("UP_TO_DATE");
+    case SignatureStatus::OUT_OF_DATE:
+        return QStringLiteral("OUT_OF_DATE");
+    case SignatureStatus::UPDATE_REQUIRED:
+        return QStringLiteral("UPDATE_REQUIRED");
+    case SignatureStatus::UPDATE_IN_PROGRESS:
+        return QStringLiteral("UPDATE_IN_PROGRESS");
+    case SignatureStatus::UPDATE_FAILED:
+        return QStringLiteral("UPDATE_FAILED");
+    }
+    return QStringLiteral("UNKNOWN");
+}
+
 QString SignatureDb::lastUpdate() const {
     if (m_jsonFallback) return QSettings().value("db/last_update").toString();
     return getMeta("last_update");
@@ -621,6 +664,9 @@ SignatureDb::LastScanInfo SignatureDb::lastScanInfo() const
 // ═══════════════════════════════════════════════════════════════════
 void SignatureDb::updateOnline(const QString &baseUrl)
 {
+    m_isUpdating = true;
+    emit statusChanged(SignatureStatus::UPDATE_IN_PROGRESS);
+
     if (!m_nam) m_nam = new QNetworkAccessManager(this);
 
     QString finalUrl = baseUrl;
@@ -656,7 +702,9 @@ void SignatureDb::updateOnline(const QString &baseUrl)
         r->deleteLater();
 
         if (!err.isEmpty()) {
+            m_isUpdating = false;
             Logger::warn(QStringLiteral("Signature update failed: %1").arg(err));
+            emit statusChanged(SignatureStatus::UPDATE_FAILED);
             emit updateFinished(0, totalSignatures(), err);
             return;
         }
@@ -664,6 +712,8 @@ void SignatureDb::updateOnline(const QString &baseUrl)
         QJsonParseError jerr{};
         const QJsonDocument doc = QJsonDocument::fromJson(body, &jerr);
         if (doc.isNull() || !doc.isObject()) {
+            m_isUpdating = false;
+            emit statusChanged(SignatureStatus::UPDATE_FAILED);
             emit updateFinished(0, totalSignatures(), "Bad JSON");
             return;
         }
@@ -732,6 +782,8 @@ void SignatureDb::updateOnline(const QString &baseUrl)
         m_db.commit();
 
         setLastUpdate(QDateTime::currentDateTime().toString(Qt::ISODate));
+        m_isUpdating = false;
+        emit statusChanged(SignatureStatus::UP_TO_DATE);
         emit updateFinished(added, totalSignatures(), QString());
     });
 }

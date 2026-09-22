@@ -29,9 +29,9 @@ a projekt stosuje [SemVer](https://semver.org/spec/v2.0.0.html).
 - Blokada po wygaśnięciu licencji (`pageLicenseLocked`) z natychmiastowym odnowieniem online lub telefonicznym (`505 012 914`).
 
 #### Integracja z Windows Security Center
-- Rejestracja instancji `AntiVirusProduct` w przestrzeni WMI `root\SecurityCenter2`.
-- Integracja z aplikacją Zabezpieczenia Windows (Defender): Multi-Guard jest zgłaszany jako aktywny i włączony dostawca antywirusa.
-- Kooperacyjne wygaszanie podwójnego skanowania Microsoft Defender (`Set-MpPreference -DisableRealtimeMonitoring $true`).
+- Architektura integracji przygotowana pod oficjalne API Microsoft Virus Initiative (MVI).
+- Dedykowany moduł WindowsSecurityCenterProvider raportujący stan w czasie rzeczywistym.
+- Zgodność ze standardami Microsoftu – brak sztucznych manipulacji rejestrem czy wyłączania Defendera.
 
 #### Interfejs Użytkownika i Doświadczenie (UX)
 - Nowoczesny interfejs z motywami ciemnym i jasnym oraz obsługą języka polskiego.

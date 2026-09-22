@@ -194,6 +194,10 @@ private:
     void onRefreshLockedKeyClicked();
     void restartWithNewLicense(const QString &key);
 
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
+private:
     Ui::MainWindow *ui = nullptr;
     PageTransition *m_transition = nullptr;
     QSystemTrayIcon *m_tray = nullptr;
@@ -226,6 +230,7 @@ private:
     QPushButton *m_bulkApplyBtn   = nullptr;
 
     QString      m_activeScanPhase;
+    QString      m_selectedScanMode = QStringLiteral("quick");
 };
 
 } // namespace verax

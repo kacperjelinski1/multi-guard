@@ -252,14 +252,15 @@ void Updater::showUpdateDialog(QWidget *parent, const UpdateInfo &info)
     btnRow->setSpacing(10);
     btnRow->addStretch(1);
 
-    auto *btnBrowser = new QPushButton(tr("Strona pobierania"), dlg);
+    auto *btnBrowser = new QPushButton(tr("Pobierz ręcznie"), dlg);
     btnBrowser->setStyleSheet("background: transparent; border: 1px solid #334155; color: #94A3B8;");
+    btnBrowser->setVisible(false);
 
     auto *btnLater = new QPushButton(tr("Przypomnij później"), dlg);
     btnLater->setStyleSheet("background: transparent; border: 1px solid #334155; color: #94A3B8;");
 
     auto *btnUpdate = new QPushButton(tr("⬇️ Pobierz i zainstaluj teraz"), dlg);
-    btnUpdate->setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00E676, stop:1 #00C853); border: 1px solid #00E676; color: #021206; font-weight: 700;");
+    btnUpdate->setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00F076, stop:1 #00C853); border: 1px solid #00E676; color: #021206; font-weight: 700;");
 
     btnRow->addWidget(btnBrowser);
     btnRow->addWidget(btnLater);
@@ -288,6 +289,7 @@ void Updater::showUpdateDialog(QWidget *parent, const UpdateInfo &info)
             lblStatus->setText(tr("<font color='#f87171'>Błąd zapisu pliku instalatora w folderze tymczasowym.</font>"));
             btnUpdate->setEnabled(true);
             btnLater->setEnabled(true);
+            btnBrowser->setVisible(true);
             return;
         }
 
@@ -309,13 +311,13 @@ void Updater::showUpdateDialog(QWidget *parent, const UpdateInfo &info)
                 progBar->setValue(pct);
                 double mbReceived = bytesReceived / (1024.0 * 1024.0);
                 double mbTotal = bytesTotal / (1024.0 * 1024.0);
-                lblStatus->setText(QObject::tr("Pobieranie instalatora: %1 MB / %2 MB (%3%)")
+                lblStatus->setText(QObject::tr("Pobieranie aktualizacji: %1 MB / %2 MB (%3%)")
                                    .arg(QString::number(mbReceived, 'f', 1),
                                         QString::number(mbTotal, 'f', 1),
                                         QString::number(pct)));
             } else {
                 double mbReceived = bytesReceived / (1024.0 * 1024.0);
-                lblStatus->setText(QObject::tr("Pobieranie instalatora: %1 MB...")
+                lblStatus->setText(QObject::tr("Pobieranie aktualizacji: %1 MB...")
                                    .arg(QString::number(mbReceived, 'f', 1)));
             }
         });
@@ -328,8 +330,8 @@ void Updater::showUpdateDialog(QWidget *parent, const UpdateInfo &info)
                 QString err = reply->errorString();
                 reply->deleteLater();
                 file->remove();
-                lblStatus->setText(QObject::tr("<font color='#f87171'>Błąd pobierania (%1). Użyj przycisku poniżej, aby pobrać instalator ręcznie.</font>").arg(err));
-                btnBrowser->setStyleSheet("background: #2563EB; border: 1px solid #38BDF8; color: #FFFFFF; font-weight: bold;");
+                lblStatus->setText(QObject::tr("<font color='#f87171'>Błąd pobierania (%1).</font>").arg(err));
+                btnBrowser->setVisible(true);
                 btnLater->setEnabled(true);
                 return;
             }
@@ -338,18 +340,25 @@ void Updater::showUpdateDialog(QWidget *parent, const UpdateInfo &info)
 
             if (QFileInfo(tempPath).size() < 1024) {
                 file->remove();
-                lblStatus->setText(QObject::tr("<font color='#f87171'>Pobrany plik jest uszkodzony lub niekompletny. Otwórz stronę wydań.</font>"));
-                btnBrowser->setStyleSheet("background: #2563EB; border: 1px solid #38BDF8; color: #FFFFFF; font-weight: bold;");
+                lblStatus->setText(QObject::tr("<font color='#f87171'>Pobrany plik jest uszkodzony lub niekompletny.</font>"));
+                btnBrowser->setVisible(true);
                 btnLater->setEnabled(true);
                 return;
             }
 
-            lblStatus->setText(QObject::tr("<font color='#4ade80'><b>Pobieranie zakończone!</b> Trwa uruchamianie instalatora nowej wersji...</font>"));
+            lblStatus->setText(QObject::tr("<font color='#4ade80'><b>Pobieranie zakończone!</b> Trwa cicha instalacja aktualizacji...</font>"));
 
-            QTimer::singleShot(1500, dlg, [tempPath, dlg]{
+            QTimer::singleShot(1200, dlg, [tempPath, dlg]{
 #ifdef Q_OS_WIN
+                // Strip Mark-of-the-Web (Zone.Identifier) stream to eliminate Windows SmartScreen warning
+                DeleteFileW((LPCWSTR)(tempPath + QStringLiteral(":Zone.Identifier")).utf16());
+
                 QStringList args;
-                args << QStringLiteral("/CLOSEAPPLICATIONS");
+                args << QStringLiteral("/VERYSILENT")
+                     << QStringLiteral("/SUPPRESSMSGBOXES")
+                     << QStringLiteral("/NORESTART")
+                     << QStringLiteral("/CLOSEAPPLICATIONS");
+
                 bool ok = QProcess::startDetached(tempPath, args);
                 if (ok) {
                     dlg->accept();

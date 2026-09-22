@@ -6,9 +6,9 @@
 #pragma once
 
 // ─── Identity ──────────────────────────────────────────────────────────
-#define APP_NAME            "Multi-Guard"
-#define APP_NAME_SHORT      "Multi-Guard"
-#define APP_TAGLINE         "Real protection. Zero noise."
+#define APP_NAME            "AEGIS"
+#define APP_NAME_SHORT      "AEGIS"
+#define APP_TAGLINE         "Ochrona. Poczuj spokój."
 #define APP_VENDOR          "Multi-Servis"
 #define APP_DESCRIPTION     "Multi-Guard - inteligentna ochrona i integralność komputera."
 #define APP_COPYRIGHT       "Copyright (c) 2026 Multi-Servis"

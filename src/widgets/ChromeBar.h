@@ -4,6 +4,7 @@
 #include <QWidget>
 class QLabel;
 class QPushButton;
+class QLineEdit;
 class QHBoxLayout;
 
 namespace verax {
@@ -34,9 +35,12 @@ private:
     QLabel       *m_logo             = nullptr;
     QLabel       *m_title            = nullptr;
     QLabel       *m_status           = nullptr;
+    QLineEdit    *m_searchEdit       = nullptr;
     QPushButton  *m_btnUpdate        = nullptr;
     QPushButton  *m_btnNotifications = nullptr;
+    QWidget      *m_userWidget       = nullptr;
     QPushButton  *m_btnMin           = nullptr;
+    QPushButton  *m_btnMax           = nullptr;
     QPushButton  *m_btnClose         = nullptr;
 
     QPoint        m_dragOrigin;
