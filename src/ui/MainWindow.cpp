@@ -1140,8 +1140,8 @@ void MainWindow::onUsbDriveInserted(const QString &drivePath)
         nullptr
     );
 
-    if (m_trayIcon && !isVisible()) {
-        m_trayIcon->showMessage(
+    if (m_tray && !isVisible()) {
+        m_tray->showMessage(
             QStringLiteral("Multi-Guard USB Sentinel"),
             tr("Podłączono nośnik USB (%1). Kliknij, aby przeskanować.").arg(drivePath),
             QSystemTrayIcon::Information,
@@ -1530,8 +1530,8 @@ void MainWindow::onScannerFinished(ScanReport report)
                       : tr("Scan finished: no threats"),
                   report.threatsFound > 0 ? Toaster::Warn : Toaster::Success);
 
-    if (m_trayIcon && !isVisible()) {
-        m_trayIcon->showMessage(
+    if (m_tray && !isVisible()) {
+        m_tray->showMessage(
             QStringLiteral("Multi-Guard Endpoint Security"),
             report.threatsFound > 0
                 ? tr("Wykryto zagrożenia (%1)! Sprawdź stan ochrony.").arg(report.threatsFound)
