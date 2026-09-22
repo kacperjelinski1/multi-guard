@@ -331,21 +331,28 @@ bool DefenderEngine::updateSignatures()
 {
     if (!isAvailable()) return false;
 
-    QProcess proc;
+    QProcess *proc = new QProcess(this);
 #ifdef Q_OS_WIN
-    proc.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *args) {
+    proc->setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *args) {
         args->flags |= 0x08000000;
     });
 #endif
 
-    proc.start(m_mpCmdRunPath, { QStringLiteral("-SignatureUpdate") });
-    if (!proc.waitForStarted(3000)) return false;
-    bool finished = proc.waitForFinished(30000);
+    connect(proc, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this, proc](int exitCode, QProcess::ExitStatus exitStatus) {
+        bool ok = (exitStatus == QProcess::NormalExit && exitCode == 0);
+        DefenderStatus st = getStatus();
+        emit signaturesUpdated(ok, st.signatureVersion);
+        proc->deleteLater();
+    });
 
-    bool ok = (finished && proc.exitCode() == 0);
-    DefenderStatus st = getStatus();
-    emit signaturesUpdated(ok, st.signatureVersion);
-    return ok;
+    proc->start(m_mpCmdRunPath, { QStringLiteral("-SignatureUpdate") });
+    if (!proc->waitForStarted(3000)) {
+        proc->deleteLater();
+        emit signaturesUpdated(false, QString());
+        return false;
+    }
+    return true;
 }
 
 bool DefenderEngine::isRealTimeProtectionEnabled()

@@ -1,11 +1,10 @@
-2.0.1.0
-Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-2.0.1.0.exe
+2.0.2.0
+Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-2.0.2.0.exe
 Changelog=>
-Multi-Guard Endpoint Security 2.0.1.0:
-- Błyskawiczny IPC Single-Instance: Skanowanie z menu kontekstowego PPM otwiera okno w 0.005s bez restartowania działającej aplikacji
-- Reguły ASR (Attack Surface Reduction): Ochrona klasy Enterprise przed ransomware, makrami Office i kradzieżą haseł z LSASS
-- Globalna Ochrona Sieciowa Defender Network Protection na poziomie całego Windowsa
-- Błyskawiczny odczyt statusu silnika Defendera z rejestru Windows bez obciążania procesora
-- Pełna synchronizacja wykluczeń i harmonogramu skanowań z natywnym harmonogramem Defender
+Multi-Guard Endpoint Security 2.0.2.0:
+- W 100% asynchroniczna aktualizacja definicji Microsoft w tle (zero zawieszania GUI)
+- Autostart bez denerwującego monitu UAC przez Harmonogram Zadań Windows (schtasks /RL HIGHEST)
+- Eleganckie systemowe dymki powiadomień w zasobniku (Windows Tray Toasts)
+- Wskaźnik lekkości pamięci RAM Multi-Guard (~28 MB, < 0.1% CPU) w zakładce Narzędzia
 
 

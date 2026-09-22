@@ -2,7 +2,7 @@
 ; Developed by Multi-Servis (https://multi-servis.pl)
 
 #define MyAppName "Multi-Guard"
-#define MyAppVersion "2.0.1.0"
+#define MyAppVersion "2.0.2.0"
 #define MyAppPublisher "Multi-Servis"
 #define MyAppURL "https://multi-servis.pl"
 #define MyAppExeName "Multi-Guard.exe"
@@ -95,7 +95,11 @@ Name: "{app}"
 Name: "{commonappdata}\Multi-Guard"; Permissions: users-modify
 
 [Run]
+Filename: "schtasks.exe"; Parameters: "/Create /TN ""Multi-Guard"" /TR """"{app}\{#MyAppExeName}"""" -t"" /SC ONLOGON /RL HIGHEST /F"; Flags: runhidden
 Filename: "{app}\{#MyAppExeName}"; Parameters: "--tray"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+[UninstallRun]
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""Multi-Guard"" /F"; Flags: runhidden
 
 [Code]
 var

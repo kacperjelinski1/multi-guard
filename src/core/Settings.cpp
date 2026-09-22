@@ -8,6 +8,7 @@
 #include <QSettings>
 #include <QCoreApplication>
 #include <QDir>
+#include <QProcess>
 namespace verax {
 
 Settings& Settings::instance() {
@@ -180,18 +181,33 @@ bool Settings::isExcluded(const QString &filePath) const {
 
 void Settings::applyStartupRegistry()
 {
-    QSettings run("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows"
-                  "\\CurrentVersion\\Run", QSettings::NativeFormat);
-    const QString exe = QDir::toNativeSeparators(
-                QCoreApplication::applicationFilePath());
+#ifdef Q_OS_WIN
+    QSettings run("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Run", QSettings::NativeFormat);
+    const QString exe = QDir::toNativeSeparators(QCoreApplication::applicationFilePath());
     if (m_startWithWindows) {
-        run.setValue(QString::fromLatin1(APP_NAME),
-                     QStringLiteral("\"%1\" --tray").arg(exe));
-        Logger::info(QStringLiteral("Startup registered: %1").arg(exe));
+        // Classic Run fallback
+        run.setValue(QString::fromLatin1(APP_NAME), QStringLiteral("\"%1\" -t").arg(exe));
+
+        // Task Scheduler for elevated logon without any UAC prompt
+        QProcess schProc;
+        schProc.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *args) {
+            args->flags |= 0x08000000;
+        });
+        QString cmd = QStringLiteral("schtasks /Create /TN \"Multi-Guard\" /TR \"\\\"%1\\\" -t\" /SC ONLOGON /RL HIGHEST /F").arg(exe);
+        schProc.start("cmd.exe", { "/c", cmd });
+        schProc.waitForFinished(3000);
+        Logger::info(QStringLiteral("Startup registered with elevated Task Scheduler: %1").arg(exe));
     } else {
         run.remove(QString::fromLatin1(APP_NAME));
+        QProcess schProc;
+        schProc.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *args) {
+            args->flags |= 0x08000000;
+        });
+        schProc.start("cmd.exe", { "/c", "schtasks /Delete /TN \"Multi-Guard\" /F" });
+        schProc.waitForFinished(3000);
         Logger::info(QStringLiteral("Startup deregistered"));
     }
+#endif
 }
 
 void Settings::applyContextMenuRegistry()

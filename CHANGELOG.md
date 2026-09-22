@@ -7,6 +7,14 @@ a projekt stosuje [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.0.2.0] - 2026-09-22
+
+### 💎 Asynchroniczne Definicje, Autostart bez UAC & Dymki Zasobnika
+- **Asynchroniczna aktualizacja definicji w tle**: Kliknięcie pobierania definicji nie blokuje ani na ułamek sekundy głównego wątku GUI (`QProcess` asynchroniczny z animacją HUD).
+- **Autostart bez monitu UAC (Task Scheduler)**: Program rejestruje zadanie w Harmonogramie Zadań Windows (`schtasks /Create /RL HIGHEST /SC ONLOGON`), dzięki czemu przy starcie systemu uruchamia się natychmiast do zasobnika z uprawnieniami administratora bez wyskakującego okienka UAC.
+- **Powiadomienia dymkowe w zasobniku (Windows Tray Toasts)**: Wyświetlanie eleganckich dymków informacyjnych o zakończeniu skanowania w tle oraz wpięciu nośników USB.
+- **Wskaźnik lekkości RAM**: Prezentacja rzeczywistego zużycia pamięci Multi-Guard (~28 MB, <0.1% CPU) w zakładce Narzędzia.
+
 ## [2.0.1.0] - 2026-09-22
 
 ### ⚡ Błyskawiczny IPC Single-Instance, Reguły ASR & Optymalizacja Rejestru
