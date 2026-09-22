@@ -57,19 +57,11 @@ Root: HKLM; Subkey: "SOFTWARE\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#MyAppName}"; ValueData: """{app}\{#MyAppExeName}"" --tray"; Flags: uninsdeletevalue
 
 [Dirs]
-Name: "{app}"; Permissions: system-full administrators-full authusers-r
-Name: "{commonappdata}\Multi-Guard"; Permissions: system-full administrators-full authusers-modify
+Name: "{app}"; Permissions: system-full admins-full authusers-r
+Name: "{commonappdata}\Multi-Guard"; Permissions: system-full admins-full authusers-modify
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--install-service"; StatusMsg: "Rejestrowanie usługi Multi-Guard Antivirus..."; Flags: runhidden
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--start-service"; StatusMsg: "Uruchamianie ochrony w tle..."; Flags: runhidden
 Filename: "{app}\{#MyAppExeName}"; Parameters: "--tray"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
-
-[UninstallRun]
-; Zatrzymanie i wyrejestrowanie usługi systemowej oraz czyszczenie rejestracji
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--stop-service"; Flags: runhidden
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--uninstall-service"; Flags: runhidden
-Filename: "{app}\{#MyAppExeName}"; Parameters: "--uninstall"; Flags: runhidden
 
 [Code]
 var
