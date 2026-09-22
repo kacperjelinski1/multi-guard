@@ -22,10 +22,13 @@ public:
 
     static void showThreat(const QString &threatName, const QString &filePath,
                            std::function<void()> onQuarantine = nullptr,
-                           std::function<void()> onShowDetails = nullptr);
+                           std::function<void()> onDeletePermanent = nullptr,
+                           std::function<void()> onIgnore = nullptr);
 
     static void showUsb(const QString &drivePath,
-                        std::function<void()> onScan = nullptr);
+                        std::function<void()> onScan = nullptr,
+                        std::function<void()> onOpenSafely = nullptr,
+                        std::function<void()> onIgnore = nullptr);
 
     static void showInfo(const QString &title, const QString &message);
 
@@ -37,12 +40,14 @@ private:
     NotificationAlert(AlertType type, const QString &title, const QString &subtitle,
                       const QString &details,
                       const QString &actionText, std::function<void()> actionCb,
-                      const QString &secondaryText = QString(), std::function<void()> secondaryCb = nullptr);
+                      const QString &secondaryText = QString(), std::function<void()> secondaryCb = nullptr,
+                      const QString &tertiaryText = QString(), std::function<void()> tertiaryCb = nullptr);
 
     void setupUi(AlertType type, const QString &title, const QString &subtitle,
                  const QString &details,
                  const QString &actionText, std::function<void()> actionCb,
-                 const QString &secondaryText, std::function<void()> secondaryCb);
+                 const QString &secondaryText, std::function<void()> secondaryCb,
+                 const QString &tertiaryText, std::function<void()> tertiaryCb);
 
     void repositionAndAnimate();
 

@@ -43,10 +43,11 @@ void ThemeManager::applyTheme(const QString &themeMode)
 QString ThemeManager::trayStyleSheet()
 {
     return QStringLiteral(
-        "QMenu { font-family: 'Nunito', 'Segoe UI', sans-serif; background: #121622; color: #F1F5F9; border: 1px solid #252E42; border-radius: 8px; padding: 6px; }\n"
-        "QMenu::item { font-family: 'Nunito', 'Segoe UI', sans-serif; padding: 8px 24px 8px 12px; border-radius: 4px; font-size: 12px; font-weight: 500; }\n"
-        "QMenu::item:selected { background: #00E676; color: #000000; font-weight: bold; }\n"
-        "QMenu::separator { height: 1px; background: #252E42; margin: 4px 8px; }"
+        "QMenu { font-family: 'Nunito', 'Segoe UI', sans-serif; background-color: #0c1322; color: #F1F5F9; border: 1px solid #1e293b; border-radius: 10px; padding: 6px; }\n"
+        "QMenu::item { font-family: 'Nunito', 'Segoe UI', sans-serif; padding: 8px 24px 8px 14px; border-radius: 6px; font-size: 11px; font-weight: 600; }\n"
+        "QMenu::item:selected { background-color: #0284c7; color: #FFFFFF; font-weight: 700; }\n"
+        "QMenu::item:disabled { color: #64748b; font-weight: 700; font-size: 10px; }\n"
+        "QMenu::separator { height: 1px; background: #1e293b; margin: 4px 8px; }"
     );
 }
 

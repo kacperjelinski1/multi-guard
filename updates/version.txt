@@ -1,8 +1,11 @@
-1.1.7.0
+1.1.7.2
+Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-1.1.7.2.exe
 Changelog=>
-Multi-Guard Endpoint Security 1.1.7:
-- Nowy interfejs AEGIS Cyber HUD 1:1 z responsywnym układem wszystkich 9 ekranów
-- Panoramiczne tło górskie na Pulpicie oraz dedykowane, ostre neonowe ikony modułów
-- Całkowite usunięcie zbędnych integracji WSC, DefendNot oraz usług w tle
-- Zoptymalizowana, lekka i w pełni stabilna architektura samodzielnego antywirusa
-- Usprawniony instalator Inno Setup oraz automatyczny proces wydań
+Multi-Guard Endpoint Security 1.1.7.2:
+- Nowy branding i logo Multi-Guard w całym ekosystemie
+- Duże, czytelne i wyraziste powiadomienia Cyber HUD o wykryciu pendrive i zagrożeń w czasie rzeczywistym
+- Dedykowana zakładka Moje konto z pełnymi danymi licencji, klienta, statystykami i zmianą klucza
+- Pełna integracja wyszukiwarki funkcji na górnym pasku
+- Monitor telemetrii sprzętowej CPU/RAM/GPU, czyszczenie dysku i menedżer autostartu
+- Bezpieczny mechanizm cichej aktualizacji z zachowaniem licencji bez ponownego podawania klucza
+- Usprawnione menu systemowego zasobnika (Tray)

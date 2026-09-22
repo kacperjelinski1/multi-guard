@@ -2,7 +2,7 @@
 ; Developed by Multi-Servis (https://multi-servis.pl)
 
 #define MyAppName "Multi-Guard"
-#define MyAppVersion "1.1.7.0"
+#define MyAppVersion "1.1.7.2"
 #define MyAppPublisher "Multi-Servis"
 #define MyAppURL "https://multi-servis.pl"
 #define MyAppExeName "Multi-Guard.exe"
@@ -99,12 +99,49 @@ begin
   LicensePage.Add('Klucz licencyjny (wymagany):', False);
 end;
 
+function HasExistingLicense(): Boolean;
+var
+  ExistingKey: String;
+begin
+  Result := False;
+  if RegQueryStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\Multi-Guard', 'LicenseKey', ExistingKey) and (Trim(ExistingKey) <> '') then begin
+    Result := True;
+    Exit;
+  end;
+  if RegQueryStringValue(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Multi-Guard', 'LicenseKey', ExistingKey) and (Trim(ExistingKey) <> '') then begin
+    Result := True;
+    Exit;
+  end;
+  if RegQueryStringValue(HKEY_CURRENT_USER, 'Software\Multi-Guard', 'LicenseKey', ExistingKey) and (Trim(ExistingKey) <> '') then begin
+    Result := True;
+    Exit;
+  end;
+  if FileExists(ExpandConstant('{commonappdata}\Multi-Guard\license.key')) or
+     FileExists(ExpandConstant('{commonappdata}\Multi-Guard\license.jwt')) or
+     FileExists(ExpandConstant('{userappdata}\Multi-Guard\license.key')) or
+     FileExists(ExpandConstant('{userappdata}\Multi-Guard\license.jwt')) then begin
+    Result := True;
+    Exit;
+  end;
+end;
+
+function ShouldSkipPage(PageID: Integer): Boolean;
+begin
+  Result := False;
+  if PageID = LicensePage.ID then begin
+    // Automatyczne pominięcie strony wprowadzania klucza przy aktualizacji lub w trybie cichym
+    if WizardSilent or HasExistingLicense() then begin
+      Result := True;
+    end;
+  end;
+end;
+
 function NextButtonClick(CurPageID: Integer): Boolean;
 var
   Key: String;
 begin
   Result := True;
-  if WizardSilent then Exit;
+  if WizardSilent or HasExistingLicense() then Exit;
   if CurPageID = LicensePage.ID then begin
     Key := Trim(LicensePage.Values[0]);
     if Key = '' then begin

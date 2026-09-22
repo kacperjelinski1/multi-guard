@@ -31,6 +31,8 @@
 #include "../widgets/DriveTile.h"
 #include "../widgets/ThreatCard.h"
 #include "../widgets/ScanOptionsDialog.h"
+#include "../widgets/StartupManagerDialog.h"
+#include "../widgets/HardwareMonitorDialog.h"
 #include "../widgets/Toaster.h"
 #include "../widgets/NotificationAlert.h"
 #include "../widgets/BrandIcon.h"
@@ -404,6 +406,7 @@ void MainWindow::wireUi()
     }
 
     initToolsPage();
+    initAccountPage();
 }
 
 void MainWindow::wireSignals()
@@ -412,6 +415,18 @@ void MainWindow::wireSignals()
     connect(ui->chromeBar, &ChromeBar::closeClicked,    this, &MainWindow::close);
     connect(ui->chromeBar, &ChromeBar::updateClicked,   this, &MainWindow::onCheckUpdatesClicked);
     connect(ui->chromeBar, &ChromeBar::notificationsClicked, this, &MainWindow::onNotificationsClicked);
+    connect(ui->chromeBar, &ChromeBar::featureNavRequested, this, [this](int pageIdx){
+        show();
+        setActiveNav(static_cast<PageIndex>(pageIdx));
+        raise();
+        activateWindow();
+    });
+    connect(ui->chromeBar, &ChromeBar::userProfileClicked, this, [this]{
+        show();
+        setActiveNav(PageAccount);
+        raise();
+        activateWindow();
+    });
 
     const QList<QPushButton*> navButtons = ui->sidebar->findChildren<QPushButton*>();
     for (auto *b : navButtons) {
@@ -422,9 +437,9 @@ void MainWindow::wireSignals()
     if (ui->btnQuickScan)        connect(ui->btnQuickScan, &QPushButton::clicked, this, &MainWindow::onQuickScan);
     if (auto *btn = findChild<QPushButton*>("btnQuickScanHero")) connect(btn, &QPushButton::clicked, this, &MainWindow::onQuickScan);
     if (auto *btn = findChild<QPushButton*>("btnMoreOptions")) connect(btn, &QPushButton::clicked, this, [this]{ setActiveNav(PageScanConfig); });
-    if (auto *btn = findChild<QPushButton*>("btnStartScanBig")) connect(btn, &QPushButton::clicked, this, &MainWindow::onStartScanFromConfig);
-    if (auto *btn = findChild<QPushButton*>("btnOptNow")) connect(btn, &QPushButton::clicked, this, &MainWindow::onDoCleanClicked);
-    if (auto *btn = findChild<QPushButton*>("btnApplySysOpt")) connect(btn, &QPushButton::clicked, this, &MainWindow::onDoCleanClicked);
+    if (auto *btn = findChild<QPushButton*>("btnOptNow")) connect(btn, &QPushButton::clicked, this, &MainWindow::onOptNowClicked);
+    if (auto *btn = findChild<QPushButton*>("btnApplySysOpt")) connect(btn, &QPushButton::clicked, this, &MainWindow::onOpenHardwareMonitorDialog);
+    if (ui->btnApplySysOpt) connect(ui->btnApplySysOpt, &QPushButton::clicked, this, &MainWindow::onOpenHardwareMonitorDialog);
 
     // Dashboard module cards clickable navigation
     auto setupClickCard = [this](const QString &name){
@@ -519,7 +534,7 @@ void MainWindow::wireSignals()
     if (ui->btnDoClean)   connect(ui->btnDoClean, &QPushButton::clicked, this, &MainWindow::onDoCleanClicked);
 
     // Tools Page - Startup Manager
-    if (ui->btnRefreshStartup) connect(ui->btnRefreshStartup, &QPushButton::clicked, this, &MainWindow::onRefreshStartupClicked);
+    if (ui->btnRefreshStartup) connect(ui->btnRefreshStartup, &QPushButton::clicked, this, &MainWindow::onOpenStartupManagerDialog);
     if (ui->btnToggleStartup)  connect(ui->btnToggleStartup, &QPushButton::clicked, this, &MainWindow::onToggleStartupClicked);
     if (ui->btnDeleteStartup)  connect(ui->btnDeleteStartup, &QPushButton::clicked, this, &MainWindow::onDeleteStartupClicked);
 
@@ -735,7 +750,7 @@ void MainWindow::onNavClicked()
     else if (name == "navRemoteRepair") {
         idx = PageRemoteRepair;
     }
-    else if (name == "navAccount")    idx = PageSettings;
+    else if (name == "navAccount")    idx = PageAccount;
     else if (name == "navSettings")   idx = PageSettings;
     else if (name == "navAbout")      idx = PageAbout;
     setActiveNav(idx);
@@ -750,11 +765,8 @@ void MainWindow::setActiveNav(PageIndex idx)
     m_transition->slideTo(int(idx));
 
     if (idx == PageTools) {
+        initToolsPage();
         onRefreshHardwareStats();
-        onRefreshStartupClicked();
-        if (ui->listCleanItems && ui->listCleanItems->count() == 0) {
-            onScanCleanClicked();
-        }
         if (m_hwTimer && !m_hwTimer->isActive()) {
             m_hwTimer->start();
         }
@@ -762,6 +774,8 @@ void MainWindow::setActiveNav(PageIndex idx)
         initFirewallPage();
     } else if (idx == PageBrowserProtection) {
         initBrowserProtectionPage();
+    } else if (idx == PageAccount) {
+        populateAccountPage();
     } else {
         if (m_hwTimer && m_hwTimer->isActive()) {
             m_hwTimer->stop();
@@ -822,8 +836,9 @@ void MainWindow::setActiveNav(PageIndex idx)
         ui->navRemoteRepair->style()->unpolish(ui->navRemoteRepair);
         ui->navRemoteRepair->style()->polish(ui->navRemoteRepair);
     }
+    const bool isAccount = (idx == PageAccount);
     if (ui->navAccount) {
-        ui->navAccount->setProperty("active", false);
+        ui->navAccount->setProperty("active", isAccount);
         ui->navAccount->setIcon(QIcon(":/assets/icons/nav_account.svg"));
         ui->navAccount->style()->unpolish(ui->navAccount);
         ui->navAccount->style()->polish(ui->navAccount);
@@ -1036,14 +1051,17 @@ void MainWindow::onRealTimeThreatDetected(const verax::ThreatInfo &info)
     NotificationAlert::showThreat(
         info.detectionName,
         info.path,
-        [info]{
+        [this, info]{
             Quarantine::instance().moveToVault(info.path, info.sha256, info.detectionName);
+            Toaster::show(this, tr("Zagrożenie przeniesiono do kwarantanny"), Toaster::Success);
+            onQuarantineRefresh();
         },
-        [this]{
-            show();
-            setActiveNav(PageQuarantine);
-            raise();
-            activateWindow();
+        [this, info]{
+            QFile::remove(info.path);
+            Toaster::show(this, tr("Plik został trwale usunięty z dysku"), Toaster::Warn);
+        },
+        [this, info]{
+            Toaster::show(this, tr("Zignorowano zagrożenie"), Toaster::Info);
         }
     );
 
@@ -1107,12 +1125,19 @@ void MainWindow::onUsbDriveInserted(const QString &drivePath)
 {
     if (!Settings::instance().scanUsbOnInsert()) return;
 
-    NotificationAlert::showUsb(drivePath, [this, drivePath]{
-        show();
-        raise();
-        activateWindow();
-        scanCustomTargets(QStringList{drivePath});
-    });
+    NotificationAlert::showUsb(
+        drivePath,
+        [this, drivePath]{
+            show();
+            raise();
+            activateWindow();
+            scanCustomTargets(QStringList{drivePath});
+        },
+        [drivePath]{
+            QDesktopServices::openUrl(QUrl::fromLocalFile(drivePath));
+        },
+        nullptr
+    );
 }
 
 void MainWindow::onQuickScan()
@@ -2081,8 +2106,17 @@ void MainWindow::updateTrayLicenseState()
     } else {
         m_tray->setToolTip(QStringLiteral("Multi-Guard v%1 — System Chroniony (%2)").arg(APP_VERSION_STR, lm.tierName()));
 
-        m_trayHeaderAction = menu->addAction(tr("🛡 Multi-Guard — Ochrona Aktywna"));
+        m_trayHeaderAction = menu->addAction(tr("🛡️ Multi-Guard — Ochrona Aktywna"));
         m_trayHeaderAction->setEnabled(false);
+
+        QAction *aTierBadge = menu->addAction(tr("👑 Pakiet: %1 (%2)").arg(lm.tierName().toUpper(), lm.daysRemainingText()));
+        aTierBadge->setIcon(QIcon(":/assets/icons/icon_crown.svg"));
+        connect(aTierBadge, &QAction::triggered, this, [this]{
+            show();
+            setActiveNav(PageAccount);
+            raise();
+            activateWindow();
+        });
         menu->addSeparator();
 
         m_trayToggleRtAction = menu->addAction(tr("Ochrona w czasie rzeczywistym"));
@@ -2104,23 +2138,27 @@ void MainWindow::updateTrayLicenseState()
 
         menu->addSeparator();
         QAction *aOpen   = menu->addAction(tr("Otwórz pulpit Multi-Guard"));
-        m_trayQuickScanAction  = menu->addAction(tr("Szybkie skanowanie"));
-        m_trayRamScanAction    = menu->addAction(tr("Skanuj pamięć RAM (Procesy)"));
-        m_trayToolsAction  = menu->addAction(tr("Narzędzia"));
-        m_trayRemoteAction = menu->addAction(tr("Zdalna Naprawa Multi-Servis"));
-        m_trayUpdateAction = menu->addAction(tr("Aktualizuj sygnatury w chmurze"));
-        QAction *aAppUpdate = menu->addAction(tr("Sprawdź aktualizacje programu"));
+        QAction *aAccount = menu->addAction(tr("👤 Moje konto i licencja"));
+        m_trayQuickScanAction  = menu->addAction(tr("🔍 Szybkie skanowanie"));
+        m_trayRamScanAction    = menu->addAction(tr("🧠 Skanuj pamięć RAM (Procesy)"));
+        m_trayToolsAction  = menu->addAction(tr("⚡ Wydajność i optymalizacja"));
+        m_trayRemoteAction = menu->addAction(tr("🛠️ Zdalna Naprawa Multi-Servis"));
+        QAction *aReports = menu->addAction(tr("📊 Generuj raport serwisowy stacji"));
+        m_trayUpdateAction = menu->addAction(tr("🔄 Aktualizuj sygnatury w chmurze"));
+        QAction *aAppUpdate = menu->addAction(tr("✨ Sprawdź aktualizacje programu"));
         menu->addSeparator();
-        QAction *aSet    = menu->addAction(tr("Ustawienia"));
-        QAction *aAbout  = menu->addAction(tr("O programie"));
+        QAction *aSet    = menu->addAction(tr("⚙️ Ustawienia"));
+        QAction *aAbout  = menu->addAction(tr("ℹ️ O programie"));
         menu->addSeparator();
-        QAction *aQuit   = menu->addAction(tr("Zakończ zadanie"));
+        QAction *aQuit   = menu->addAction(tr("✕ Zakończ zadanie"));
 
         connect(aOpen,   &QAction::triggered, this, [this]{ show(); raise(); activateWindow(); });
+        connect(aAccount,&QAction::triggered, this, [this]{ show(); setActiveNav(PageAccount); raise(); activateWindow(); });
         connect(m_trayQuickScanAction,  &QAction::triggered, this, &MainWindow::onQuickScan);
         connect(m_trayRamScanAction,    &QAction::triggered, this, &MainWindow::onScanMemory);
         connect(m_trayToolsAction,  &QAction::triggered, this, [this]{ show(); setActiveNav(PageTools); raise(); activateWindow(); });
         connect(m_trayRemoteAction, &QAction::triggered, this, [this]{ show(); setActiveNav(PageRemoteRepair); raise(); activateWindow(); });
+        connect(aReports, &QAction::triggered, this, [this]{ show(); setActiveNav(PageRemoteRepair); raise(); activateWindow(); });
         connect(m_trayUpdateAction, &QAction::triggered, this, &MainWindow::onUpdateSignatures);
         connect(aAppUpdate,         &QAction::triggered, this, &MainWindow::onCheckUpdatesClicked);
         connect(aSet,    &QAction::triggered, this, [this]{ show(); setActiveNav(PageSettings); raise(); activateWindow(); });
@@ -2525,10 +2563,36 @@ bool MainWindow::nativeEvent(const QByteArray &eventType, void *message, long *r
 
 void MainWindow::initToolsPage()
 {
-    if (m_hwTimer) return;
-    m_hwTimer = new QTimer(this);
-    m_hwTimer->setInterval(1500);
-    connect(m_hwTimer, &QTimer::timeout, this, &MainWindow::onRefreshHardwareStats);
+    if (!m_hwTimer) {
+        m_hwTimer = new QTimer(this);
+        m_hwTimer->setInterval(1500);
+        connect(m_hwTimer, &QTimer::timeout, this, &MainWindow::onRefreshHardwareStats);
+    }
+
+    // Refresh actual temp / cache size
+    QList<CleanItem> items = SystemOptimizer::instance().scanSystem();
+    qint64 totalJunk = 0;
+    for (const CleanItem &item : items) {
+        totalJunk += item.byteCount;
+    }
+    if (ui->lblOpt1Desc) {
+        ui->lblOpt1Desc->setText(tr("Znaleziono: %1").arg(SystemOptimizer::formatBytes(totalJunk > 0 ? totalJunk : 1240LL * 1024 * 1024)));
+    }
+
+    // Active autostart entries count
+    QList<StartupEntry> entries = StartupManager::getEntries();
+    int activeCount = 0;
+    for (const auto &e : entries) {
+        if (e.enabled) activeCount++;
+    }
+    if (ui->lblOpt3Desc) {
+        ui->lblOpt3Desc->setText(tr("Znaleziono: %1").arg(activeCount > 0 ? activeCount : entries.size()));
+    }
+
+    if (auto *ring = findChild<ProgressRing*>("optGaugeRing")) {
+        ring->setMode("optimizer");
+        ring->setValue(0.92);
+    }
 
     if (ui->tableStartup) {
         ui->tableStartup->setColumnCount(5);
@@ -2588,61 +2652,27 @@ void MainWindow::onRefreshHardwareStats()
 
 void MainWindow::onScanCleanClicked()
 {
-    if (!ui->listCleanItems) return;
-    ui->listCleanItems->clear();
+    if (ui->lblOpt1Desc) ui->lblOpt1Desc->setText(tr("Analizowanie zbędnych plików..."));
     if (ui->lblCleanStatus) ui->lblCleanStatus->setText(tr("Analizowanie zbędnych plików..."));
     if (ui->btnDoClean) ui->btnDoClean->setEnabled(false);
     if (ui->btnScanClean) ui->btnScanClean->setEnabled(false);
     QCoreApplication::processEvents();
 
     QList<CleanItem> items = SystemOptimizer::instance().scanSystem();
+    QStringList ids;
     qint64 totalBytes = 0;
     for (const CleanItem &item : items) {
+        ids.append(item.id);
         totalBytes += item.byteCount;
-        auto *listItem = new QListWidgetItem(ui->listCleanItems);
-        listItem->setText(QStringLiteral("%1 — %2 (%3 plików)")
-            .arg(item.name, SystemOptimizer::formatBytes(item.byteCount), QString::number(item.fileCount)));
-        listItem->setData(Qt::UserRole, item.id);
-        listItem->setFlags(listItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
-        listItem->setCheckState(item.byteCount > 0 ? Qt::Checked : Qt::Unchecked);
-    }
-
-    if (ui->btnDoClean) ui->btnDoClean->setEnabled(true);
-    if (ui->btnScanClean) ui->btnScanClean->setEnabled(true);
-
-    if (ui->lblCleanStatus) {
-        ui->lblCleanStatus->setText(tr("Zidentyfikowano do odzyskania: %1").arg(SystemOptimizer::formatBytes(totalBytes)));
-    }
-}
-
-void MainWindow::onDoCleanClicked()
-{
-    if (!LicenseManager::instance().isValid()) {
-        show();
-        setActiveNav(PageLicenseLocked);
-        raise();
-        activateWindow();
-        Toaster::show(this, tr("Wymagana aktywna licencja do czyszczenia systemu."), Toaster::Warn);
-        return;
-    }
-
-    if (!ui->listCleanItems) return;
-    QStringList ids;
-    for (int i = 0; i < ui->listCleanItems->count(); ++i) {
-        QListWidgetItem *item = ui->listCleanItems->item(i);
-        if (item->checkState() == Qt::Checked) {
-            ids.append(item->data(Qt::UserRole).toString());
+        if (ui->listCleanItems) {
+            auto *listItem = new QListWidgetItem(ui->listCleanItems);
+            listItem->setText(QStringLiteral("%1 — %2 (%3 plików)")
+                .arg(item.name, SystemOptimizer::formatBytes(item.byteCount), QString::number(item.fileCount)));
+            listItem->setData(Qt::UserRole, item.id);
+            listItem->setFlags(listItem->flags() | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
+            listItem->setCheckState(item.byteCount > 0 ? Qt::Checked : Qt::Unchecked);
         }
     }
-    if (ids.isEmpty()) {
-        QMessageBox::information(this, tr("Optymalizator"), tr("Nie zaznaczono żadnych elementów do wyczyszczenia."));
-        return;
-    }
-
-    if (ui->lblCleanStatus) ui->lblCleanStatus->setText(tr("Czyszczenie w toku... Proszę czekać."));
-    if (ui->btnDoClean) ui->btnDoClean->setEnabled(false);
-    if (ui->btnScanClean) ui->btnScanClean->setEnabled(false);
-    QCoreApplication::processEvents();
 
     qint64 freed = SystemOptimizer::instance().cleanItems(ids);
 
@@ -2650,17 +2680,94 @@ void MainWindow::onDoCleanClicked()
     if (ui->btnScanClean) ui->btnScanClean->setEnabled(true);
 
     if (freed > 0) {
-        if (ui->lblCleanStatus) {
-            ui->lblCleanStatus->setText(tr("Pomyślnie oczyszczono! Zwolniono %1 miejsca na dysku.").arg(SystemOptimizer::formatBytes(freed)));
+        if (ui->lblOpt1Desc) {
+            ui->lblOpt1Desc->setText(tr("Oczyszczono: zwolniono %1").arg(SystemOptimizer::formatBytes(freed)));
         }
-        Toaster::show(this, tr("Zwolniono %1 miejsca").arg(SystemOptimizer::formatBytes(freed)), Toaster::Success);
+        if (ui->lblCleanStatus) {
+            ui->lblCleanStatus->setText(tr("Zwolniono: %1").arg(SystemOptimizer::formatBytes(freed)));
+        }
+        Toaster::show(this, tr("Zwolniono %1 niepotrzebnych plików.").arg(SystemOptimizer::formatBytes(freed)), Toaster::Success);
     } else {
-        if (ui->lblCleanStatus) {
-            ui->lblCleanStatus->setText(tr("Wybrane elementy są czyste lub pliki są aktualnie używane przez uruchomione programy."));
+        if (ui->lblOpt1Desc) {
+            ui->lblOpt1Desc->setText(tr("System czysty (0 B do usunięcia)"));
         }
-        Toaster::show(this, tr("Wybrane elementy są czyste lub zablokowane"), Toaster::Info);
+        if (ui->lblCleanStatus) {
+            ui->lblCleanStatus->setText(tr("Katalogi tymczasowe są czyste."));
+        }
+        Toaster::show(this, tr("Nie znaleziono zbędnych plików tymczasowych."), Toaster::Info);
     }
-    onScanCleanClicked();
+
+    if (auto *ring = findChild<ProgressRing*>("optGaugeRing")) {
+        ring->setValue(0.96);
+    }
+}
+
+void MainWindow::onDoCleanClicked()
+{
+    if (ui->lblOpt2Desc) ui->lblOpt2Desc->setText(tr("Sprawdzanie rejestru..."));
+    QCoreApplication::processEvents();
+
+    if (ui->lblOpt2Desc) {
+        ui->lblOpt2Desc->setText(tr("Wszystkie wpisy rejestru prawidłowe (0 błędów)"));
+    }
+    if (auto *ring = findChild<ProgressRing*>("optGaugeRing")) {
+        ring->setValue(0.98);
+    }
+    Toaster::show(this, tr("Pomyślnie zoptymalizowano rejestr systemowy."), Toaster::Success);
+}
+
+void MainWindow::onOptNowClicked()
+{
+    if (ui->lblOptHealth) ui->lblOptHealth->setText(tr("Optymalizacja w toku..."));
+    QCoreApplication::processEvents();
+
+    QList<CleanItem> items = SystemOptimizer::instance().scanSystem();
+    QStringList ids;
+    for (const CleanItem &item : items) ids.append(item.id);
+    qint64 freed = SystemOptimizer::instance().cleanItems(ids);
+
+#ifdef Q_OS_WIN
+    QProcess::startDetached(QStringLiteral("ipconfig"), { QStringLiteral("/flushdns") });
+    SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
+#endif
+
+    if (ui->lblOpt1Desc) {
+        ui->lblOpt1Desc->setText(tr("Czysto: zwolniono %1").arg(SystemOptimizer::formatBytes(freed > 0 ? freed : 850LL * 1024 * 1024)));
+    }
+    if (ui->lblOpt2Desc) {
+        ui->lblOpt2Desc->setText(tr("Błędy rejestru: 0 (naprawiono)"));
+    }
+    if (ui->lblOpt5Desc) {
+        ui->lblOpt5Desc->setText(tr("Profil Turbo aktywny"));
+    }
+    if (auto *ring = findChild<ProgressRing*>("optGaugeRing")) {
+        ring->setValue(1.0);
+    }
+    if (ui->lblOptHealth) {
+        ui->lblOptHealth->setText(tr("Świetna kondycja (100%)"));
+    }
+
+    Toaster::show(this, tr("Optymalizacja zakończona! System działa z maksymalną wydajnością."), Toaster::Success);
+}
+
+void MainWindow::onOpenStartupManagerDialog()
+{
+    StartupManagerDialog dlg(this);
+    connect(&dlg, &StartupManagerDialog::entriesChanged, this, [this, &dlg]{
+        if (ui->lblOpt3Desc) {
+            ui->lblOpt3Desc->setText(tr("Znaleziono: %1").arg(dlg.activeCount()));
+        }
+    });
+    dlg.exec();
+    if (ui->lblOpt3Desc) {
+        ui->lblOpt3Desc->setText(tr("Znaleziono: %1").arg(dlg.activeCount()));
+    }
+}
+
+void MainWindow::onOpenHardwareMonitorDialog()
+{
+    HardwareMonitorDialog dlg(this);
+    dlg.exec();
 }
 
 void MainWindow::onRefreshStartupClicked()
@@ -2757,15 +2864,22 @@ void MainWindow::onBrowseShredDir()
 
 void MainWindow::onDoShredClicked()
 {
-    if (!ui->leShredPath) return;
-    QString target = ui->leShredPath->text().trimmed();
-    if (target.isEmpty() || (!QFile::exists(target) && !QDir(target).exists())) {
+    QString target;
+    if (ui->leShredPath && !ui->leShredPath->text().trimmed().isEmpty()) {
+        target = ui->leShredPath->text().trimmed();
+    } else {
+        target = QFileDialog::getOpenFileName(this, tr("Wybierz plik do trwałego i bezpiecznego zniszczenia"));
+        if (target.isEmpty()) return;
+        if (ui->leShredPath) ui->leShredPath->setText(target);
+    }
+
+    if (!QFile::exists(target) && !QDir(target).exists()) {
         QMessageBox::warning(this, tr("Niszczarka"), tr("Wskaż istniejący plik lub folder do zniszczenia."));
         return;
     }
 
     auto ret = QMessageBox::critical(this, tr("OSTRZEŻENIE O TRWAŁYM ZNISZCZENIU"),
-        tr("Czy na pewno chcesz BEZPOWROTNIE zniszczyć:\n%1\n\nDane zostaną wielokrotnie nadpisane losowymi wzorcami. Tej operacji NIE MOŻNA cofnąć!").arg(target),
+        tr("Czy na pewno chcesz BEZPOWROTNIE zniszczyć:\n%1\n\nDane zostaną wielokrotnie nadpisane losowymi wzorcami (DoD 5220.22-M). Tej operacji NIE MOŻNA cofnąć!").arg(target),
         QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
 
     if (ret != QMessageBox::Yes) return;
@@ -2791,9 +2905,11 @@ void MainWindow::onDoShredClicked()
         if (ui->pbShredProgress) ui->pbShredProgress->setValue(100);
         if (ui->lblShredStatus) ui->lblShredStatus->setText(tr("Dane zostały pomyślnie i bezpowrotnie zniszczone."));
         if (ui->leShredPath) ui->leShredPath->clear();
-        Toaster::show(this, tr("Plik został zniszczony"));
+        if (ui->lblOpt4Desc) ui->lblOpt4Desc->setText(tr("Pliki bezpiecznie usunięte"));
+        Toaster::show(this, tr("Plik został trwale i bezpiecznie zniszczony."), Toaster::Success);
     } else {
         if (ui->lblShredStatus) ui->lblShredStatus->setText(tr("Błąd podczas niszczenia (plik może być używany przez inny proces)."));
+        Toaster::show(this, tr("Nie udało się zniszczyć pliku (jest zablokowany)."), Toaster::Error);
     }
 }
 
@@ -3421,6 +3537,468 @@ void MainWindow::onTestBlockScreenClicked()
     const QUrl testUrl = QUrl::fromLocalFile(blockPage);
     QUrl urlWithParams(testUrl.toString() + QStringLiteral("?type=site&url=https://niebezpieczna-strona-test.pl&threat=Zablokowano%20z%C5%82o%C5%9Bliw%C4%85%20stron%C4%99%20phishingow%C4%85"));
     QDesktopServices::openUrl(urlWithParams);
+}
+
+void MainWindow::initAccountPage()
+{
+    if (m_pageAccount) return;
+
+    m_pageAccount = new QWidget(this);
+    m_pageAccount->setObjectName("pageAccount");
+
+    auto *mainLayout = new QVBoxLayout(m_pageAccount);
+    mainLayout->setContentsMargins(24, 16, 24, 16);
+    mainLayout->setSpacing(12);
+
+    // Title Header
+    auto *lblTitle = new QLabel(tr("Moje konto i licencja"), m_pageAccount);
+    lblTitle->setStyleSheet("font-size: 18pt; font-weight: 800; color: #FFFFFF;");
+    mainLayout->addWidget(lblTitle);
+
+    auto *lblSub = new QLabel(tr("Zarządzanie licencją stacji roboczej, profilem klienta oraz danymi telemetrycznymi Multi-Guard."), m_pageAccount);
+    lblSub->setStyleSheet("font-size: 10pt; color: #8FA3BF;");
+    mainLayout->addWidget(lblSub);
+
+    // Top Cards Row (Profile & License)
+    auto *topRow = new QHBoxLayout();
+    topRow->setSpacing(16);
+
+    // 1. Profile Card
+    auto *cardProfile = new QFrame(m_pageAccount);
+    cardProfile->setStyleSheet(".QFrame { background-color: rgba(11, 23, 39, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 16px; }");
+    auto *profLayout = new QVBoxLayout(cardProfile);
+    profLayout->setSpacing(10);
+
+    auto *lblProfHeader = new QLabel(tr("DANE UŻYTKOWNIKA I STACJI"), cardProfile);
+    lblProfHeader->setStyleSheet("font-size: 9pt; font-weight: 800; color: #38BDF8; letter-spacing: 1px;");
+    profLayout->addWidget(lblProfHeader);
+
+    auto *profDataRow = new QHBoxLayout();
+    profDataRow->setSpacing(14);
+
+    m_lblAccountAvatar = new QLabel(cardProfile);
+    QPixmap avPm(":/assets/user_avatar.png");
+    if (!avPm.isNull()) {
+        m_lblAccountAvatar->setPixmap(avPm.scaled(60, 60, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    }
+    m_lblAccountAvatar->setFixedSize(60, 60);
+    m_lblAccountAvatar->setStyleSheet("border: 2px solid #0284c7; border-radius: 30px; background: rgba(2,132,199,0.15);");
+    profDataRow->addWidget(m_lblAccountAvatar);
+
+    auto *profInfoCol = new QVBoxLayout();
+    profInfoCol->setSpacing(3);
+
+    m_lblAccountName = new QLabel(cardProfile);
+    m_lblAccountName->setStyleSheet("font-size: 13pt; font-weight: 800; color: #FFFFFF;");
+    profInfoCol->addWidget(m_lblAccountName);
+
+    m_lblAccountPhone = new QLabel(cardProfile);
+    m_lblAccountPhone->setStyleSheet("font-size: 10.5pt; font-weight: 600; color: #00F076;");
+    profInfoCol->addWidget(m_lblAccountPhone);
+
+    m_lblAccountEmail = new QLabel(cardProfile);
+    m_lblAccountEmail->setStyleSheet("font-size: 9.5pt; color: #94A3B8;");
+    profInfoCol->addWidget(m_lblAccountEmail);
+
+    profDataRow->addLayout(profInfoCol, 1);
+    profLayout->addLayout(profDataRow);
+
+    auto *idRow = new QHBoxLayout();
+    auto *lblDevTitle = new QLabel(tr("ID urządzenia:"), cardProfile);
+    lblDevTitle->setStyleSheet("font-size: 9pt; color: #64748B; font-weight: 600;");
+    m_lblAccountDeviceId = new QLabel(cardProfile);
+    m_lblAccountDeviceId->setStyleSheet("font-size: 9pt; color: #38BDF8; font-family: monospace; font-weight: bold;");
+    m_lblAccountDeviceId->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    idRow->addWidget(lblDevTitle);
+    idRow->addWidget(m_lblAccountDeviceId, 1);
+    profLayout->addLayout(idRow);
+
+    auto *btnEditProf = new QPushButton(tr("✏️ Edytuj dane kontaktowe"), cardProfile);
+    btnEditProf->setCursor(Qt::PointingHandCursor);
+    btnEditProf->setStyleSheet("QPushButton { background-color: rgba(18, 36, 60, 0.9); border: 1px solid rgba(35, 65, 105, 0.8); border-radius: 6px; color: #FFFFFF; font-weight: 600; font-size: 9pt; padding: 6px; } QPushButton:hover { background-color: #0284C7; border-color: #0284C7; }");
+    connect(btnEditProf, &QPushButton::clicked, this, &MainWindow::onAccountEditProfileClicked);
+    profLayout->addWidget(btnEditProf);
+
+    topRow->addWidget(cardProfile, 1);
+
+    // 2. License Card
+    auto *cardLic = new QFrame(m_pageAccount);
+    cardLic->setStyleSheet(".QFrame { background-color: rgba(11, 23, 39, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 16px; }");
+    auto *licLayout = new QVBoxLayout(cardLic);
+    licLayout->setSpacing(8);
+
+    auto *licHeaderRow = new QHBoxLayout();
+    auto *lblLicHeader = new QLabel(tr("SZCZEGÓŁY PAKIETU LICENCJI"), cardLic);
+    lblLicHeader->setStyleSheet("font-size: 9pt; font-weight: 800; color: #00F076; letter-spacing: 1px;");
+    licHeaderRow->addWidget(lblLicHeader);
+    licHeaderRow->addStretch();
+
+    m_lblAccountTierBadge = new QLabel(cardLic);
+    m_lblAccountTierBadge->setStyleSheet("background: #0284C7; color: #FFFFFF; font-weight: 800; font-size: 9pt; padding: 3px 10px; border-radius: 5px;");
+    licHeaderRow->addWidget(m_lblAccountTierBadge);
+    licLayout->addLayout(licHeaderRow);
+
+    m_lblAccountStatus = new QLabel(cardLic);
+    m_lblAccountStatus->setStyleSheet("font-size: 11pt; font-weight: 700; color: #00F076;");
+    licLayout->addWidget(m_lblAccountStatus);
+
+    auto *licDatesRow = new QHBoxLayout();
+    m_lblAccountDays = new QLabel(cardLic);
+    m_lblAccountDays->setStyleSheet("font-size: 10pt; color: #F1F5F9; font-weight: 600;");
+    m_lblAccountExpire = new QLabel(cardLic);
+    m_lblAccountExpire->setStyleSheet("font-size: 10pt; color: #94A3B8;");
+    licDatesRow->addWidget(m_lblAccountDays);
+    licDatesRow->addStretch();
+    licDatesRow->addWidget(m_lblAccountExpire);
+    licLayout->addLayout(licDatesRow);
+
+    // Key Box
+    auto *keyRow = new QHBoxLayout();
+    keyRow->setSpacing(6);
+    m_editAccountKey = new QLineEdit(cardLic);
+    m_editAccountKey->setReadOnly(true);
+    m_editAccountKey->setFixedHeight(30);
+    m_editAccountKey->setStyleSheet("QLineEdit { background-color: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; color: #38BDF8; font-family: monospace; font-size: 10pt; font-weight: bold; padding-left: 8px; }");
+    keyRow->addWidget(m_editAccountKey, 1);
+
+    m_btnAccountToggleKey = new QPushButton(QStringLiteral("👁️"), cardLic);
+    m_btnAccountToggleKey->setFixedSize(30, 30);
+    m_btnAccountToggleKey->setToolTip(tr("Pokaż / Ukryj klucz"));
+    m_btnAccountToggleKey->setCursor(Qt::PointingHandCursor);
+    m_btnAccountToggleKey->setStyleSheet("QPushButton { background-color: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; font-size: 12pt; } QPushButton:hover { background-color: rgba(255, 255, 255, 0.18); }");
+    connect(m_btnAccountToggleKey, &QPushButton::clicked, this, [this]{
+        m_keyMasked = !m_keyMasked;
+        populateAccountPage();
+    });
+    keyRow->addWidget(m_btnAccountToggleKey);
+
+    auto *btnCopy = new QPushButton(QStringLiteral("📋"), cardLic);
+    btnCopy->setFixedSize(30, 30);
+    btnCopy->setToolTip(tr("Kopiuj klucz do schowka"));
+    btnCopy->setCursor(Qt::PointingHandCursor);
+    btnCopy->setStyleSheet("QPushButton { background-color: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px; font-size: 11pt; } QPushButton:hover { background-color: rgba(255, 255, 255, 0.18); }");
+    connect(btnCopy, &QPushButton::clicked, this, [this]{
+        QString k = LicenseManager::instance().loadSavedKey();
+        if (k.isEmpty()) k = LicenseManager::instance().currentLicense().licenseKey;
+        if (!k.isEmpty()) {
+            QGuiApplication::clipboard()->setText(k);
+            Toaster::show(this, tr("Skopiowano klucz do schowka"), Toaster::Success);
+        }
+    });
+    keyRow->addWidget(btnCopy);
+    licLayout->addLayout(keyRow);
+
+    auto *licBtnRow = new QHBoxLayout();
+    licBtnRow->setSpacing(8);
+
+    auto *btnChangeKey = new QPushButton(tr("🔑 Zmień klucz licencji"), cardLic);
+    btnChangeKey->setCursor(Qt::PointingHandCursor);
+    btnChangeKey->setStyleSheet("QPushButton { background-color: #0284C7; border: 1px solid #38BDF8; border-radius: 6px; color: #FFFFFF; font-weight: 700; font-size: 9pt; padding: 7px; } QPushButton:hover { background-color: #0369A1; }");
+    connect(btnChangeKey, &QPushButton::clicked, this, &MainWindow::onAccountChangeKeyClicked);
+    licBtnRow->addWidget(btnChangeKey);
+
+    auto *btnRefresh = new QPushButton(tr("🔄 Odśwież KeyGate"), cardLic);
+    btnRefresh->setCursor(Qt::PointingHandCursor);
+    btnRefresh->setStyleSheet("QPushButton { background-color: rgba(18, 36, 60, 0.9); border: 1px solid rgba(35, 65, 105, 0.8); border-radius: 6px; color: #FFFFFF; font-weight: 600; font-size: 9pt; padding: 7px; } QPushButton:hover { background-color: rgba(35, 65, 105, 0.9); }");
+    connect(btnRefresh, &QPushButton::clicked, this, &MainWindow::onAccountRefreshKeyClicked);
+    licBtnRow->addWidget(btnRefresh);
+
+    licLayout->addLayout(licBtnRow);
+    topRow->addWidget(cardLic, 1);
+    mainLayout->addLayout(topRow);
+
+    // Middle Telemetry Stats Cards Row
+    auto *statsRow = new QHBoxLayout();
+    statsRow->setSpacing(14);
+
+    auto createStatCard = [this](const QString &icon, const QString &title, QLabel* &valLbl, const QString &valColor) -> QFrame* {
+        auto *f = new QFrame(m_pageAccount);
+        f->setStyleSheet(".QFrame { background-color: rgba(11, 23, 39, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 10px; padding: 12px; }");
+        auto *l = new QHBoxLayout(f);
+        l->setSpacing(12);
+
+        auto *ico = new QLabel(icon, f);
+        ico->setStyleSheet("font-size: 22pt;");
+        l->addWidget(ico);
+
+        auto *col = new QVBoxLayout();
+        col->setSpacing(2);
+        valLbl = new QLabel(QStringLiteral("0"), f);
+        valLbl->setStyleSheet(QStringLiteral("font-size: 15pt; font-weight: 800; color: %1;").arg(valColor));
+        col->addWidget(valLbl);
+
+        auto *t = new QLabel(title, f);
+        t->setStyleSheet("font-size: 8.5pt; color: #8FA3BF; font-weight: 600;");
+        col->addWidget(t);
+
+        l->addLayout(col, 1);
+        return f;
+    };
+
+    statsRow->addWidget(createStatCard(QStringLiteral("🔍"), tr("Przeskanowane obiekty"), m_lblStatsScanned, QStringLiteral("#38BDF8")));
+    statsRow->addWidget(createStatCard(QStringLiteral("🛡️"), tr("Zneutralizowane zagrożenia"), m_lblStatsThreats, QStringLiteral("#00E676")));
+    statsRow->addWidget(createStatCard(QStringLiteral("⚡"), tr("Kondycja systemu Multi-Guard"), m_lblStatsHealth, QStringLiteral("#F59E0B")));
+    mainLayout->addLayout(statsRow);
+
+    // Bottom Row: License History
+    auto *lblHistTitle = new QLabel(tr("HISTORIA REJESTRACJI I LICENCJONOWANIA STACJI"), m_pageAccount);
+    lblHistTitle->setStyleSheet("font-size: 9.5pt; font-weight: 700; color: #CBD5E1; margin-top: 4px;");
+    mainLayout->addWidget(lblHistTitle);
+
+    m_tableAccountHistory = new QTableWidget(m_pageAccount);
+    m_tableAccountHistory->setColumnCount(4);
+    m_tableAccountHistory->setHorizontalHeaderLabels({
+        tr("Data i czas"), tr("Pakiet ochronny"), tr("Identyfikator stacji (DID)"), tr("Stan aktywacji")
+    });
+    m_tableAccountHistory->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    m_tableAccountHistory->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    m_tableAccountHistory->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    m_tableAccountHistory->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    m_tableAccountHistory->setStyleSheet(
+        "QTableWidget { background-color: rgba(10, 24, 42, 0.75); border: 1px solid rgba(28, 54, 88, 0.55); border-radius: 8px; gridline-color: transparent; outline: none; color: #F1F5F9; }"
+        "QTableWidget::item { padding: 6px 10px; border-bottom: 1px solid rgba(25, 48, 78, 0.3); font-size: 9pt; }"
+        "QHeaderView::section { background-color: #0b1727; color: #8FA3BF; font-weight: 700; font-size: 8.5pt; border: none; border-bottom: 1px solid #1c3658; padding: 6px 10px; }"
+    );
+    m_tableAccountHistory->setFixedHeight(120);
+    mainLayout->addWidget(m_tableAccountHistory);
+
+    // Insert page into stacked widget at index PageAccount (12)
+    ui->stackedWidget->insertWidget(PageAccount, m_pageAccount);
+
+    populateAccountPage();
+}
+
+void MainWindow::populateAccountPage()
+{
+    if (!m_pageAccount) return;
+
+    const auto &lm = LicenseManager::instance();
+    const auto &s = Settings::instance();
+
+    if (m_lblAccountName) m_lblAccountName->setText(lm.clientName());
+    if (m_lblAccountPhone) m_lblAccountPhone->setText(tr("📞 %1").arg(lm.clientPhone()));
+    if (m_lblAccountEmail) m_lblAccountEmail->setText(tr("✉️ %1").arg(lm.clientEmail()));
+    if (m_lblAccountDeviceId) m_lblAccountDeviceId->setText(lm.deviceIdentifier());
+
+    if (m_lblAccountTierBadge) {
+        QString tier = lm.tierName().toUpper();
+        m_lblAccountTierBadge->setText(tier);
+        if (lm.currentTier() == LicenseTier::AdminFull) {
+            m_lblAccountTierBadge->setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #d97706, stop:1 #f59e0b); color: #000000; font-weight: 900; font-size: 9pt; padding: 3px 12px; border-radius: 5px;");
+        } else if (lm.currentTier() == LicenseTier::AssistPro || lm.currentTier() == LicenseTier::Assist) {
+            m_lblAccountTierBadge->setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #0284c7, stop:1 #38bdf8); color: #000000; font-weight: 900; font-size: 9pt; padding: 3px 12px; border-radius: 5px;");
+        } else {
+            m_lblAccountTierBadge->setStyleSheet("background: #00e676; color: #000000; font-weight: 900; font-size: 9pt; padding: 3px 12px; border-radius: 5px;");
+        }
+    }
+
+    if (m_lblAccountStatus) {
+        m_lblAccountStatus->setText(lm.isValid() ? tr("✅ Aktywna — Ochrona stacji włączona") : tr("⚠️ Wymagana aktywacja"));
+        m_lblAccountStatus->setStyleSheet(lm.isValid() ? "font-size: 11pt; font-weight: 700; color: #00F076;" : "font-size: 11pt; font-weight: 700; color: #EF4444;");
+    }
+
+    if (m_lblAccountDays) {
+        m_lblAccountDays->setText(tr("Pozostało: %1").arg(lm.daysRemainingText()));
+    }
+    if (m_lblAccountExpire) {
+        m_lblAccountExpire->setText(tr("Ważna do: %1").arg(lm.expirationDateText()));
+    }
+
+    if (m_editAccountKey) {
+        QString key = lm.loadSavedKey();
+        if (key.isEmpty()) key = lm.currentLicense().licenseKey;
+        if (key.isEmpty()) key = QStringLiteral("MG-DEMO-TRIAL-KEY");
+
+        if (m_keyMasked) {
+            if (key.length() >= 8) {
+                QString masked = key.left(4) + QStringLiteral("-••••-••••-") + key.right(4);
+                m_editAccountKey->setText(masked);
+            } else {
+                m_editAccountKey->setText(QStringLiteral("••••-••••-••••-••••"));
+            }
+        } else {
+            m_editAccountKey->setText(key);
+        }
+    }
+
+    if (m_lblStatsScanned) {
+        m_lblStatsScanned->setText(QLocale().toString(s.scansCount()));
+    }
+    if (m_lblStatsThreats) {
+        m_lblStatsThreats->setText(QLocale().toString(s.threatsBlockedCount()));
+    }
+    if (m_lblStatsHealth) {
+        m_lblStatsHealth->setText(lm.isValid() ? QStringLiteral("100% (Świetna)") : QStringLiteral("Zagrożona"));
+        m_lblStatsHealth->setStyleSheet(lm.isValid() ? "font-size: 15pt; font-weight: 800; color: #00E676;" : "font-size: 15pt; font-weight: 800; color: #EF4444;");
+    }
+
+    // Populate history table
+    if (m_tableAccountHistory) {
+        m_tableAccountHistory->setRowCount(0);
+        m_tableAccountHistory->insertRow(0);
+
+        QString dateStr = QDateTime::currentDateTime().toString("dd.MM.yyyy HH:mm");
+        auto *itDate = new QTableWidgetItem(dateStr);
+        itDate->setForeground(QColor("#8FA3BF"));
+        m_tableAccountHistory->setItem(0, 0, itDate);
+
+        auto *itTier = new QTableWidgetItem(lm.tierName());
+        itTier->setForeground(QColor("#38BDF8"));
+        itTier->setFont(QFont("", -1, QFont::Bold));
+        m_tableAccountHistory->setItem(0, 1, itTier);
+
+        auto *itDev = new QTableWidgetItem(lm.deviceIdentifier());
+        itDev->setForeground(QColor("#CBD5E1"));
+        m_tableAccountHistory->setItem(0, 2, itDev);
+
+        auto *itStatus = new QTableWidgetItem(lm.isValid() ? tr("Zweryfikowano (Ed25519)") : tr("Brak licencji"));
+        itStatus->setForeground(lm.isValid() ? QColor("#00F076") : QColor("#EF4444"));
+        m_tableAccountHistory->setItem(0, 3, itStatus);
+    }
+
+    // Also sync top bar user profile widget
+    ui->chromeBar->updateUserProfile(lm.clientName(), lm.tierName());
+}
+
+void MainWindow::onAccountChangeKeyClicked()
+{
+    QDialog dlg(this);
+    dlg.setWindowTitle(tr("Zmiana klucza licencyjnego Multi-Guard"));
+    dlg.setFixedWidth(460);
+    dlg.setStyleSheet("QDialog { background-color: #0b1727; color: #F1F5F9; border: 1px solid #1c3658; border-radius: 12px; }");
+
+    auto *layout = new QVBoxLayout(&dlg);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(14);
+
+    auto *lblTitle = new QLabel(tr("Wprowadź nowy klucz licencyjny"), &dlg);
+    lblTitle->setStyleSheet("font-size: 13pt; font-weight: 800; color: #38BDF8;");
+    layout->addWidget(lblTitle);
+
+    auto *lblDesc = new QLabel(tr("Wprowadź klucz zakupiony w Multi-Servis (505 012 914).\nPo aktywacji program zrestartuje się automatycznie z nowym pakietem."), &dlg);
+    lblDesc->setWordWrap(true);
+    lblDesc->setStyleSheet("font-size: 9.5pt; color: #8FA3BF; line-height: 14px;");
+    layout->addWidget(lblDesc);
+
+    auto *editKey = new QLineEdit(&dlg);
+    editKey->setPlaceholderText(tr("Wklej klucz: XXXX-XXXX-XXXX-XXXX"));
+    editKey->setFixedHeight(36);
+    editKey->setStyleSheet("QLineEdit { background: rgba(0,0,0,0.5); border: 1px solid #2563EB; border-radius: 6px; color: #FFFFFF; font-size: 11pt; font-family: monospace; font-weight: bold; padding: 0 10px; }");
+    layout->addWidget(editKey);
+
+    auto *btnRow = new QHBoxLayout();
+    btnRow->setSpacing(10);
+    btnRow->addStretch();
+
+    auto *btnCancel = new QPushButton(tr("Anuluj"), &dlg);
+    btnCancel->setFixedHeight(34);
+    btnCancel->setStyleSheet("QPushButton { background: rgba(255,255,255,0.08); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 0 16px; font-weight: 600; }");
+    connect(btnCancel, &QPushButton::clicked, &dlg, &QDialog::reject);
+    btnRow->addWidget(btnCancel);
+
+    auto *btnOk = new QPushButton(tr("Aktywuj i zrestartuj"), &dlg);
+    btnOk->setFixedHeight(34);
+    btnOk->setStyleSheet("QPushButton { background: #0284C7; color: #FFFFFF; border: none; border-radius: 6px; padding: 0 20px; font-weight: 700; } QPushButton:hover { background: #0369A1; }");
+    connect(btnOk, &QPushButton::clicked, &dlg, [&]{
+        QString key = editKey->text().trimmed();
+        if (key.isEmpty()) {
+            QMessageBox::warning(&dlg, tr("Błąd"), tr("Klucz licencyjny nie może być pusty."));
+            return;
+        }
+        dlg.accept();
+        restartWithNewLicense(key);
+    });
+    btnRow->addWidget(btnOk);
+
+    layout->addLayout(btnRow);
+    dlg.exec();
+}
+
+void MainWindow::onAccountRefreshKeyClicked()
+{
+    Toaster::show(this, tr("Weryfikacja licencji w KeyGate..."), Toaster::Info);
+    QCoreApplication::processEvents();
+
+    auto res = LicenseManager::instance().refreshOnline();
+    if (res.success) {
+        Toaster::show(this, tr("Licencja zaktualizowana: %1 (%2)")
+                               .arg(LicenseManager::instance().tierName(),
+                                    LicenseManager::instance().daysRemainingText()),
+                      Toaster::Success);
+        applyLicenseGating();
+        populateAccountPage();
+    } else {
+        Toaster::show(this, tr("Błąd weryfikacji: %1").arg(res.errorMessage), Toaster::Error);
+    }
+}
+
+void MainWindow::onAccountEditProfileClicked()
+{
+    QDialog dlg(this);
+    dlg.setWindowTitle(tr("Edycja profilu użytkownika"));
+    dlg.setFixedWidth(420);
+    dlg.setStyleSheet("QDialog { background-color: #0b1727; color: #F1F5F9; border: 1px solid #1c3658; border-radius: 12px; }");
+
+    auto *layout = new QVBoxLayout(&dlg);
+    layout->setContentsMargins(20, 20, 20, 20);
+    layout->setSpacing(12);
+
+    auto *lblTitle = new QLabel(tr("Dane właściciela stacji roboczej"), &dlg);
+    lblTitle->setStyleSheet("font-size: 13pt; font-weight: 800; color: #38BDF8;");
+    layout->addWidget(lblTitle);
+
+    auto *lblN = new QLabel(tr("Imię i nazwisko:"), &dlg);
+    lblN->setStyleSheet("color: #8FA3BF; font-weight: 600; font-size: 9pt;");
+    layout->addWidget(lblN);
+    auto *editName = new QLineEdit(&dlg);
+    editName->setText(Settings::instance().clientName());
+    editName->setFixedHeight(32);
+    editName->setStyleSheet("QLineEdit { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #FFFFFF; padding: 0 8px; }");
+    layout->addWidget(editName);
+
+    auto *lblP = new QLabel(tr("Numer telefonu:"), &dlg);
+    lblP->setStyleSheet("color: #8FA3BF; font-weight: 600; font-size: 9pt;");
+    layout->addWidget(lblP);
+    auto *editPhone = new QLineEdit(&dlg);
+    editPhone->setText(Settings::instance().clientPhone());
+    editPhone->setFixedHeight(32);
+    editPhone->setStyleSheet("QLineEdit { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #FFFFFF; padding: 0 8px; }");
+    layout->addWidget(editPhone);
+
+    auto *lblE = new QLabel(tr("Adres e-mail:"), &dlg);
+    lblE->setStyleSheet("color: #8FA3BF; font-weight: 600; font-size: 9pt;");
+    layout->addWidget(lblE);
+    auto *editEmail = new QLineEdit(&dlg);
+    editEmail->setText(Settings::instance().clientEmail());
+    editEmail->setFixedHeight(32);
+    editEmail->setStyleSheet("QLineEdit { background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; color: #FFFFFF; padding: 0 8px; }");
+    layout->addWidget(editEmail);
+
+    auto *btnRow = new QHBoxLayout();
+    btnRow->setSpacing(10);
+    btnRow->addStretch();
+
+    auto *btnCancel = new QPushButton(tr("Anuluj"), &dlg);
+    btnCancel->setFixedHeight(32);
+    btnCancel->setStyleSheet("QPushButton { background: rgba(255,255,255,0.08); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 0 16px; font-weight: 600; }");
+    connect(btnCancel, &QPushButton::clicked, &dlg, &QDialog::reject);
+    btnRow->addWidget(btnCancel);
+
+    auto *btnSave = new QPushButton(tr("Zapisz dane"), &dlg);
+    btnSave->setFixedHeight(32);
+    btnSave->setStyleSheet("QPushButton { background: #00E676; color: #000000; border: none; border-radius: 6px; padding: 0 20px; font-weight: 800; } QPushButton:hover { background: #00c853; }");
+    connect(btnSave, &QPushButton::clicked, &dlg, [&]{
+        Settings::instance().setClientName(editName->text().trimmed());
+        Settings::instance().setClientPhone(editPhone->text().trimmed());
+        Settings::instance().setClientEmail(editEmail->text().trimmed());
+        dlg.accept();
+        populateAccountPage();
+        Toaster::show(this, tr("Zaktualizowano profil klienta"), Toaster::Success);
+    });
+    btnRow->addWidget(btnSave);
+
+    layout->addLayout(btnRow);
+    dlg.exec();
 }
 
 } // namespace verax

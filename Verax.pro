@@ -74,6 +74,8 @@ SOURCES += \
     src/widgets/DriveTile.cpp \
     src/widgets/Toaster.cpp \
     src/widgets/NotificationAlert.cpp \
+    src/widgets/StartupManagerDialog.cpp \
+    src/widgets/HardwareMonitorDialog.cpp \
     src/widgets/BrandIcon.cpp \
     src/widgets/SurfaceCard.cpp \
     src/widgets/ChromeBar.cpp \
@@ -120,6 +122,8 @@ HEADERS += \
     src/widgets/SpinnerRing.h \
     src/widgets/ThreatCard.h \
     src/widgets/ScanOptionsDialog.h \
+    src/widgets/StartupManagerDialog.h \
+    src/widgets/HardwareMonitorDialog.h \
     src/widgets/DriveTile.h \
     src/widgets/Toaster.h \
     src/widgets/NotificationAlert.h \

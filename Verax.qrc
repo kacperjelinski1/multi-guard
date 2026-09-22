@@ -9,6 +9,7 @@
     </qresource>
     <qresource prefix="/assets">
         <file alias="logo.png">resources/assets/logo.png</file>
+        <file alias="multiguard_logo.png">resources/assets/multiguard_logo.png</file>
         <file alias="logo.ico">resources/assets/logo.ico</file>
         <file alias="logo.svg">resources/assets/logo.svg</file>
         <file alias="aegis_logo.svg">resources/assets/aegis_logo.svg</file>

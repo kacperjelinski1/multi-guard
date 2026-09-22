@@ -43,7 +43,8 @@ public:
         PageRemoteRepair,
         PageSettings,
         PageAbout,
-        PageLicenseLocked
+        PageLicenseLocked,
+        PageAccount
     };
     Q_ENUM(PageIndex)
 
@@ -152,6 +153,9 @@ private:
     void onRefreshHardwareStats();
     void onScanCleanClicked();
     void onDoCleanClicked();
+    void onOptNowClicked();
+    void onOpenStartupManagerDialog();
+    void onOpenHardwareMonitorDialog();
     void onRefreshStartupClicked();
     void onToggleStartupClicked();
     void onDeleteStartupClicked();
@@ -228,6 +232,30 @@ private:
     QCheckBox   *m_selectAll      = nullptr;
     QComboBox   *m_bulkActionCombo = nullptr;
     QPushButton *m_bulkApplyBtn   = nullptr;
+
+    void initAccountPage();
+    void populateAccountPage();
+    void onAccountChangeKeyClicked();
+    void onAccountRefreshKeyClicked();
+    void onAccountEditProfileClicked();
+
+    QWidget *m_pageAccount = nullptr;
+    QLabel  *m_lblAccountAvatar = nullptr;
+    QLabel  *m_lblAccountName = nullptr;
+    QLabel  *m_lblAccountPhone = nullptr;
+    QLabel  *m_lblAccountEmail = nullptr;
+    QLabel  *m_lblAccountDeviceId = nullptr;
+    QLabel  *m_lblAccountTierBadge = nullptr;
+    QLabel  *m_lblAccountStatus = nullptr;
+    QLabel  *m_lblAccountDays = nullptr;
+    QLabel  *m_lblAccountExpire = nullptr;
+    QLineEdit *m_editAccountKey = nullptr;
+    QPushButton *m_btnAccountToggleKey = nullptr;
+    QLabel  *m_lblStatsScanned = nullptr;
+    QLabel  *m_lblStatsThreats = nullptr;
+    QLabel  *m_lblStatsHealth = nullptr;
+    QTableWidget *m_tableAccountHistory = nullptr;
+    bool     m_keyMasked = true;
 
     QString      m_activeScanPhase;
     QString      m_selectedScanMode = QStringLiteral("quick");

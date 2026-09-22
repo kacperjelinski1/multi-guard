@@ -400,6 +400,13 @@ LicenseManager::ActivationResult LicenseManager::validateToken(const QString &ra
         info.features.insert(it.key(), it.value().toVariant());
     }
 
+    info.clientName = p.value("c_name").toString();
+    if (info.clientName.isEmpty()) info.clientName = p.value("customer_name").toString();
+    info.clientPhone = p.value("c_phone").toString();
+    if (info.clientPhone.isEmpty()) info.clientPhone = p.value("customer_phone").toString();
+    info.clientEmail = p.value("c_email").toString();
+    if (info.clientEmail.isEmpty()) info.clientEmail = p.value("customer_email").toString();
+
     // 1) Validate Product ID
     QString tokenPid = p.value("pid").toString();
     if (tokenPid.compare(QString::fromLatin1(PRODUCT_ID), Qt::CaseInsensitive) != 0) {
@@ -889,6 +896,24 @@ bool LicenseManager::fetchPublicKey()
     }
     reply->deleteLater();
     return false;
+}
+
+QString LicenseManager::clientName() const
+{
+    if (!m_license.clientName.isEmpty()) return m_license.clientName;
+    return Settings::instance().clientName();
+}
+
+QString LicenseManager::clientPhone() const
+{
+    if (!m_license.clientPhone.isEmpty()) return m_license.clientPhone;
+    return Settings::instance().clientPhone();
+}
+
+QString LicenseManager::clientEmail() const
+{
+    if (!m_license.clientEmail.isEmpty()) return m_license.clientEmail;
+    return Settings::instance().clientEmail();
 }
 
 } // namespace verax

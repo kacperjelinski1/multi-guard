@@ -11,11 +11,11 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>AEGIS Security</string>
+   <string>Multi-Guard Security</string>
   </property>
   <property name="windowIcon">
    <iconset resource="../../Verax.qrc">
-    <normaloff>:/assets/aegis_logo.svg</normaloff>:/assets/aegis_logo.svg</iconset>
+    <normaloff>:/assets/logo.png</normaloff>:/assets/logo.png</iconset>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QHBoxLayout" name="rootLayout">
@@ -86,12 +86,12 @@
            <widget class="QLabel" name="lblAegisLogo">
             <property name="fixedSize">
              <size>
-              <width>28</width>
-              <height>28</height>
+              <width>32</width>
+              <height>32</height>
              </size>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../Verax.qrc">:/assets/aegis_logo.svg</pixmap>
+             <pixmap resource="../../Verax.qrc">:/assets/logo.png</pixmap>
             </property>
             <property name="scaledContents">
              <bool>true</bool>
@@ -106,7 +106,7 @@
             <item>
              <widget class="QLabel" name="lblAegisBrand">
               <property name="text">
-               <string>AEGIS</string>
+               <string>Multi-Guard</string>
               </property>
              </widget>
             </item>
@@ -314,7 +314,7 @@
        <item>
         <widget class="QLabel" name="lblSidebarFooter">
          <property name="text">
-          <string>Aegis 2.1.0
+          <string>Multi-Guard 1.1.7.1
 Security for a better tomorrow</string>
          </property>
          <property name="alignment">
@@ -769,7 +769,7 @@ Security for a better tomorrow</string>
                 <item alignment="Qt::AlignRight">
                  <widget class="QLabel" name="lblHeroWatermark">
                   <property name="text">
-                   <string>Bezpieczeństwo na wyższym poziomie  Aegis</string>
+                   <string>Bezpieczeństwo na wyższym poziomie  Multi-Guard</string>
                   </property>
                   <property name="styleSheet">
                    <string>font-size: 8.5pt; color: rgba(255, 255, 255, 0.4); font-style: italic;</string>
@@ -4427,7 +4427,7 @@ zewnętrzne</string>
            <item>
             <widget class="QLabel" name="lblAboutTitle">
              <property name="text">
-              <string>O programie AEGIS Security</string>
+              <string>O programie Multi-Guard</string>
              </property>
              <property name="styleSheet">
               <string>font-size: 18pt; font-weight: 800; color: #FFFFFF;</string>
@@ -4437,7 +4437,7 @@ zewnętrzne</string>
            <item>
             <widget class="QLabel" name="lblAboutVersion">
              <property name="text">
-              <string>Wersja 2.1.0 • Ochrona stacji roboczych</string>
+              <string>Wersja 1.1.7.1 • Ochrona stacji roboczych Multi-Servis</string>
              </property>
              <property name="styleSheet">
               <string>color: #8FA3BF;</string>

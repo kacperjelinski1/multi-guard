@@ -47,6 +47,22 @@ public:
     bool    showNotifications() const        { return m_showNotifications; }
     void    setShowNotifications(bool v)     { m_showNotifications = v; save(); }
 
+    // User profile & telemetry stats
+    QString clientName() const               { return m_clientName; }
+    void    setClientName(const QString &v)  { m_clientName = v; save(); }
+
+    QString clientPhone() const              { return m_clientPhone; }
+    void    setClientPhone(const QString &v) { m_clientPhone = v; save(); }
+
+    QString clientEmail() const              { return m_clientEmail; }
+    void    setClientEmail(const QString &v) { m_clientEmail = v; save(); }
+
+    qint64  scansCount() const               { return m_scansCount; }
+    void    incrementScansCount(int count = 1) { m_scansCount += count; save(); }
+
+    qint64  threatsBlockedCount() const      { return m_threatsBlockedCount; }
+    void    incrementThreatsBlockedCount(int count = 1) { m_threatsBlockedCount += count; save(); }
+
     // Scanning
     bool    scanUsbOnInsert() const          { return m_scanUsbOnInsert; }
     void    setScanUsbOnInsert(bool v)       { m_scanUsbOnInsert = v; save(); }
@@ -117,6 +133,12 @@ private:
 
     int     m_heurThreshold     = 60;
     QString m_detectionAction   = QStringLiteral("report");
+
+    QString m_clientName        = QStringLiteral("Kacper Jeliński");
+    QString m_clientPhone       = QStringLiteral("+48 505 012 914");
+    QString m_clientEmail       = QStringLiteral("kontakt@multi-servis.pl");
+    qint64  m_scansCount        = 1240;
+    qint64  m_threatsBlockedCount = 8;
 };
 
 } // namespace verax

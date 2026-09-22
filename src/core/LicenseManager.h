@@ -74,6 +74,9 @@ struct LicenseInfo {
     QMap<QString, QVariant> features;
     bool isPerpetual = false;
     QString statusMessage;
+    QString clientName;
+    QString clientPhone;
+    QString clientEmail;
 };
 
 class LicenseManager : public QObject {
@@ -124,6 +127,10 @@ public:
     QString tierShortName() const;
     const LicenseInfo& currentLicense() const;
     LicenseStatus status() const;
+
+    QString clientName() const;
+    QString clientPhone() const;
+    QString clientEmail() const;
 
     // Storage
     bool saveToken(const QString &token);

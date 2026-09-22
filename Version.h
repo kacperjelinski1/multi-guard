@@ -6,8 +6,8 @@
 #pragma once
 
 // ─── Identity ──────────────────────────────────────────────────────────
-#define APP_NAME            "AEGIS"
-#define APP_NAME_SHORT      "AEGIS"
+#define APP_NAME            "Multi-Guard"
+#define APP_NAME_SHORT      "Multi-Guard"
 #define APP_TAGLINE         "Ochrona. Poczuj spokój."
 #define APP_VENDOR          "Multi-Servis"
 #define APP_DESCRIPTION     "Multi-Guard - inteligentna ochrona i integralność komputera."
@@ -20,7 +20,7 @@
 #define APP_VERSION_MAJOR   1
 #define APP_VERSION_MINOR   1
 #define APP_VERSION_PATCH   7
-#define APP_VERSION_BUILD   1
+#define APP_VERSION_BUILD   2
 
 // Auto-derived — DO NOT EDIT BELOW
 #define _VR_STR(x) #x

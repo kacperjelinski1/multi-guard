@@ -55,6 +55,12 @@ void Settings::load()
 
     m_heurThreshold     = s.value("engine/heurThreshold",    m_heurThreshold).toInt();
     m_detectionAction   = s.value("engine/action",           m_detectionAction).toString();
+
+    m_clientName        = s.value("profile/clientName",      m_clientName).toString();
+    m_clientPhone       = s.value("profile/clientPhone",     m_clientPhone).toString();
+    m_clientEmail       = s.value("profile/clientEmail",     m_clientEmail).toString();
+    m_scansCount        = s.value("stats/scansCount",        m_scansCount).toLongLong();
+    m_threatsBlockedCount = s.value("stats/threatsBlocked",  m_threatsBlockedCount).toLongLong();
 }
 
 void Settings::save()
@@ -87,6 +93,12 @@ void Settings::save()
     s.setValue("engine/cloud",              m_useCloud);
     s.setValue("engine/heurThreshold",      m_heurThreshold);
     s.setValue("engine/action",             m_detectionAction);
+
+    s.setValue("profile/clientName",        m_clientName);
+    s.setValue("profile/clientPhone",       m_clientPhone);
+    s.setValue("profile/clientEmail",       m_clientEmail);
+    s.setValue("stats/scansCount",          m_scansCount);
+    s.setValue("stats/threatsBlocked",      m_threatsBlockedCount);
     s.sync();
 }
 

@@ -12,6 +12,9 @@
 #include <QPixmap>
 #include <QIcon>
 #include <QStyle>
+#include <QCompleter>
+#include <QStandardItemModel>
+#include <QAbstractItemView>
 #include "../core/Settings.h"
 
 namespace verax {
@@ -32,7 +35,7 @@ ChromeBar::ChromeBar(QWidget *parent) : QWidget(parent)
     layout->addStretch(1);
     m_searchEdit = new QLineEdit(this);
     m_searchEdit->setObjectName("topSearchBar");
-    m_searchEdit->setPlaceholderText(tr("🔍 Szukaj funkcji, ustawień..."));
+    m_searchEdit->setPlaceholderText(tr("🔍 Szukaj funkcji, ustawień, modułów..."));
     m_searchEdit->setFixedWidth(340);
     m_searchEdit->setFixedHeight(32);
     m_searchEdit->setClearButtonEnabled(true);
@@ -53,6 +56,10 @@ ChromeBar::ChromeBar(QWidget *parent) : QWidget(parent)
     // User Profile Widget (Kacper | Premium)
     m_userWidget = new QWidget(this);
     m_userWidget->setObjectName("userProfileWidget");
+    m_userWidget->setCursor(Qt::PointingHandCursor);
+    m_userWidget->setToolTip(tr("Kliknij, aby przejść do zakładki Moje konto"));
+    m_userWidget->installEventFilter(this);
+
     auto *userLayout = new QHBoxLayout(m_userWidget);
     userLayout->setContentsMargins(4, 0, 8, 0);
     userLayout->setSpacing(8);
@@ -70,15 +77,15 @@ ChromeBar::ChromeBar(QWidget *parent) : QWidget(parent)
     textLayout->setContentsMargins(0, 0, 0, 0);
     textLayout->setSpacing(0);
 
-    auto *lblName = new QLabel(QStringLiteral("Kacper"), m_userWidget);
-    lblName->setObjectName("lblUserName");
-    lblName->setStyleSheet("font-weight: 700; font-size: 11px; color: #FFFFFF; line-height: 12px;");
-    textLayout->addWidget(lblName);
+    m_userNameLabel = new QLabel(QStringLiteral("Kacper"), m_userWidget);
+    m_userNameLabel->setObjectName("lblUserName");
+    m_userNameLabel->setStyleSheet("font-weight: 700; font-size: 11px; color: #FFFFFF; line-height: 12px;");
+    textLayout->addWidget(m_userNameLabel);
 
-    auto *lblTier = new QLabel(QStringLiteral("Premium"), m_userWidget);
-    lblTier->setObjectName("lblUserTier");
-    lblTier->setStyleSheet("font-size: 9px; color: #38BDF8; font-weight: 600; line-height: 10px;");
-    textLayout->addWidget(lblTier);
+    m_userTierLabel = new QLabel(QStringLiteral("Premium"), m_userWidget);
+    m_userTierLabel->setObjectName("lblUserTier");
+    m_userTierLabel->setStyleSheet("font-size: 9px; color: #38BDF8; font-weight: 600; line-height: 10px;");
+    textLayout->addWidget(m_userTierLabel);
 
     userLayout->addLayout(textLayout);
     layout->addWidget(m_userWidget);
@@ -114,6 +121,101 @@ ChromeBar::ChromeBar(QWidget *parent) : QWidget(parent)
     connect(m_btnMin,           &QPushButton::clicked, this, &ChromeBar::minimizeClicked);
     connect(m_btnMax,           &QPushButton::clicked, this, &ChromeBar::maximizeClicked);
     connect(m_btnClose,         &QPushButton::clicked, this, &ChromeBar::closeClicked);
+
+    setupSearchCompleter();
+}
+
+void ChromeBar::setupSearchCompleter()
+{
+    auto *model = new QStandardItemModel(this);
+
+    struct SearchEntry {
+        QString text;
+        int pageIndex;
+    };
+
+    const QVector<SearchEntry> entries = {
+        { tr("🔍 Szybkie skanowanie systemu"), 1 },
+        { tr("🔍 Pełne skanowanie dysków"), 1 },
+        { tr("🔍 Skanowanie pamięci RAM (Procesy)"), 1 },
+        { tr("🛡️ Ochrona w czasie rzeczywistym"), 0 },
+        { tr("🌐 Ochrona WWW i przeglądarki (Web Shield)"), 7 },
+        { tr("🧱 Zapora sieciowa (Firewall)"), 6 },
+        { tr("☣️ Kwarantanna i izolacja plików"), 3 },
+        { tr("⚡ Optymalizacja i czytniki wydajności"), 5 },
+        { tr("🗑️ Czyszczenie plików tymczasowych (Temp)"), 5 },
+        { tr("🚀 Menedżer autostartu programów"), 5 },
+        { tr("🩺 Zdalna pomoc i naprawa Multi-Servis"), 8 },
+        { tr("📊 Raporty diagnostyczne stacji"), 8 },
+        { tr("👤 Moje konto i dane licencji"), 12 },
+        { tr("🔑 Zmień klucz licencyjny"), 12 },
+        { tr("⚙️ Ustawienia i konfiguracja"), 9 },
+        { tr("🚫 Wykluczenia i biała lista"), 9 },
+        { tr("🔄 Aktualizacje programu i sygnatur"), 9 },
+        { tr("ℹ️ O programie Multi-Guard"), 10 }
+    };
+
+    for (const auto &e : entries) {
+        auto *item = new QStandardItem(e.text);
+        item->setData(e.pageIndex, Qt::UserRole);
+        model->appendRow(item);
+    }
+
+    auto *completer = new QCompleter(model, this);
+    completer->setCaseSensitivity(Qt::CaseInsensitive);
+    completer->setFilterMode(Qt::MatchContains);
+    completer->setCompletionMode(QCompleter::PopupCompletion);
+
+    auto *popup = completer->popup();
+    popup->setStyleSheet(
+        "QListView { background-color: #0d1527; color: #f1f5f9; border: 1px solid #1e293b; border-radius: 8px; padding: 4px; selection-background-color: #0284c7; selection-color: #ffffff; }"
+        "QListView::item { height: 28px; padding-left: 8px; border-radius: 4px; }"
+        "QListView::item:hover { background-color: rgba(2, 132, 199, 0.4); }"
+    );
+
+    m_searchEdit->setCompleter(completer);
+
+    connect(completer, QOverload<const QModelIndex &>::of(&QCompleter::activated), this, [this](const QModelIndex &idx){
+        int page = idx.data(Qt::UserRole).toInt();
+        m_searchEdit->clear();
+        emit featureNavRequested(page);
+    });
+
+    connect(m_searchEdit, &QLineEdit::returnPressed, this, [this, model]{
+        QString text = m_searchEdit->text().trimmed();
+        if (text.isEmpty()) return;
+        for (int r = 0; r < model->rowCount(); ++r) {
+            auto *item = model->item(r);
+            if (item && item->text().contains(text, Qt::CaseInsensitive)) {
+                int page = item->data(Qt::UserRole).toInt();
+                m_searchEdit->clear();
+                emit featureNavRequested(page);
+                return;
+            }
+        }
+        // Default to search or scan config if no exact match
+        emit featureNavRequested(1);
+        m_searchEdit->clear();
+    });
+}
+
+void ChromeBar::updateUserProfile(const QString &name, const QString &tier)
+{
+    if (m_userNameLabel && !name.isEmpty()) {
+        m_userNameLabel->setText(name);
+    }
+    if (m_userTierLabel && !tier.isEmpty()) {
+        m_userTierLabel->setText(tier);
+    }
+}
+
+bool ChromeBar::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == m_userWidget && event->type() == QEvent::MouseButtonRelease) {
+        emit userProfileClicked();
+        return true;
+    }
+    return QWidget::eventFilter(watched, event);
 }
 
 void ChromeBar::setTitle(const QString &) {}
