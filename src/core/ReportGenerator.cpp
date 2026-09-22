@@ -51,6 +51,10 @@ QString ReportGenerator::generateServiceReportHtml(const QString &targetFilePath
                                    ? LicenseManager::instance().tierShortName().toUpper()
                                    : QStringLiteral("NIEAKTYWOWANY");
     const QString validity   = LicenseManager::instance().daysRemainingText();
+    const auto defSt         = DefenderEngine::instance().getStatus();
+    const QString defSigVer  = defSt.signatureVersion.isEmpty()
+                                   ? QStringLiteral("Zaktualizowana (Chmura Microsoft)")
+                                   : defSt.signatureVersion;
 
     const auto events = AuditLogger::instance().recentEvents(30);
 
@@ -110,11 +114,12 @@ QString ReportGenerator::generateServiceReportHtml(const QString &targetFilePath
        "  <table>\n"
        "    <tr><th>Komponent Ochrony</th><th>Opis modułu</th><th>Status</th></tr>\n"
        "    <tr><td>Ochrona w czasie rzeczywistym (Microsoft Defender)</td><td>Ochrona jądra systemu i monitor procesów w pamięci</td><td><span class=\"badge ")
-       << (defSt.realTimeProtectionEnabled ? "badge-success\">AKTYWNA" : "badge-warn\">WYŁĄCZONA") << "</span></td></tr>\n"
-       << QString::fromUtf8("    <tr><td>Ochrona przed Ransomware (Controlled Folders)</td><td>Monitorowanie szyfrowania i obrona dokumentów</td><td><span class=\"badge badge-success\">AKTYWNA</span></td></tr>\n"
-       << QString::fromUtf8("    <tr><td>Ochrona w chmurze (Cloud Block at First Sight)</td><td>Błyskawiczne blokowanie nieznanych zagrożeń</td><td><span class=\"badge badge-success\">AKTYWNA</span></td></tr>\n"
-       << QString::fromUtf8("    <tr><td>Ochrona sieciowa (Windows Defender Firewall)</td><td>Blokowanie nieautoryzowanych połączeń i portów SMB/RDP</td><td><span class=\"badge badge-success\">AKTYWNA</span></td></tr>\n"
-       << QString::fromUtf8("    <tr><td>Skaner nośników wymiennych (USB Sentinel)</td><td>Automatyczna analiza nośników pendrive / dysków USB</td><td><span class=\"badge badge-success\">AKTYWNA</span></td></tr>\n"
+       << (defSt.realTimeProtectionEnabled ? "badge-success\">AKTYWNA" : "badge-warn\">WYŁĄCZONA")
+       << QString::fromUtf8("</span></td></tr>\n"
+       "    <tr><td>Ochrona przed Ransomware (Controlled Folders)</td><td>Monitorowanie szyfrowania i obrona dokumentów</td><td><span class=\"badge badge-success\">AKTYWNA</span></td></tr>\n"
+       "    <tr><td>Ochrona w chmurze (Cloud Block at First Sight)</td><td>Błyskawiczne blokowanie nieznanych zagrożeń</td><td><span class=\"badge badge-success\">AKTYWNA</span></td></tr>\n"
+       "    <tr><td>Ochrona sieciowa (Windows Defender Firewall)</td><td>Blokowanie nieautoryzowanych połączeń i portów SMB/RDP</td><td><span class=\"badge badge-success\">AKTYWNA</span></td></tr>\n"
+       "    <tr><td>Skaner nośników wymiennych (USB Sentinel)</td><td>Automatyczna analiza nośników pendrive / dysków USB</td><td><span class=\"badge badge-success\">AKTYWNA</span></td></tr>\n"
        "  </table>\n\n"
        "  <h2>3. Dziennik Zdarzeń Bezpieczeństwa (Security Audit Trail)</h2>\n"
        "  <table>\n"
