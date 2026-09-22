@@ -1,6 +1,7 @@
 #include "LicenseManager.h"
 #include "Ed25519.h"
 #include "Logger.h"
+#include "Settings.h"
 
 #include <QCryptographicHash>
 #include <QDir>
