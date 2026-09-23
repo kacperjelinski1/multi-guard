@@ -6,6 +6,7 @@
 #include <QProcess>
 #include <QDateTime>
 #include <QTime>
+#include <QTimer>
 #include <QList>
 #include "Scanner.h"
 
