@@ -140,6 +140,9 @@ private:
     void populateRepairCards();
     void populateAboutPage();
     void initDefenderIntegration();
+    void startDefenderScan(int mode, const QStringList &paths = {});
+    void refreshDefenderStatus();
+    void showDefenderQuarantine();
     void onToggleRealTimeClicked();
     void setActiveNav(PageIndex idx);
     void setupTrayIcon();

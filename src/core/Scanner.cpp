@@ -216,22 +216,18 @@ Scanner::Scanner(QObject *parent) : QObject(parent)
     qRegisterMetaType<verax::ScanRequest>("verax::ScanRequest");
 }
 
-Scanner::~Scanner() = default;
+Scanner::~Scanner() { requestStop(); m_future.waitForFinished(); }
 
-void Scanner::request(const ScanRequest &req)
+bool Scanner::request(const ScanRequest &req)
 {
-    if (isRunning()) {
-        // Safety: force-reset if the flag got stuck (e.g. previous build crash)
-        Logger::warn("Scanner::request called while m_running=1, force-resetting");
-        m_running.storeRelease(0);
-    }
+    if (!m_running.testAndSetOrdered(0, 1)) return false;
     m_stop.storeRelease(0);
     m_pause.storeRelease(0);
-    m_running.storeRelease(1);
-    QtConcurrent::run([this, req] { runOn(req); });
+    m_future = QtConcurrent::run([this, req] { runOn(req); });
+    return true;
 }
 
-void Scanner::requestStop() { m_stop.storeRelease(1); }
+void Scanner::requestStop() { m_stop.storeRelease(1); m_pause.storeRelease(0); }
 void Scanner::requestPause(bool p) { m_pause.storeRelease(p ? 1 : 0); }
 
 void Scanner::enumerate(const QString &target, QStringList &out, const QStringList &exts)
@@ -305,6 +301,8 @@ void Scanner::runOn(const ScanRequest &req)
         if (total == 0) {
             qDebug() << "Scanner Central Engine: Target path is empty or contains no matching files.";
             emit progress(100, 0, 0);
+            report.cancelled = m_stop.loadAcquire();
+            if (!report.cancelled) report.errorMessage = tr("Brak plików do sprawdzenia w wybranym zakresie.");
             report.finishedAt = QDateTime::currentSecsSinceEpoch();
             m_running.storeRelease(0);
             emit finished(report);
@@ -320,8 +318,17 @@ void Scanner::runOn(const ScanRequest &req)
                 qDebug() << "Scanner Central Engine: Stop command verified and executed.";
                 break;
             }
-            while (m_pause.loadAcquire()) QThread::msleep(150);
+            while (m_pause.loadAcquire() && !m_stop.loadAcquire()) QThread::msleep(50);
+            if (m_stop.loadAcquire()) break;
 
+            QFile probe(p);
+            if (Settings::instance().isExcluded(p) || QFileInfo(p).size() > req.maxFileBytes || !probe.open(QIODevice::ReadOnly)) {
+                ++report.filesSkipped;
+                ++done;
+                emit progress(int(done * 100 / total), done, total);
+                continue;
+            }
+            probe.close();
             ThreatInfo info;
             const int score = inspectFile(p, req, info);
 
@@ -367,9 +374,11 @@ void Scanner::runOn(const ScanRequest &req)
         if (done == total) emit progress(100, done, total);
 
     } catch (...) {
-        Logger::error("Scanner encountered an exception inside global execution loop.");
+        report.errorMessage = tr("Błąd silnika skanowania; wynik jest niepełny.");
+        Logger::error(report.errorMessage);
     }
 
+    report.cancelled = m_stop.loadAcquire();
     report.finishedAt = QDateTime::currentSecsSinceEpoch();
     Logger::info(QStringLiteral("Scan end: files=%1 threats=%2 duration=%3s")
                  .arg(report.filesScanned).arg(report.threatsFound)
@@ -511,6 +520,8 @@ int Scanner::inspectFile(const QString &path, const ScanRequest &req, ThreatInfo
         ThreatInfo defInfo;
         int defRes = scanWithWindowsDefender(path, defInfo);
         if (defRes == 1) {
+            defInfo.sha256 = hash;
+            defInfo.size = info.size;
             info = defInfo;
             return 100;
         } else if (defRes == 0) {
@@ -563,7 +574,11 @@ bool Scanner::cloudLookup(const QString &hash, ThreatInfo &info)
         if (s_cloudCache.contains(hash)) {
             ThreatInfo cached = s_cloudCache.value(hash);
             if (!cached.detectionName.isEmpty()) {
+                const QString path = info.path;
+                const qint64 size = info.size;
                 info = cached;
+                info.path = path;
+                info.size = size;
                 return true;
             }
             return false; // Cached as clean
@@ -581,7 +596,9 @@ bool Scanner::cloudLookup(const QString &hash, ThreatInfo &info)
         nam = new QNetworkAccessManager();
         QNetworkRequest req(QUrl("https://mb-api.abuse.ch/api/v1/"));
         req.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
-        req.setRawHeader("Auth-Key", "c918204488a01eb5a765bcc629ab1ffc5810fa37310cca8b");
+        const QByteArray apiKey = qgetenv("MULTIGUARD_MALWAREBAZAAR_API_KEY").trimmed();
+        if (apiKey.isEmpty()) { delete nam; return false; }
+        req.setRawHeader("Auth-Key", apiKey);
 
         QByteArray data = "query=get_info&hash=" + hash.toUtf8();
         reply = nam->post(req, data);

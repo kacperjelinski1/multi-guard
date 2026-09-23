@@ -18,6 +18,10 @@
 #include <QDateTime>
 #include <QSettings>
 #include <QRandomGenerator>
+#include <QSaveFile>
+#include <QTemporaryFile>
+#include <QUuid>
+#include "../utils/HashUtils.h"
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -100,6 +104,7 @@ static bool runAesCbc(bool encrypt, const QByteArray &key,
 
     BCryptDestroyKey(kh);
     BCryptCloseAlgorithmProvider(alg, 0);
+    if (NT_SUCCESS(st)) out.resize(int(got));
     return NT_SUCCESS(st);
 }
 #endif
@@ -110,6 +115,7 @@ bool Quarantine::aesCbcEncryptFile(const QString &src, const QString &dst,
     QFile in(src);
     if (!in.open(QIODevice::ReadOnly)) return false;
     const QByteArray plain = in.readAll();
+    if (in.error() != QFile::NoError || plain.size() != in.size()) return false;
     in.close();
 
     QByteArray iv(16, 0);
@@ -122,12 +128,11 @@ bool Quarantine::aesCbcEncryptFile(const QString &src, const QString &dst,
     cipher = plain; // fallback (no encryption on non-Windows)
 #endif
 
-    QFile out(dst);
-    if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) return false;
-    out.write(iv);
-    out.write(cipher);
-    out.close();
-    return true;
+    QSaveFile out(dst);
+    out.setDirectWriteFallback(false);
+    if (!out.open(QIODevice::WriteOnly)) return false;
+    if (out.write(iv) != iv.size() || out.write(cipher) != cipher.size()) return false;
+    return out.commit();
 }
 
 bool Quarantine::aesCbcDecryptFile(const QString &src, const QString &dst,
@@ -137,6 +142,7 @@ bool Quarantine::aesCbcDecryptFile(const QString &src, const QString &dst,
     if (!in.open(QIODevice::ReadOnly)) return false;
     const QByteArray iv     = in.read(16);
     const QByteArray cipher = in.readAll();
+    if (in.error() != QFile::NoError) return false;
     in.close();
     if (iv.size() != 16) return false;
 
@@ -147,228 +153,161 @@ bool Quarantine::aesCbcDecryptFile(const QString &src, const QString &dst,
     plain = cipher;
 #endif
 
-    QFile out(dst);
-    if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) return false;
-    out.write(plain);
-    out.close();
-    return true;
+    QSaveFile out(dst);
+    out.setDirectWriteFallback(false);
+    if (!out.open(QIODevice::WriteOnly)) return false;
+    if (out.write(plain) != plain.size()) return false;
+    return out.commit();
 }
 
+// Deletion is intentionally not advertised as secure erasure (SSD/COW storage).
 bool Quarantine::secureDelete(const QString &path) const
 {
-    QFile f(path);
-    if (!f.exists()) return true;
-    if (!f.open(QIODevice::ReadWrite)) return QFile::remove(path);
-
-    const qint64 sz = f.size();
-    constexpr int chunk = 65536;
-    QByteArray pat0(chunk, '\0');
-    QByteArray pat1(chunk, '\xFF');
-    QByteArray patR(chunk, '\0');
-
-    auto pass = [&](const QByteArray &p) {
-        f.seek(0);
-        qint64 rem = sz;
-        while (rem > 0) {
-            const qint64 w = qMin<qint64>(rem, p.size());
-            f.write(p.constData(), w);
-            rem -= w;
-        }
-        f.flush();
-    };
-
-    pass(pat0);
-    pass(pat1);
-    for (int i = 0; i < patR.size(); ++i)
-        patR[i] = char(QRandomGenerator::global()->bounded(256));
-    pass(patR);
-    f.close();
-    return QFile::remove(path);
+    return !QFileInfo::exists(path) || QFile::remove(path);
 }
 
-// QString Quarantine::moveToVault(const QString &originalPath,
-//                                 const QString &sha256,
-//                                 const QString &detectionName)
-// {
-//     QFileInfo fi(originalPath);
-//     if (!fi.exists() || !fi.isFile()) return {};
+namespace {
+// Keep every connection within the calling thread, including background protection.
+QSqlDatabase vaultDatabase()
+{
+    struct Connection {
+        QString name = QStringLiteral("vault-") + QUuid::createUuid().toString();
+        ~Connection() { QSqlDatabase::removeDatabase(name); }
+    };
+    static thread_local Connection connection;
+    auto db = QSqlDatabase::contains(connection.name)
+        ? QSqlDatabase::database(connection.name)
+        : QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connection.name);
+    if (!db.isOpen()) {
+        db.setDatabaseName(Logger::userDataDir() + QStringLiteral("/db/verax.sqlite"));
+        db.setConnectOptions(QStringLiteral("QSQLITE_BUSY_TIMEOUT=5000"));
+        db.open();
+    }
+    return db;
+}
 
-//     QDir().mkpath(vaultDir());
-//     const QString vault = vaultDir() + QStringLiteral("/") + sha256 +
-//                           QStringLiteral(".qvault");
+bool removeLedgerEntry(QSqlDatabase &db, int id)
+{
+    QSqlQuery q(db);
+    q.prepare("DELETE FROM quarantine WHERE id = ?");
+    q.addBindValue(id);
+    return q.exec() && q.numRowsAffected() == 1;
+}
 
-//     const QByteArray key = deriveKey();
-//     if (!aesCbcEncryptFile(originalPath, vault, key)) {
-//         Logger::error(QStringLiteral("Vault encrypt failed: %1").arg(originalPath));
-//         return {};
-//     }
-
-//     QSqlDatabase db = QSqlDatabase::database("verax_main");
-//     if (!db.isOpen()) {
-//         Logger::error("DB not open during quarantine move");
-//         return {};
-//     }
-
-
-//     QSqlQuery q(db);
-//     q.prepare("INSERT INTO quarantine "
-//               "(original_path, vault_path, sha256, detection_name, size, quarantined_at) "
-//               "VALUES (?, ?, ?, ?, ?, ?)");
-//     q.bindValue(0, originalPath);
-//     q.bindValue(1, vault);
-//     q.bindValue(2, sha256);
-//     q.bindValue(3, detectionName);
-//     q.bindValue(4, fi.size());
-//     q.bindValue(5, QDateTime::currentSecsSinceEpoch());
-//     if (!q.exec()) {
-//         Logger::error(QStringLiteral("Quarantine DB insert failed: %1")
-//                       .arg(q.lastError().text()));
-//         QFile::remove(vault);
-//         return {};
-//     }
-
-//     if (!secureDelete(originalPath)) {
-//         Logger::warn(QStringLiteral("Source not securely deleted: %1").arg(originalPath));
-//     }
-
-//     QuarantineEntry e;
-//     e.id            = q.lastInsertId().toInt();
-//     e.originalPath  = originalPath;
-//     e.vaultPath     = vault;
-//     e.sha256        = sha256;
-//     e.detectionName = detectionName;
-//     e.size          = fi.size();
-//     e.quarantinedAt = QDateTime::currentSecsSinceEpoch();
-//     emit itemAdded(e);
-//     emit changed();
-//     return vault;
-// }
+bool vaultReferenced(QSqlDatabase &db, const QString &path)
+{
+    QSqlQuery q(db);
+    q.prepare("SELECT COUNT(*) FROM quarantine WHERE vault_path = ?");
+    q.addBindValue(path);
+    return !q.exec() || !q.next() || q.value(0).toInt() != 0;
+}
+}
 
 QString Quarantine::moveToVault(const QString &originalPath,
-                                const QString &sha256,
+                                const QString &expectedHash,
                                 const QString &detectionName)
 {
+    QMutexLocker guard(&m_mutex);
     QFileInfo fi(originalPath);
-    if (!fi.exists() || !fi.isFile()) return {};
+    if (!fi.isFile() || fi.isSymLink()) return {};
+    const QString hash = HashUtils::sha256Hex(originalPath);
+    if (hash.isEmpty() || (!expectedHash.isEmpty() && hash.compare(expectedHash, Qt::CaseInsensitive) != 0)) return {};
+    auto db = vaultDatabase();
+    if (!db.isOpen()) return {};
 
-    QDir().mkpath(vaultDir());
-    const QString vault = vaultDir() + QStringLiteral("/") + sha256 +
-                          QStringLiteral(".qvault");
+    const QString vault = vaultDir() + "/" + QUuid::createUuid().toString(QUuid::WithoutBraces) + ".qvault";
+    if (!aesCbcEncryptFile(originalPath, vault, deriveKey())) return {};
 
-    const QByteArray key = deriveKey();
-    if (!aesCbcEncryptFile(originalPath, vault, key)) {
-        Logger::error(QStringLiteral("Vault encrypt failed: %1").arg(originalPath));
-        return {};
-    }
-
-    QSqlDatabase db;
-    QString connectionName = QStringLiteral("quarantine_thread_link_%1").arg(quintptr(QThread::currentThreadId()));
-
-    if (QSqlDatabase::contains(connectionName)) {
-        db = QSqlDatabase::database(connectionName);
-    } else {
-        db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connectionName);
-        db.setDatabaseName(Logger::userDataDir() + QStringLiteral("/db/verax.sqlite"));
-    }
-
-    if (!db.isOpen() && !db.open()) {
-        Logger::error(QStringLiteral("DB not open during quarantine move: %1").arg(db.lastError().text()));
+    // Read the committed encrypted copy back and verify plaintext before touching source.
+    QTemporaryFile verification(vaultDir() + "/verify-XXXXXX");
+    if (!verification.open()) { QFile::remove(vault); return {}; }
+    const QString verifyPath = verification.fileName();
+    verification.close();
+    if (!aesCbcDecryptFile(vault, verifyPath, deriveKey()) || HashUtils::sha256Hex(verifyPath) != hash) {
         QFile::remove(vault);
         return {};
     }
-
+    if (!db.transaction()) { QFile::remove(vault); return {}; }
     QSqlQuery q(db);
-    q.prepare("INSERT INTO quarantine "
-              "(original_path, vault_path, sha256, detection_name, size, quarantined_at, restore_blocked) "
-              "VALUES (?, ?, ?, ?, ?, ?, 0)");
-
-    q.bindValue(0, originalPath);
-    q.bindValue(1, vault);
-    q.bindValue(2, sha256);
-    q.bindValue(3, detectionName);
-    q.bindValue(4, fi.size());
-    q.bindValue(5, QDateTime::currentSecsSinceEpoch());
-
-    if (!q.exec()) {
-        Logger::error(QStringLiteral("Quarantine DB insert failed: %1").arg(q.lastError().text()));
-        QFile::remove(vault);
-        return {};
+    q.prepare("INSERT INTO quarantine (original_path, vault_path, sha256, detection_name, size, quarantined_at, restore_blocked) VALUES (?, ?, ?, ?, ?, ?, 0)");
+    q.addBindValue(fi.absoluteFilePath()); q.addBindValue(vault); q.addBindValue(hash);
+    q.addBindValue(detectionName); q.addBindValue(fi.size());
+    const qint64 now = QDateTime::currentSecsSinceEpoch();
+    q.addBindValue(now);
+    if (!q.exec() || !db.commit()) {
+        db.rollback(); QFile::remove(vault); return {};
     }
+    const int id = q.lastInsertId().toInt();
 
-    if (!secureDelete(originalPath)) {
-        Logger::warn(QStringLiteral("Source not securely deleted: %1").arg(originalPath));
+    // Stage the source on the same filesystem, then verify the exact staged file.
+    // A crash after ledger commit leaves a recoverable vault and may leave the source.
+    const QString staged = fi.absolutePath() + "/.multiguard-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
+    if (!QFile::rename(originalPath, staged)) {
+        Logger::warn(QStringLiteral("Vault saved, but source remains: %1").arg(originalPath));
+        guard.unlock(); emit changed(); return {};
     }
-
-    QuarantineEntry e;
-    e.id            = q.lastInsertId().toInt();
-    e.originalPath  = originalPath;
-    e.vaultPath     = vault;
-    e.sha256        = sha256;
-    e.detectionName = detectionName;
-    e.size          = fi.size();
-    e.quarantinedAt = QDateTime::currentSecsSinceEpoch();
-    e.restoreBlocked = false;
-
-    emit itemAdded(e);
-    emit changed();
-
+    if (HashUtils::sha256Hex(staged) != hash || !QFile::remove(staged)) {
+        if (!QFile::rename(staged, originalPath))
+            Logger::error(QStringLiteral("Source preserved for manual recovery at %1").arg(staged));
+        guard.unlock(); emit changed(); return {};
+    }
+    QuarantineEntry entry;
+    entry.id = id; entry.originalPath = fi.absoluteFilePath(); entry.vaultPath = vault;
+    entry.sha256 = hash; entry.detectionName = detectionName; entry.size = fi.size(); entry.quarantinedAt = now;
+    guard.unlock();
+    emit itemAdded(entry); emit changed();
     return vault;
 }
 
 bool Quarantine::restore(int entryId)
 {
-    QSqlDatabase db = QSqlDatabase::database("verax_main", false);
+    QMutexLocker guard(&m_mutex);
+    auto db = vaultDatabase();
     if (!db.isOpen()) return false;
-
     QSqlQuery q(db);
-    q.prepare("SELECT original_path, vault_path, restore_blocked FROM quarantine WHERE id = ?");
-    q.bindValue(0, entryId);
-    if (!q.exec() || !q.next()) return false;
-
-    const QString original = q.value(0).toString();
-    const QString vault    = q.value(1).toString();
-    const bool blocked     = q.value(2).toInt() != 0;
-    if (blocked) {
-        Logger::warn(QStringLiteral("Restore blocked: id=%1").arg(entryId));
-        return false;
-    }
-
-    QDir().mkpath(QFileInfo(original).absolutePath());
-    if (!aesCbcDecryptFile(vault, original, deriveKey())) return false;
-
-    QSqlQuery del(db);
-    del.prepare("DELETE FROM quarantine WHERE id = ?");
-    del.bindValue(0, entryId);
-    del.exec();
-    QFile::remove(vault);
-
-    emit changed();
+    q.prepare("SELECT original_path, vault_path, restore_blocked, sha256 FROM quarantine WHERE id = ?");
+    q.addBindValue(entryId);
+    if (!q.exec() || !q.next() || q.value(2).toBool()) return false;
+    const QString original = q.value(0).toString(), vault = q.value(1).toString(), hash = q.value(3).toString();
+    // Legacy entries lacking integrity metadata require manual recovery.
+    if (hash.size() != 64 || QFileInfo::exists(original) || QFileInfo(original).isSymLink()) return false;
+    if (!QDir().mkpath(QFileInfo(original).absolutePath())) return false;
+    QTemporaryFile restored(QFileInfo(original).absolutePath() + "/.restore-XXXXXX");
+    if (!restored.open()) return false;
+    const QString temporary = restored.fileName();
+    restored.close();
+    if (!aesCbcDecryptFile(vault, temporary, deriveKey()) || HashUtils::sha256Hex(temporary) != hash) return false;
+    if (!QFile::rename(temporary, original)) return false; // Never overwrite a destination.
+    if (!db.transaction()) return false; // Both copies remain safe.
+    if (!removeLedgerEntry(db, entryId) || !db.commit()) { db.rollback(); return false; }
+    if (!vaultReferenced(db, vault)) QFile::remove(vault);
+    guard.unlock(); emit changed();
     return true;
 }
 
 bool Quarantine::permanentDelete(int entryId)
 {
-    QSqlDatabase db = QSqlDatabase::database("verax_main", false);
-    if (!db.isOpen()) return false;
-
+    QMutexLocker guard(&m_mutex);
+    auto db = vaultDatabase();
+    if (!db.isOpen() || !db.transaction()) return false;
     QSqlQuery q(db);
     q.prepare("SELECT vault_path FROM quarantine WHERE id = ?");
-    q.bindValue(0, entryId);
-    if (q.exec() && q.next())
-        secureDelete(q.value(0).toString());
-
-    QSqlQuery del(db);
-    del.prepare("DELETE FROM quarantine WHERE id = ?");
-    del.bindValue(0, entryId);
-    const bool ok = del.exec();
-    if (ok) emit changed();
-    return ok;
+    q.addBindValue(entryId);
+    if (!q.exec() || !q.next()) { db.rollback(); return false; }
+    const QString vault = q.value(0).toString();
+    if (!removeLedgerEntry(db, entryId)) { db.rollback(); return false; }
+    // Legacy duplicate rows must not delete another entry's payload.
+    if (!vaultReferenced(db, vault) && !secureDelete(vault)) { db.rollback(); return false; }
+    if (!db.commit()) { db.rollback(); return false; }
+    guard.unlock(); emit changed();
+    return true;
 }
 
 QVector<QuarantineEntry> Quarantine::list() const
 {
     QVector<QuarantineEntry> out;
-    QSqlDatabase db = QSqlDatabase::database("verax_main", false);
+    QMutexLocker guard(&m_mutex);
+    QSqlDatabase db = vaultDatabase();
     if (!db.isOpen()) return out;
 
     QSqlQuery q(db);
@@ -394,7 +333,8 @@ QVector<QuarantineEntry> Quarantine::list() const
 
 int Quarantine::count() const
 {
-    QSqlDatabase db = QSqlDatabase::database("verax_main", false);
+    QMutexLocker guard(&m_mutex);
+    QSqlDatabase db = vaultDatabase();
     if (!db.isOpen()) return 0;
     QSqlQuery q(db);
     if (q.exec("SELECT COUNT(*) FROM quarantine") && q.next())
@@ -404,7 +344,8 @@ int Quarantine::count() const
 
 qint64 Quarantine::totalBytes() const
 {
-    QSqlDatabase db = QSqlDatabase::database("verax_main", false);
+    QMutexLocker guard(&m_mutex);
+    QSqlDatabase db = vaultDatabase();
     if (!db.isOpen()) return 0;
     QSqlQuery q(db);
     if (q.exec("SELECT COALESCE(SUM(size),0) FROM quarantine") && q.next())

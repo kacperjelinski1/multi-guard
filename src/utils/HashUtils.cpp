@@ -14,7 +14,8 @@ QString HashUtils::sha256Hex(const QString &path)
     char buf[65536];
     while (!f.atEnd()) {
         const qint64 n = f.read(buf, sizeof(buf));
-        if (n <= 0) break;
+        if (n < 0) return {};
+        if (n == 0) break;
         h.addData(buf, int(n));
     }
     f.close();

@@ -1,0 +1,71 @@
+2026-09-23 14:57:10,389 - aqt.main - INFO - installer 8413569408 aqtinstall(aqt) v3.3.0 on Python 3.9.6 [CPython Clang 21.0.0 (clang-2100.1.1.101)]
+2026-09-23 14:57:10,390 - aqt.helper - DEBUG - helper 8413569408 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/mac_x64/desktop/qt5_5152/Updates.xml.sha256
+2026-09-23 14:57:11,150 - aqt.helper - DEBUG - helper 8413569408 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/mac_x64/desktop/qt5_5152/qt.qt5.5152.clang_64/5.15.2-0-202011130601qtbase-MacOS-MacOS_10_13-Clang-MacOS-MacOS_10_13-X86_64.7z.sha256
+2026-09-23 14:57:11,153 - aqt.helper - DEBUG - helper 8413569408 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/mac_x64/desktop/qt5_5152/qt.qt5.5152.clang_64/5.15.2-0-202011130601qtsvg-MacOS-MacOS_10_13-Clang-MacOS-MacOS_10_13-X86_64.7z.sha256
+2026-09-23 14:57:11,154 - aqt.helper - DEBUG - helper 8413569408 Attempt to download checksum at https://download.qt.io/online/qtsdkrepository/mac_x64/desktop/qt5_5152/qt.qt5.5152.clang_64/5.15.2-0-202011130601qttools-MacOS-MacOS_10_13-Clang-MacOS-MacOS_10_13-X86_64.7z.sha256
+2026-09-23 14:57:11,303 - aqt.helper - INFO - helper 8413569408 Downloading qttools...
+2026-09-23 14:57:11,303 - aqt.installer - DEBUG - installer 8413569408 Download URL: https://download.qt.io/online/qtsdkrepository/mac_x64/desktop/qt5_5152/qt.qt5.5152.clang_64/5.15.2-0-202011130601qttools-MacOS-MacOS_10_13-Clang-MacOS-MacOS_10_13-X86_64.7z
+2026-09-23 14:57:11,307 - aqt.helper - INFO - helper 8413569408 Downloading qtbase...
+2026-09-23 14:57:11,307 - aqt.installer - DEBUG - installer 8413569408 Download URL: https://download.qt.io/online/qtsdkrepository/mac_x64/desktop/qt5_5152/qt.qt5.5152.clang_64/5.15.2-0-202011130601qtbase-MacOS-MacOS_10_13-Clang-MacOS-MacOS_10_13-X86_64.7z
+2026-09-23 14:57:11,308 - aqt.helper - INFO - helper 8413569408 Downloading qtsvg...
+2026-09-23 14:57:11,308 - aqt.installer - DEBUG - installer 8413569408 Download URL: https://download.qt.io/online/qtsdkrepository/mac_x64/desktop/qt5_5152/qt.qt5.5152.clang_64/5.15.2-0-202011130601qtsvg-MacOS-MacOS_10_13-Clang-MacOS-MacOS_10_13-X86_64.7z
+2026-09-23 14:57:11,471 - aqt.helper - DEBUG - helper 8413569408 Asked to redirect(302) to: https://www.nic.funet.fi/pub/mirrors/download.qt-project.org/online/qtsdkrepository/mac_x64/desktop/qt5_5152/qt.qt5.5152.clang_64/5.15.2-0-202011130601qtbase-MacOS-MacOS_10_13-Clang-MacOS-MacOS_10_13-X86_64.7z
+2026-09-23 14:57:11,471 - aqt.helper - DEBUG - helper 8413569408 Asked to redirect(302) to: https://www.nic.funet.fi/pub/mirrors/download.qt-project.org/online/qtsdkrepository/mac_x64/desktop/qt5_5152/qt.qt5.5152.clang_64/5.15.2-0-202011130601qtsvg-MacOS-MacOS_10_13-Clang-MacOS-MacOS_10_13-X86_64.7z
+2026-09-23 14:57:11,471 - aqt.helper - DEBUG - helper 8413569408 Asked to redirect(302) to: https://www.nic.funet.fi/pub/mirrors/download.qt-project.org/online/qtsdkrepository/mac_x64/desktop/qt5_5152/qt.qt5.5152.clang_64/5.15.2-0-202011130601qttools-MacOS-MacOS_10_13-Clang-MacOS-MacOS_10_13-X86_64.7z
+2026-09-23 14:57:11,471 - aqt.helper - INFO - helper 8413569408 Redirected: www.nic.funet.fi
+2026-09-23 14:57:11,471 - aqt.helper - INFO - helper 8413569408 Redirected: www.nic.funet.fi
+2026-09-23 14:57:11,471 - aqt.helper - INFO - helper 8413569408 Redirected: www.nic.funet.fi
+2026-09-23 14:57:12,025 - aqt.installer - INFO - installer 8413569408 Finished installation of qtsvg-MacOS-MacOS_10_13-Clang-MacOS-MacOS_10_13-X86_64.7z in 0.87250533
+2026-09-23 14:57:30,871 - aqt.installer - INFO - installer 8413569408 Finished installation of qttools-MacOS-MacOS_10_13-Clang-MacOS-MacOS_10_13-X86_64.7z in 19.71886833
+2026-09-23 14:57:34,799 - aqt.installer - INFO - installer 8413569408 Finished installation of qtbase-MacOS-MacOS_10_13-Clang-MacOS-MacOS_10_13-X86_64.7z in 23.65029375
+2026-09-23 14:57:36,209 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/bin/qmake
+2026-09-23 14:57:36,216 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5Xml.pc
+2026-09-23 14:57:36,216 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5Network.pc
+2026-09-23 14:57:36,217 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5OpenGLExtensions.pc
+2026-09-23 14:57:36,217 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5Widgets.pc
+2026-09-23 14:57:36,217 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5DBus.pc
+2026-09-23 14:57:36,218 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5UiPlugin.pc
+2026-09-23 14:57:36,218 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5OpenGL.pc
+2026-09-23 14:57:36,218 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5Core.pc
+2026-09-23 14:57:36,219 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5Test.pc
+2026-09-23 14:57:36,219 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5Gui.pc
+2026-09-23 14:57:36,220 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5UiTools.pc
+2026-09-23 14:57:36,220 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5Sql.pc
+2026-09-23 14:57:36,220 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5PrintSupport.pc
+2026-09-23 14:57:36,221 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5Designer.pc
+2026-09-23 14:57:36,221 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5Help.pc
+2026-09-23 14:57:36,222 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5Svg.pc
+2026-09-23 14:57:36,222 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/pkgconfig/Qt5Concurrent.pc
+2026-09-23 14:57:36,222 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5ClipboardSupport.la
+2026-09-23 14:57:36,223 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5GraphicsSupport.la
+2026-09-23 14:57:36,224 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5PlatformCompositorSupport.la
+2026-09-23 14:57:36,224 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5ServiceSupport.la
+2026-09-23 14:57:36,225 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5EdidSupport.la
+2026-09-23 14:57:36,226 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5DeviceDiscoverySupport.la
+2026-09-23 14:57:36,226 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5EventDispatcherSupport.la
+2026-09-23 14:57:36,227 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5FontDatabaseSupport.la
+2026-09-23 14:57:36,228 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5OpenGLExtensions.la
+2026-09-23 14:57:36,229 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5ThemeSupport.la
+2026-09-23 14:57:36,230 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5UiTools.la
+2026-09-23 14:57:36,231 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5FbSupport.la
+2026-09-23 14:57:36,231 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5Bootstrap.la
+2026-09-23 14:57:36,232 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5AccessibilitySupport.la
+2026-09-23 14:57:36,233 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5DeviceDiscoverySupport.prl
+2026-09-23 14:57:36,233 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libqtlibpng.prl
+2026-09-23 14:57:36,233 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5EdidSupport.prl
+2026-09-23 14:57:36,233 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5PlatformCompositorSupport.prl
+2026-09-23 14:57:36,234 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQtUiPlugin.prl
+2026-09-23 14:57:36,234 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5GraphicsSupport.prl
+2026-09-23 14:57:36,234 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5ClipboardSupport.prl
+2026-09-23 14:57:36,234 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5ThemeSupport.prl
+2026-09-23 14:57:36,234 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5UiTools.prl
+2026-09-23 14:57:36,234 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5FontDatabaseSupport.prl
+2026-09-23 14:57:36,234 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5Bootstrap.prl
+2026-09-23 14:57:36,235 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5ServiceSupport.prl
+2026-09-23 14:57:36,235 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5FbSupport.prl
+2026-09-23 14:57:36,235 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5EventDispatcherSupport.prl
+2026-09-23 14:57:36,235 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5OpenGLExtensions.prl
+2026-09-23 14:57:36,235 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libqtfreetype.prl
+2026-09-23 14:57:36,236 - aqt.updater - INFO - updater 8413569408 Patching /tmp/multiguard-qt/5.15.2/clang_64/lib/libQt5AccessibilitySupport.prl
+2026-09-23 14:57:36,236 - aqt.main - INFO - installer 8413569408 Finished installation
+2026-09-23 14:57:36,236 - aqt.main - INFO - installer 8413569408 Time elapsed: 25.84655192 second

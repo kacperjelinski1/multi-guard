@@ -12,7 +12,7 @@ public:
     static WebShield& instance();
 
     bool isEnabled() const;
-    void setEnabled(bool enable);
+    bool setEnabled(bool enable);
 
     bool applyBlocklist();
     bool removeBlocklist();

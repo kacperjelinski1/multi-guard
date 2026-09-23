@@ -32,6 +32,7 @@ public:
     static FirewallManager& instance();
 
     bool isFirewallEnabled();
+    bool statusKnown() const { return m_statusKnown; }
     bool setFirewallEnabled(bool enable);
 
     QString activeProfile();
@@ -51,6 +52,7 @@ signals:
 
 private:
     explicit FirewallManager(QObject *parent = nullptr);
+    bool m_statusKnown = false;
     int runNetsh(const QStringList &args);
 };
 

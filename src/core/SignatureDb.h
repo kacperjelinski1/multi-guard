@@ -2,6 +2,7 @@
 // By Ali Sakkaf - https://alisakkaf.com
 #pragma once
 #include <QObject>
+#include <QMutex>
 #include <QString>
 #include <QList>
 #include <QSqlDatabase>
@@ -116,6 +117,8 @@ private:
     void    saveJsonCache() const;
     void    mergeJsonEntries(const QJsonArray &newEntries);
 
+    QSqlDatabase currentDatabase() const;
+    mutable QMutex m_mutex{QMutex::Recursive};
     QSqlDatabase  m_db;
     QString       m_path;
     QNetworkAccessManager *m_nam = nullptr;

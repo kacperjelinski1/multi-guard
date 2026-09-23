@@ -242,7 +242,7 @@ qint64 SystemOptimizer::cleanDir(const QString &path)
 
 qint64 SystemOptimizer::cleanItems(const QStringList &categoryIds)
 {
-    if (!LicenseManager::instance().isValid()) {
+    if (!LicenseManager::instance().accessAllowed()) {
         Logger::warn("SystemOptimizer: Pominięto czyszczenie — brak aktywnej licencji.");
         return 0;
     }

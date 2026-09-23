@@ -17,6 +17,8 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QTimer>
+#include <QThread>
+#include <QUuid>
 
 namespace verax {
 
@@ -27,6 +29,27 @@ SignatureDb& SignatureDb::instance() {
 
 SignatureDb::SignatureDb(QObject *parent) : QObject(parent) {}
 
+QSqlDatabase SignatureDb::currentDatabase() const
+{
+    if (QThread::currentThread() == thread()) return m_db;
+    // Each worker owns its SQLite connection; never copy the GUI connection.
+    struct Connection {
+        QString name = QUuid::createUuid().toString();
+        ~Connection() { QSqlDatabase::removeDatabase(name); }
+    };
+    static thread_local Connection connection;
+    auto db = QSqlDatabase::contains(connection.name)
+        ? QSqlDatabase::database(connection.name)
+        : QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), connection.name);
+    if (!db.isOpen()) {
+        db.setDatabaseName(m_path);
+        db.setConnectOptions(QStringLiteral("QSQLITE_BUSY_TIMEOUT=5000"));
+        if (!db.open()) Logger::error(QStringLiteral("Worker database unavailable"));
+    }
+    return db;
+}
+
+
 static QString dbDir() {
     const QString d = Logger::userDataDir() + QStringLiteral("/db");
     QDir().mkpath(d);
@@ -35,6 +58,7 @@ static QString dbDir() {
 
 bool SignatureDb::open()
 {
+    QMutexLocker guard(&m_mutex);
     if (m_jsonFallback) return true; // Already in JSON mode
     if (m_db.isOpen()) return true;
 
@@ -62,11 +86,13 @@ bool SignatureDb::open()
 }
 
 void SignatureDb::close() {
+    QMutexLocker guard(&m_mutex);
     if (m_db.isOpen()) m_db.close();
     m_jsonFallback = false;
 }
 
 bool SignatureDb::isOpen() const {
+    QMutexLocker guard(&m_mutex);
     return m_db.isOpen() || m_jsonFallback;
 }
 
@@ -75,6 +101,7 @@ bool SignatureDb::isOpen() const {
 // ═══════════════════════════════════════════════════════════════════
 bool SignatureDb::initJsonFallback()
 {
+    QMutexLocker guard(&m_mutex);
     m_jsonFallback = true;
     m_jsonPath = dbDir() + QStringLiteral("/verax_signatures.json");
 
@@ -101,6 +128,7 @@ bool SignatureDb::initJsonFallback()
 
 int SignatureDb::syncSeedToJson(const QString &qrcPath)
 {
+    QMutexLocker guard(&m_mutex);
     QFile f(qrcPath);
     if (!f.open(QIODevice::ReadOnly)) return 0;
 
@@ -152,6 +180,7 @@ int SignatureDb::syncSeedToJson(const QString &qrcPath)
 
 void SignatureDb::saveJsonCache() const
 {
+    QMutexLocker guard(&m_mutex);
     QJsonObject root;
     root["schema_version"] = 5;
     root["generated_at"] = QDateTime::currentDateTime().toString(Qt::ISODate);
@@ -166,6 +195,7 @@ void SignatureDb::saveJsonCache() const
 
 void SignatureDb::mergeJsonEntries(const QJsonArray &newEntries)
 {
+    QMutexLocker guard(&m_mutex);
     QSet<QString> existingHashes;
     for (const auto &v : m_jsonEntries)
         existingHashes.insert(v.toObject().value("sha256").toString().toLower());
@@ -184,6 +214,7 @@ void SignatureDb::mergeJsonEntries(const QJsonArray &newEntries)
 
 SigHit SignatureDb::lookupJson(const QString &sha256Hex) const
 {
+    QMutexLocker guard(&m_mutex);
     SigHit hit;
     const QString cleanHash = sha256Hex.toLower().trimmed();
     for (const auto &v : m_jsonEntries) {
@@ -203,6 +234,7 @@ SigHit SignatureDb::lookupJson(const QString &sha256Hex) const
 
 SigHit SignatureDb::lookupByFamilyJson(const QString &family) const
 {
+    QMutexLocker guard(&m_mutex);
     SigHit hit;
     const QString fam = family.toLower();
     for (const auto &v : m_jsonEntries) {
@@ -222,6 +254,7 @@ SigHit SignatureDb::lookupByFamilyJson(const QString &family) const
 
 bool SignatureDb::isFamilyRepairableJson(const QString &family) const
 {
+    QMutexLocker guard(&m_mutex);
     const QString fam = family.toLower();
     for (const auto &v : m_jsonEntries) {
         const QJsonObject o = v.toObject();
@@ -236,6 +269,7 @@ bool SignatureDb::isFamilyRepairableJson(const QString &family) const
 // ═══════════════════════════════════════════════════════════════════
 void SignatureDb::migrateSchema()
 {
+    QMutexLocker guard(&m_mutex);
     if (!m_db.isOpen()) return;
     QSqlQuery q(m_db);
     q.exec("PRAGMA table_info(signatures)");
@@ -260,6 +294,7 @@ void SignatureDb::migrateSchema()
 
 bool SignatureDb::initSchema()
 {
+    QMutexLocker guard(&m_mutex);
     if (m_jsonFallback) {
         // JSON mode: just sync seed
         const int n = syncSeedToJson(QStringLiteral(":/signatures/seed.json"));
@@ -302,14 +337,15 @@ bool SignatureDb::initSchema()
 // ═══════════════════════════════════════════════════════════════════
 SigHit SignatureDb::lookup(const QString &sha256Hex) const
 {
+    QMutexLocker guard(&m_mutex);
     if (m_jsonFallback) return lookupJson(sha256Hex);
 
     SigHit hit;
-    if (!m_db.isOpen()) return hit;
+    if (!currentDatabase().isOpen()) return hit;
 
     QString cleanHash = sha256Hex.toLower().trimmed();
 
-    QSqlQuery q(m_db);
+    QSqlQuery q(currentDatabase());
     q.prepare("SELECT name, family, severity, repairable, repair_method, entry_point_patch "
               "FROM signatures WHERE LOWER(sha256) = ? LIMIT 1");
     q.bindValue(0, cleanHash);
@@ -327,12 +363,13 @@ SigHit SignatureDb::lookup(const QString &sha256Hex) const
 
 SigHit SignatureDb::lookupByFamily(const QString &family) const
 {
+    QMutexLocker guard(&m_mutex);
     if (m_jsonFallback) return lookupByFamilyJson(family);
 
     SigHit hit;
-    if (!m_db.isOpen() || family.isEmpty()) return hit;
+    if (!currentDatabase().isOpen() || family.isEmpty()) return hit;
 
-    QSqlQuery q(m_db);
+    QSqlQuery q(currentDatabase());
     q.prepare("SELECT name, family, severity, repairable, repair_method, entry_point_patch "
               "FROM signatures WHERE LOWER(family) = ? AND repairable = 1 LIMIT 1");
     q.bindValue(0, family.toLower());
@@ -349,10 +386,11 @@ SigHit SignatureDb::lookupByFamily(const QString &family) const
 
 bool SignatureDb::isFamilyRepairable(const QString &family) const
 {
+    QMutexLocker guard(&m_mutex);
     if (m_jsonFallback) return isFamilyRepairableJson(family);
 
-    if (!m_db.isOpen() || family.isEmpty()) return false;
-    QSqlQuery q(m_db);
+    if (!currentDatabase().isOpen() || family.isEmpty()) return false;
+    QSqlQuery q(currentDatabase());
     q.prepare("SELECT COUNT(*) FROM signatures WHERE LOWER(family) = ? AND repairable = 1");
     q.bindValue(0, family.toLower());
     if (q.exec() && q.next())
@@ -362,6 +400,7 @@ bool SignatureDb::isFamilyRepairable(const QString &family) const
 
 QList<ByteSig> SignatureDb::loadByteSignatures() const
 {
+    QMutexLocker guard(&m_mutex);
     QList<ByteSig> result;
     if (m_jsonFallback) {
         for (const auto &v : m_jsonEntries) {
@@ -392,9 +431,9 @@ QList<ByteSig> SignatureDb::loadByteSignatures() const
         return result;
     }
 
-    if (!m_db.isOpen()) return result;
+    if (!currentDatabase().isOpen()) return result;
 
-    QSqlQuery q(m_db);
+    QSqlQuery q(currentDatabase());
     q.exec("SELECT byte_signatures, name, family, severity, repairable, repair_method, entry_point_patch "
            "FROM signatures WHERE byte_signatures IS NOT NULL AND byte_signatures != ''");
     while (q.next()) {
@@ -419,6 +458,7 @@ QList<ByteSig> SignatureDb::loadByteSignatures() const
 bool SignatureDb::matchByteSignature(const uchar *data, qint64 size,
                                       const QList<ByteSig> &sigs, ByteSig &matched) const
 {
+    QMutexLocker guard(&m_mutex);
     if (!data || size <= 0) return false;
 
     for (const ByteSig &bs : sigs) {
@@ -466,6 +506,7 @@ bool SignatureDb::matchByteSignature(const uchar *data, qint64 size,
 // ═══════════════════════════════════════════════════════════════════
 int SignatureDb::importSeedJson(const QString &qrcPath)
 {
+    QMutexLocker guard(&m_mutex);
     if (m_jsonFallback) return syncSeedToJson(qrcPath);
 
     QFile f(qrcPath);
@@ -536,6 +577,7 @@ int SignatureDb::importSeedJson(const QString &qrcPath)
 
 int SignatureDb::syncSeedToDb(const QString &qrcPath)
 {
+    QMutexLocker guard(&m_mutex);
     return importSeedJson(qrcPath);
 }
 
@@ -544,9 +586,10 @@ int SignatureDb::syncSeedToDb(const QString &qrcPath)
 // ═══════════════════════════════════════════════════════════════════
 int SignatureDb::totalSignatures() const
 {
+    QMutexLocker guard(&m_mutex);
     if (m_jsonFallback) return m_jsonEntries.size();
-    if (!m_db.isOpen()) return 0;
-    QSqlQuery q(m_db);
+    if (!currentDatabase().isOpen()) return 0;
+    QSqlQuery q(currentDatabase());
     if (q.exec("SELECT COUNT(*) FROM signatures") && q.next())
         return q.value(0).toInt();
     return 0;
@@ -554,6 +597,7 @@ int SignatureDb::totalSignatures() const
 
 SignatureStatus SignatureDb::status() const
 {
+    QMutexLocker guard(&m_mutex);
     if (m_isUpdating) {
         return SignatureStatus::UPDATE_IN_PROGRESS;
     }
@@ -580,6 +624,7 @@ SignatureStatus SignatureDb::status() const
 
 QString SignatureDb::statusString() const
 {
+    QMutexLocker guard(&m_mutex);
     switch (status()) {
     case SignatureStatus::UP_TO_DATE:
         return QStringLiteral("UP_TO_DATE");
@@ -596,11 +641,13 @@ QString SignatureDb::statusString() const
 }
 
 QString SignatureDb::lastUpdate() const {
+    QMutexLocker guard(&m_mutex);
     if (m_jsonFallback) return QSettings().value("db/last_update").toString();
     return getMeta("last_update");
 }
 
 void SignatureDb::setLastUpdate(const QString &iso) {
+    QMutexLocker guard(&m_mutex);
     if (m_jsonFallback) {
         QSettings().setValue("db/last_update", iso);
     } else {
@@ -610,8 +657,9 @@ void SignatureDb::setLastUpdate(const QString &iso) {
 
 QString SignatureDb::getMeta(const QString &key) const
 {
-    if (m_jsonFallback || !m_db.isOpen()) return {};
-    QSqlQuery q(m_db);
+    QMutexLocker guard(&m_mutex);
+    if (m_jsonFallback || !currentDatabase().isOpen()) return {};
+    QSqlQuery q(currentDatabase());
     q.prepare("SELECT value FROM settings WHERE key = ?");
     q.bindValue(0, key);
     if (q.exec() && q.next()) return q.value(0).toString();
@@ -620,8 +668,9 @@ QString SignatureDb::getMeta(const QString &key) const
 
 void SignatureDb::setMeta(const QString &key, const QString &value)
 {
-    if (m_jsonFallback || !m_db.isOpen()) return;
-    QSqlQuery q(m_db);
+    QMutexLocker guard(&m_mutex);
+    if (m_jsonFallback || !currentDatabase().isOpen()) return;
+    QSqlQuery q(currentDatabase());
     q.prepare("INSERT INTO settings (key, value) VALUES (?, ?) "
               "ON CONFLICT(key) DO UPDATE SET value = excluded.value");
     q.bindValue(0, key);
@@ -633,8 +682,9 @@ void SignatureDb::pushHistory(qint64 startedAt, qint64 finishedAt,
                               int filesScanned, int threatsFound,
                               const QString &reportJson)
 {
-    if (m_jsonFallback || !m_db.isOpen()) return;
-    QSqlQuery q(m_db);
+    QMutexLocker guard(&m_mutex);
+    if (m_jsonFallback || !currentDatabase().isOpen()) return;
+    QSqlQuery q(currentDatabase());
     q.prepare("INSERT INTO scan_history "
               "(started_at, finished_at, files_scanned, threats_found, report_json) "
               "VALUES (?, ?, ?, ?, ?)");
@@ -648,9 +698,10 @@ void SignatureDb::pushHistory(qint64 startedAt, qint64 finishedAt,
 
 SignatureDb::LastScanInfo SignatureDb::lastScanInfo() const
 {
+    QMutexLocker guard(&m_mutex);
     LastScanInfo info;
-    if (m_jsonFallback || !m_db.isOpen()) return info;
-    QSqlQuery q(m_db);
+    if (m_jsonFallback || !currentDatabase().isOpen()) return info;
+    QSqlQuery q(currentDatabase());
     if (q.exec("SELECT finished_at, files_scanned, threats_found FROM scan_history ORDER BY id DESC LIMIT 1") && q.next()) {
         info.finishedAt = q.value(0).toLongLong();
         info.filesScanned = q.value(1).toInt();
@@ -664,6 +715,7 @@ SignatureDb::LastScanInfo SignatureDb::lastScanInfo() const
 // ═══════════════════════════════════════════════════════════════════
 void SignatureDb::updateOnline(const QString &baseUrl)
 {
+    QMutexLocker guard(&m_mutex);
     m_isUpdating = true;
     emit statusChanged(SignatureStatus::UPDATE_IN_PROGRESS);
 
@@ -742,6 +794,7 @@ void SignatureDb::updateOnline(const QString &baseUrl)
 
         // SQLite mode: smart merge
         int added = 0;
+        QMutexLocker guard(&m_mutex);
         QSqlQuery q(m_db);
         m_db.transaction();
 

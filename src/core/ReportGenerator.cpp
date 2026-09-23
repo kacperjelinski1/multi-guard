@@ -44,10 +44,10 @@ QString ReportGenerator::generateServiceReportHtml(const QString &targetFilePath
     const QString osPretty   = QSysInfo::prettyProductName();
     const QString kernel     = QSysInfo::kernelType() + " " + QSysInfo::kernelVersion();
     const QString nowStr     = QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd HH:mm:ss"));
-    const QString planName   = LicenseManager::instance().isValid()
+    const QString planName   = LicenseManager::instance().accessAllowed()
                                    ? LicenseManager::instance().tierName()
                                    : QStringLiteral("Brak aktywacji");
-    const QString planShort  = LicenseManager::instance().isValid()
+    const QString planShort  = LicenseManager::instance().accessAllowed()
                                    ? LicenseManager::instance().tierShortName().toUpper()
                                    : QStringLiteral("NIEAKTYWOWANY");
     const QString validity   = LicenseManager::instance().daysRemainingText();

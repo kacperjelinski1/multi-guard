@@ -5,6 +5,7 @@
 #include <QAtomicInt>
 #include <QHash>
 #include <QMutex>
+#include <QFuture>
 #include "SignatureDb.h"
 
 namespace verax {
@@ -40,6 +41,9 @@ struct ScanReport {
     qint64 finishedAt = 0;
     int filesScanned = 0;
     int threatsFound = 0;
+    int filesSkipped = 0;
+    bool cancelled = false;
+    QString errorMessage;
 };
 
 class Scanner : public QObject {
@@ -48,7 +52,7 @@ public:
     explicit Scanner(QObject *parent = nullptr);
     ~Scanner();
 
-    void request(const ScanRequest &req);
+    bool request(const ScanRequest &req);
     void requestStop();
     void requestPause(bool p);
 
@@ -115,6 +119,7 @@ private:
     bool detectOriginalPrologue(const uchar *base, qint64 mapSize, quint32 epRva,
                                 const void *secHdr, int numSections, bool is64, QByteArray &outPrologue);
 
+    QFuture<void> m_future;
     QAtomicInt m_stop{0};
     QAtomicInt m_pause{0};
     QAtomicInt m_running{0};

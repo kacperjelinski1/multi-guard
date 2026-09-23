@@ -1,3 +1,4 @@
+#include "src/core/SignatureDb.h"
 // ═══════════════════════════════════════════════════════════════════════
 //  Verax - main entry point
 //  By Ali Sakkaf  -  https://alisakkaf.com
@@ -175,6 +176,10 @@ int main(int argc, char *argv[])
     verax::Settings::instance().load();
     verax::Translator::instance().install(
         verax::Settings::instance().language());
+
+    // Initialize the signature and quarantine schema on every application start.
+    if (!verax::SignatureDb::instance().initSchema())
+        verax::Logger::error(QStringLiteral("Signature database initialization failed"));
 
     // 5.5) License Manager (loads saved KeyGate token & verifies offline)
     verax::LicenseManager::instance().init();

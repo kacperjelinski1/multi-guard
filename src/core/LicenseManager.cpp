@@ -632,8 +632,18 @@ void LicenseManager::updateCapabilities()
         m_activeCapabilities.insert(LicenseCapability::ServiceReports);
 }
 
+bool LicenseManager::enforcementEnabled()
+{
+#ifdef MULTIGUARD_ENFORCE_LICENSE
+    return true;
+#else
+    return false;
+#endif
+}
+
 bool LicenseManager::hasCapability(LicenseCapability cap) const
 {
+    if (!enforcementEnabled()) return true;
     if (m_license.tier == LicenseTier::AdminFull)
         return true;
     if (isValid()) {
@@ -716,6 +726,7 @@ LicenseTier LicenseManager::currentTier() const
 
 QString LicenseManager::tierName() const
 {
+    if (!enforcementEnabled()) return tr("Tryb walidacyjny bez licencji");
     switch (m_license.tier) {
     case LicenseTier::AV:         return QStringLiteral("Multi-Guard AV");
     case LicenseTier::Secure:     return QStringLiteral("Multi-Guard Secure");

@@ -37,8 +37,8 @@ signals:
 
 private:
     explicit BrowserProtectionManager(QObject *parent = nullptr);
-    int m_blockedWebsites = 14;
-    int m_blockedDownloads = 3;
+    int m_blockedWebsites = 0;
+    int m_blockedDownloads = 0;
 };
 
 } // namespace verax

@@ -117,7 +117,9 @@ public:
     bool hasCapability(LicenseCapability cap) const;
 
     // State getters
-    bool isValid() const;
+    bool isValid() const; // Cryptographic/license validity is never forged.
+    static bool enforcementEnabled();
+    bool accessAllowed() const { return !enforcementEnabled() || isValid(); }
     bool isPerpetual() const;
     int daysRemaining() const;
     QString daysRemainingText() const;

@@ -23,11 +23,11 @@ QMAKE_CFLAGS_RELEASE   += -Os -ffunction-sections -fdata-sections \
 static {
     QMAKE_LFLAGS_RELEASE += -static
 }
-QMAKE_LFLAGS_RELEASE   += -Wl,--gc-sections -s -Wl,--exclude-libs,ALL \
-                          -Wl,--build-id=none -Wl,--dynamicbase \
-                          -Wl,--nxcompat \
-                          -static-libgcc -static-libstdc++
-
+win32 {
+    QMAKE_LFLAGS_RELEASE += -Wl,--gc-sections -s -Wl,--exclude-libs,ALL \
+                            -Wl,--build-id=none -Wl,--dynamicbase -Wl,--nxcompat \
+                            -static-libgcc -static-libstdc++
+}
 
 # ─── Stack Protector & Security Flags ─────────────────────────────────
 
@@ -97,7 +97,7 @@ SOURCES += \
     src/core/BrowserProtectionManager.cpp \
     src/core/tweetnacl.c
 
-HEADERS += \
+HEADERS += src/core/WindowsCommand.h \
     Version.h \
     harden.h \
     src/core/ShieldEngine.h \

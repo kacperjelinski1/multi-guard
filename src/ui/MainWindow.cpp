@@ -49,6 +49,12 @@
 #endif
 
 #include <QFile>
+#include <QSqlQuery>
+#include <QPlainTextEdit>
+#include <QInputDialog>
+#include <QDialogButtonBox>
+#include <QSignalBlocker>
+#include <QSqlDatabase>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QDir>
@@ -154,27 +160,21 @@ MainWindow::MainWindow(QWidget *parent)
     m_transition = new PageTransition(ui->stackedWidget, this);
 
     wireUi();
+    for (const char *name : {"cbEngineSigDb", "cbEnginePe", "cbEngineHeuristics", "cbEngineCloud", "radioActionQuarantine", "radioActionDelete", "radioActionReport", "cbExtExecutable", "cbExtScripts", "cbExtDocuments", "cbExtArchives", "cbExtAll"}) {
+        if (auto *widget = findChild<QWidget*>(name)) { widget->setEnabled(false); widget->setToolTip(tr("Skanowanie i remediację obsługuje Microsoft Defender zgodnie z jego konfiguracją.")); }
+    }
+    if (ui->btnPauseScan) { ui->btnPauseScan->setEnabled(false); ui->btnPauseScan->setToolTip(tr("Publiczne narzędzia Defendera nie udostępniają pauzy skanowania.")); }
+    for (const char *name : {"btnRestoreQuarantine", "btnQRestoreSelected"}) if (auto *b = findChild<QPushButton*>(name)) b->setText(tr("Lista kwarantanny / przywracanie…"));
+    for (const char *name : {"btnDeleteQuarantine", "btnQDeleteSelected"}) if (auto *b = findChild<QPushButton*>(name)) b->setText(tr("Remediacja aktywnych zagrożeń…"));
+
     wireSignals();
     setupTrayIcon();
-    if (!LicenseManager::instance().isValid()) {
+    if (!LicenseManager::instance().accessAllowed()) {
         setActiveNav(PageLicenseLocked);
     } else {
         setActiveNav(PageDashboard);
     }
-    if (LicenseManager::instance().isValid() && Settings::instance().ransomwareProtection()) {
-        RansomwareShield::instance().setEnabled(true);
-    }
-    connect(&RansomwareShield::instance(), &RansomwareShield::ransomwareActivityDetected,
-            this, [this](const QString &folder, const QString &desc){
-        AuditLogger::instance().logEvent(QStringLiteral("RansomwareBlocked"), desc, folder, 3);
-        NotificationAlert::showThreat(tr("Ransomware Shield"), QStringLiteral("%1: %2").arg(desc, folder));
-    });
-
     initScheduler();
-
-    if (Settings::instance().webShield()) {
-        WebShield::instance().setEnabled(true);
-    }
 
     QTimer::singleShot(0, this, [this]{
         // populateDrivesOnConfig();
@@ -373,7 +373,7 @@ void MainWindow::wireUi()
     }
 
     if (ui->dashRing) {
-        if (LicenseManager::instance().isValid()) {
+        if (LicenseManager::instance().accessAllowed()) {
             ui->dashRing->setMode("heroCheck");
             ui->dashRing->setValue(1.0);
             ui->dashRing->setCenterText("");
@@ -398,35 +398,16 @@ void MainWindow::wireUi()
         t->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
         t->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
 
-        struct RecentRow {
-            const char* date;
-            const char* type;
-            const char* res;
-            const char* resColor;
-            const char* duration;
-        };
-        static const RecentRow rRows[] = {
-            { "22.09.2026 10:24", "Szybkie skanowanie",        "🟢  Nie znaleziono zagrożeń", "#00F076", "2 min 14 s" },
-            { "18.09.2026 21:13", "Pełne skanowanie",          "🟢  Nie znaleziono zagrożeń", "#00F076", "1 godz. 12 min" },
-            { "15.09.2026 16:42", "Skanowanie niestandardowe", "🔴  3 zagrożenia",            "#EF4444", "8 min 36 s" }
-        };
-        t->setRowCount(3);
-        for (int i = 0; i < 3; ++i) {
-            auto *itDate = new QTableWidgetItem(QString::fromUtf8(rRows[i].date));
-            itDate->setForeground(QColor("#8FA3BF"));
-            t->setItem(i, 0, itDate);
-
-            auto *itType = new QTableWidgetItem(QString::fromUtf8(rRows[i].type));
-            itType->setForeground(QColor("#FFFFFF"));
-            t->setItem(i, 1, itType);
-
-            auto *itRes = new QTableWidgetItem(QString::fromUtf8(rRows[i].res));
-            itRes->setForeground(QColor(rRows[i].resColor));
-            t->setItem(i, 2, itRes);
-
-            auto *itDur = new QTableWidgetItem(QString::fromUtf8(rRows[i].duration));
-            itDur->setForeground(QColor("#8FA3BF"));
-            t->setItem(i, 3, itDur);
+        QSqlQuery history(QSqlDatabase::database("verax_main", false));
+        t->setRowCount(0);
+        if (history.exec("SELECT started_at, finished_at, files_scanned, threats_found FROM scan_history ORDER BY id DESC LIMIT 10")) {
+            while (history.next()) {
+                const int row = t->rowCount(); t->insertRow(row);
+                t->setItem(row, 0, new QTableWidgetItem(QDateTime::fromSecsSinceEpoch(history.value(1).toLongLong()).toString("dd.MM.yyyy HH:mm")));
+                t->setItem(row, 1, new QTableWidgetItem(tr("Skanowanie")));
+                t->setItem(row, 2, new QTableWidgetItem(tr("Pliki: %1; wykrycia: %2").arg(history.value(2).toInt()).arg(history.value(3).toInt())));
+                t->setItem(row, 3, new QTableWidgetItem(tr("%1 s").arg(history.value(1).toLongLong() - history.value(0).toLongLong())));
+            }
         }
     }
 
@@ -541,7 +522,9 @@ void MainWindow::wireSignals()
 
     if (auto *cb = findChild<QCheckBox*>("cbFwMasterToggle")) {
         connect(cb, &QCheckBox::toggled, this, [this](bool checked){
-            FirewallManager::instance().setFirewallEnabled(checked);
+            const bool ok = FirewallManager::instance().setFirewallEnabled(checked);
+            initFirewallPage();
+            if (!ok) { Toaster::show(this, tr("Nie potwierdzono zmiany zapory."), Toaster::Error); return; }
             if (auto *c = findChild<QCheckBox*>("cbFwMasterToggle")) {
                 c->setText(checked ? tr("Włączony") : tr("Wyłączony"));
             }
@@ -551,7 +534,8 @@ void MainWindow::wireSignals()
 
     if (auto *cb = findChild<QCheckBox*>("cbBpMasterToggle")) {
         connect(cb, &QCheckBox::toggled, this, [this](bool checked){
-            WebShield::instance().setEnabled(checked);
+            const bool ok = WebShield::instance().setEnabled(checked);
+            if (!ok) { if (auto *c = findChild<QCheckBox*>("cbBpMasterToggle")) { c->blockSignals(true); c->setChecked(WebShield::instance().isEnabled()); c->blockSignals(false); } Toaster::show(this, tr("Nie udało się zmienić listy blokowanych domen."), Toaster::Error); return; }
             if (auto *c = findChild<QCheckBox*>("cbBpMasterToggle")) {
                 c->setText(checked ? tr("Włączona") : tr("Wyłączona"));
             }
@@ -757,7 +741,7 @@ void MainWindow::retranslateRuntime()
 
 void MainWindow::onNavClicked()
 {
-    if (!LicenseManager::instance().isValid()) {
+    if (!LicenseManager::instance().accessAllowed()) {
         setActiveNav(PageLicenseLocked);
         Toaster::show(this, tr("Wymagana aktywacja programu. Wprowadź klucz licencyjny (kontakt: 505 012 914)."), Toaster::Warn);
         return;
@@ -788,7 +772,7 @@ void MainWindow::onNavClicked()
 
 void MainWindow::setActiveNav(PageIndex idx)
 {
-    if (!LicenseManager::instance().isValid() && idx != PageLicenseLocked) {
+    if (!LicenseManager::instance().accessAllowed() && idx != PageLicenseLocked) {
         idx = PageLicenseLocked;
     }
     m_currentPage = idx;
@@ -1055,8 +1039,13 @@ void MainWindow::primeScanUi(const QString &phaseLabel)
 
 void MainWindow::scanCustomTargets(const QStringList &targets)
 {
+    if (ShieldEngine::instance().scanner()->isRunning() || DefenderEngine::instance().isScanning()) {
+        Toaster::show(this, tr("Poczekaj na zakończenie bieżącego skanowania."), Toaster::Warn);
+        return;
+    }
+
     if (targets.isEmpty()) return;
-    if (!LicenseManager::instance().isValid()) {
+    if (!LicenseManager::instance().accessAllowed()) {
         show();
         setActiveNav(PageLicenseLocked);
         raise();
@@ -1078,11 +1067,7 @@ void MainWindow::scanCustomTargets(const QStringList &targets)
     m_activeScanPhase = tr("Skanowanie...");
     Toaster::show(this, tr("Rozpoczęto skanowanie wybranego elementu"), Toaster::Info);
 
-    if (DefenderEngine::instance().isAvailable()) {
-        DefenderEngine::instance().startScan(DefenderEngine::Custom, targets);
-    } else {
-        ShieldEngine::instance().startScan(req);
-    }
+    startDefenderScan(DefenderEngine::Custom, req.targets);
 }
 
 void MainWindow::onRealTimeThreatDetected(const verax::ThreatInfo &info)
@@ -1096,13 +1081,13 @@ void MainWindow::onRealTimeThreatDetected(const verax::ThreatInfo &info)
         info.detectionName,
         info.path,
         [this, info]{
-            Quarantine::instance().moveToVault(info.path, info.sha256, info.detectionName);
-            Toaster::show(this, tr("Zagrożenie przeniesiono do kwarantanny"), Toaster::Success);
+            const bool ok = !Quarantine::instance().moveToVault(info.path, info.sha256, info.detectionName).isEmpty();
+            Toaster::show(this, ok ? tr("Przeniesiono do kwarantanny") : tr("Kwarantanna nie powiodła się"), ok ? Toaster::Success : Toaster::Error);
             onQuarantineRefresh();
         },
         [this, info]{
-            QFile::remove(info.path);
-            Toaster::show(this, tr("Plik został trwale usunięty z dysku"), Toaster::Warn);
+            const bool ok = QFile::remove(info.path);
+            Toaster::show(this, ok ? tr("Plik usunięty") : tr("Nie udało się usunąć pliku"), ok ? Toaster::Warn : Toaster::Error);
         },
         [this, info]{
             Toaster::show(this, tr("Zignorowano zagrożenie"), Toaster::Info);
@@ -1111,7 +1096,7 @@ void MainWindow::onRealTimeThreatDetected(const verax::ThreatInfo &info)
 
     if (m_tray && Settings::instance().showNotifications()) {
         m_tray->showMessage(tr("Multi-Guard — Wykryto zagrożenie!"),
-                            tr("Zablokowano lub odizolowano złośliwy plik: %1 (%2)")
+                            tr("Wykryto podejrzany plik: %1 (%2)")
                             .arg(fileName, info.detectionName),
                             QSystemTrayIcon::Critical, 8000);
     }
@@ -1119,7 +1104,12 @@ void MainWindow::onRealTimeThreatDetected(const verax::ThreatInfo &info)
 
 void MainWindow::onScanMemory()
 {
-    if (!LicenseManager::instance().isValid()) {
+    if (ShieldEngine::instance().scanner()->isRunning() || DefenderEngine::instance().isScanning()) {
+        Toaster::show(this, tr("Poczekaj na zakończenie bieżącego skanowania."), Toaster::Warn);
+        return;
+    }
+
+    if (!LicenseManager::instance().accessAllowed()) {
         show();
         setActiveNav(PageLicenseLocked);
         raise();
@@ -1149,9 +1139,9 @@ void MainWindow::onScanMemory()
     }
 
     Logger::info(QStringLiteral("Memory scan launching for %1 running process binaries").arg(procPaths.size()));
-    primeScanUi(tr("Skanowanie procesów w pamięci RAM..."));
+    primeScanUi(tr("Skanowanie plików aktywnych procesów..."));
     m_activeScanPhase = tr("Skanowanie pamięci...");
-    Toaster::show(this, tr("Rozpoczęto skanowanie aktywnych procesów w pamięci RAM"), Toaster::Info);
+    Toaster::show(this, tr("Rozpoczęto skanowanie plików wykonywalnych aktywnych procesów"), Toaster::Info);
 
     ScanRequest req;
     req.targets   = procPaths;
@@ -1162,11 +1152,7 @@ void MainWindow::onScanMemory()
     req.threshold = Settings::instance().heuristicThreshold();
     req.action    = Settings::instance().detectionAction();
 
-    if (DefenderEngine::instance().isAvailable()) {
-        DefenderEngine::instance().startScan(DefenderEngine::Custom, procPaths);
-    } else {
-        ShieldEngine::instance().startScan(req);
-    }
+    startDefenderScan(DefenderEngine::Custom, req.targets);
 }
 
 void MainWindow::onUsbDriveInserted(const QString &drivePath)
@@ -1199,56 +1185,21 @@ void MainWindow::onUsbDriveInserted(const QString &drivePath)
 
 void MainWindow::onQuickScan()
 {
-    if (!LicenseManager::instance().isValid()) {
-        show();
-        setActiveNav(PageLicenseLocked);
-        raise();
-        activateWindow();
-        Toaster::show(this, tr("Wymagana aktywna licencja do uruchomienia skanowania."), Toaster::Warn);
-        return;
-    }
-    show();
-    raise();
-    activateWindow();
-    Logger::info("Quick scan requested (Multi-Guard Deep Engine + Defender)");
-    primeScanUi(tr("Skanowanie krytycznych obszarów systemu..."));
-    Toaster::show(this, tr("Rozpoczęto skanowanie systemu"), Toaster::Info);
-
-    ScanRequest req = buildQuickDefaults();
-    ShieldEngine::instance().startScan(req);
+    startDefenderScan(DefenderEngine::Quick);
 }
 
 void MainWindow::onFullScan()
 {
-    if (!LicenseManager::instance().isValid()) {
-        show();
-        setActiveNav(PageLicenseLocked);
-        raise();
-        activateWindow();
-        Toaster::show(this, tr("Wymagana aktywna licencja do uruchomienia skanowania."), Toaster::Warn);
-        return;
-    }
-    show();
-    raise();
-    activateWindow();
-    Logger::info("Full scan requested (Multi-Guard Deep Engine + Defender)");
-    primeScanUi(tr("Pełne skanowanie dysków i plików systemowych..."));
-    Toaster::show(this, tr("Rozpoczęto pełne skanowanie komputera"), Toaster::Info);
-
-    ScanRequest req = buildFullDefaults();
-    ShieldEngine::instance().startScan(req);
+    startDefenderScan(DefenderEngine::Full);
 }
 
 
 void MainWindow::onUpdateSignatures()
 {
-    Toaster::show(this, tr("Pobieranie definicji Microsoft Defender..."), Toaster::Info);
-    if (DefenderEngine::instance().isAvailable()) {
-        DefenderEngine::instance().updateSignatures();
-    } else {
-        SignatureDb::instance().updateOnline(Settings::instance().updateUrl());
-    }
+    if (!DefenderEngine::instance().updateSignatures())
+        Toaster::show(this, tr("Nie można uruchomić aktualizacji Microsoft Defender."), Toaster::Error);
 }
+
 
 void MainWindow::onAddFolder()
 {
@@ -1264,6 +1215,11 @@ void MainWindow::onAddFile()
 
 void MainWindow::onStartScanFromConfig()
 {
+    if (ShieldEngine::instance().scanner()->isRunning() || DefenderEngine::instance().isScanning()) {
+        Toaster::show(this, tr("Poczekaj na zakończenie bieżącego skanowania."), Toaster::Warn);
+        return;
+    }
+
     if (m_selectedScanMode == "full") {
         onFullScan();
         return;
@@ -1273,6 +1229,7 @@ void MainWindow::onStartScanFromConfig()
         return;
     }
 
+    ScanRequest req = buildScanRequest();
     QStringList targets;
     if (m_selectedScanMode == "usb") {
         for (const auto &d : SystemEnum::listDrives()) {
@@ -1286,7 +1243,6 @@ void MainWindow::onStartScanFromConfig()
             return;
         }
     } else {
-        ScanRequest req = buildScanRequest();
         targets = req.targets;
         if (targets.isEmpty()) targets = collectScanTargets();
         if (targets.isEmpty()) targets << QDir::homePath();
@@ -1295,37 +1251,18 @@ void MainWindow::onStartScanFromConfig()
     primeScanUi(tr("Skanowanie obiektów..."));
     Toaster::show(this, tr("Rozpoczęto skanowanie wyznaczonych obiektów"), Toaster::Info);
 
-    ScanRequest req;
     req.targets = targets;
-    req.useSigDb = true;
-    req.usePe = true;
-    req.useHeur = true;
-    req.useCloud = false;
-    ShieldEngine::instance().startScan(req);
+    startDefenderScan(DefenderEngine::Custom, req.targets);
 }
 
 void MainWindow::onStopScan()
 {
-    if (DefenderEngine::instance().isScanning()) {
-        DefenderEngine::instance().cancelScan();
-    }
-    ShieldEngine::instance().stopScan();
-    if (ui->scanRing) {
-        ui->scanRing->setMode("idle");
-        ui->scanRing->setValue(0.0);
-        ui->scanRing->setCenterText(tr("Przerwano"));
-    }
-    if (ui->lblScanCurrent) ui->lblScanCurrent->setText(tr("Skanowanie zostało przerwane przez użytkownika."));
-    if (ui->lblScanCount)   ui->lblScanCount->setText(tr("Przeskanowano: 0"));
-    if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Zagrożenia: 0"));
-    if (auto *pb = findChild<QProgressBar*>("scanProgressBar")) pb->setValue(0);
-    updateChromeStatus("idle", tr("Przerwano"));
+    DefenderEngine::instance().cancelScan();
+    if (!DefenderEngine::instance().lastError().isEmpty())
+        Toaster::show(this, DefenderEngine::instance().lastError(), Toaster::Warn);
 }
 
-void MainWindow::onPauseToggled(bool paused) {
-    ShieldEngine::instance().pauseScan(paused);
-    if (ui->btnPauseScan) ui->btnPauseScan->setText(paused ? tr("Wznów") : tr("Pauza"));
-}
+void MainWindow::onPauseToggled(bool) {}
 
 void MainWindow::onScannerStarted()
 {
@@ -1387,139 +1324,40 @@ void MainWindow::onScannerFileScanned(const QString &path)
 
 void MainWindow::onScannerThreatFound(ThreatInfo info)
 {
-    ++m_lastScanThreats;
-    if (ui->lblScanThreats)
-        ui->lblScanThreats->setText(tr("Zagrożenia: %1").arg(m_lastScanThreats));
-
-    Logger::warn(QStringLiteral("UI threat: %1 [%2] score=%3")
-                 .arg(info.path, info.detectionName).arg(info.score));
-
-    // Auto-action per Settings::detectionAction. This is the contract the
-    // user picks in Scan Config (Quarantine / Delete / Report / Repair).
-    // "Repair" already runs inside the scanner thread.
-    const QString action = Settings::instance().detectionAction();
-    if (action == "quarantine") {
-        const QString vault = Quarantine::instance().moveToVault(
-            info.path, info.sha256, info.detectionName);
-        if (!vault.isEmpty()) {
-            info.reason += QStringLiteral(" | Auto-quarantined");
-            Toaster::show(this, tr("Quarantined: %1").arg(QFileInfo(info.path).fileName()),
-                          Toaster::Success);
-            Logger::info(QStringLiteral("Auto-quarantine OK: %1 -> %2").arg(info.path, vault));
-        } else {
-            info.reason += QStringLiteral(" | Auto-quarantine FAILED");
-            Logger::error(QStringLiteral("Auto-quarantine FAILED: %1").arg(info.path));
-        }
-    } else if (action == "delete") {
-        if (QFile::remove(info.path)) {
-            info.reason += QStringLiteral(" | Auto-deleted");
-            Toaster::show(this, tr("Deleted: %1").arg(QFileInfo(info.path).fileName()),
-                          Toaster::Success);
-            Logger::info(QStringLiteral("Auto-delete OK: %1").arg(info.path));
-        } else {
-            info.reason += QStringLiteral(" | Auto-delete FAILED");
-            Logger::error(QStringLiteral("Auto-delete FAILED: %1").arg(info.path));
-        }
-    }
-    // "report": no file mutation, just collect for the JSON report at finish.
-
-    auto *card = new ThreatCard(info, this);
-    connect(card, &ThreatCard::quarantineRequested, this, [this, card](const ThreatInfo &t){
-        const QString v = Quarantine::instance().moveToVault(t.path, t.sha256, t.detectionName);
-        Toaster::show(this,
-                      v.isEmpty() ? tr("Quarantine failed: %1").arg(t.path)
-                                  : tr("Moved to quarantine: %1").arg(QFileInfo(t.path).fileName()),
-                      v.isEmpty() ? Toaster::Error : Toaster::Success);
-        if (!v.isEmpty()) card->setActioned(tr("Quarantined"));
-    });
-    connect(card, &ThreatCard::deleteRequested, this, [this, card](const ThreatInfo &t){
-        if (QFile::remove(t.path)) {
-            Toaster::show(this, tr("Deleted: %1").arg(QFileInfo(t.path).fileName()), Toaster::Success);
-            card->setActioned(tr("Deleted"));
-        } else {
-            Toaster::show(this, tr("Delete failed: %1").arg(t.path), Toaster::Error);
-        }
-    });
-    connect(card, &ThreatCard::repairRequested, this, [this, card](const ThreatInfo &t){
-        Toaster::show(this, tr("Creating backup & cleaning %1...").arg(QFileInfo(t.path).fileName()),
-                      Toaster::Info);
-        card->setActioned(tr("Backup → Clean..."));
-
-        ThreatInfo mutableInfo = t;
-        QtConcurrent::run([this, card, mutableInfo]() mutable {
-            Scanner repairScanner;
-            bool success = repairScanner.advancedCleanThreat(mutableInfo.path, mutableInfo);
-
-            QMetaObject::invokeMethod(this, [this, card, success, mutableInfo](){
-                if (success) {
-                    const QString bakPath = mutableInfo.path + ".verax_bak";
-                    const bool hasBak = QFile::exists(bakPath);
-                    Toaster::show(this,
-                        tr("Clean Threat SUCCESS: %1 — virus removed, file restored%2")
-                            .arg(QFileInfo(mutableInfo.path).fileName())
-                            .arg(hasBak ? tr(" (backup preserved)") : QString()),
-                        Toaster::Success);
-                    card->setActioned(tr("Cleaned ✓"));
-                } else {
-                    // Repair FAILED — backup auto-restored by engine, offer Delete
-                    Toaster::show(this,
-                        tr("Clean failed for %1 — original file restored from backup")
-                            .arg(QFileInfo(mutableInfo.path).fileName()),
-                        Toaster::Error);
-                    card->setRepairFailed();
-                }
-            }, Qt::QueuedConnection);
-        });
-    });
-    connect(card, &ThreatCard::openFolderRequested, this, [this](const ThreatInfo &t){
-        const QString folder = QFileInfo(t.path).absolutePath();
-        if (folder.isEmpty()) return;
-        QDesktopServices::openUrl(QUrl::fromLocalFile(folder));
-    });
-    connect(card, &ThreatCard::ignoreRequested, this, [this, card]{
-        m_threatCards.removeOne(card);
-        card->deleteLater();
-    });
-
-    if (action == "quarantine" && info.reason.contains(QLatin1String("Auto-quarantined")))
-        card->setActioned(tr("Auto-quarantined"));
-    else if (action == "delete" && info.reason.contains(QLatin1String("Auto-deleted")))
-        card->setActioned(tr("Auto-deleted"));
-
-    m_threatCards.append(card);
-
-    if (ui->threatList) {
-        auto *l = qobject_cast<QVBoxLayout*>(ui->threatList->layout());
-        if (l) l->insertWidget(l->count(), card);
-    }
-
     m_pendingReport.append(info);
+    ++m_lastScanThreats;
+    if (ui->lblScanThreats) ui->lblScanThreats->setText(tr("Nowe zdarzenia Defendera: %1").arg(m_lastScanThreats));
+    // Defender owns detection and remediation. Never delete/move a resource string.
+    auto *label = new QLabel(tr("%1\n%2\n%3").arg(info.detectionName, info.path, info.reason), ui->threatList);
+    label->setTextFormat(Qt::PlainText); label->setWordWrap(true);
+    if (auto *layout = qobject_cast<QVBoxLayout*>(ui->threatList->layout())) layout->addWidget(label);
 }
 
 void MainWindow::onScannerFinished(ScanReport report)
 {
-    // Force set compilation status properties based on calculation metrics
-    updateChromeStatus(report.threatsFound > 0 ? QStringLiteral("threat") : QStringLiteral("done"),
-                       report.threatsFound > 0
-                           ? tr("Zagrożenia: %1").arg(report.threatsFound)
-                           : tr("Bezpiecznie"));
-
+    const bool complete = !report.cancelled && report.errorMessage.isEmpty();
+    const QString summary = report.cancelled ? tr("Skanowanie przerwane — wynik niepełny")
+        : !report.errorMessage.isEmpty() ? tr("Błąd: %1").arg(report.errorMessage)
+        : report.threatsFound > 0 ? tr("Wykryto zagrożenia: %1").arg(report.threatsFound)
+        : tr("Defender zakończył operację; sprawdź historię ochrony");
+    updateChromeStatus(complete ? (report.threatsFound ? "threat" : "done") : "idle", summary);
     if (ui->scanRing) {
-        ui->scanRing->setMode(report.threatsFound > 0 ? QStringLiteral("threat") : QStringLiteral("done"));
-        ui->scanRing->setValue(1.0);
-        ui->scanRing->setCenterText(report.threatsFound > 0
-                                        ? tr("Zagrożenia: %1").arg(report.threatsFound)
-                                        : tr("Bezpiecznie"));
+        ui->scanRing->setMode(complete ? "done" : "idle");
+        ui->scanRing->setCenterText(complete ? tr("Zakończono") : tr("Niepełny"));
+        if (complete) ui->scanRing->setValue(1.0);
     }
     if (auto *pb = findChild<QProgressBar*>("scanProgressBar")) {
-        pb->setValue(100);
+        pb->setRange(0, 100);
+        if (complete) pb->setValue(100);
     }
-
-    SignatureDb::instance().pushHistory(report.startedAt, report.finishedAt, report.filesScanned, report.threatsFound, QString());
-    updateLastScanCard(report.finishedAt, report.filesScanned, report.threatsFound);
-
-    if (ui->lblScanCurrent) {
-        ui->lblScanCurrent->setText(tr("Skanowanie zakończone. System jest bezpieczny."));
+    if (ui->btnPauseScan) { ui->btnPauseScan->setChecked(false); ui->btnPauseScan->setEnabled(false); }
+    if (ui->lblScanCount) ui->lblScanCount->setText(report.filesScanned < 0
+        ? tr("Liczba plików: nieudostępniona przez Defender")
+        : tr("Sprawdzono: %1; pominięto: %2").arg(report.filesScanned).arg(report.filesSkipped));
+    if (ui->lblScanCurrent) ui->lblScanCurrent->setText(summary);
+    if (complete) {
+        SignatureDb::instance().pushHistory(report.startedAt, report.finishedAt, report.filesScanned, report.threatsFound, QString());
+        updateLastScanCard(report.finishedAt, report.filesScanned, report.threatsFound);
     }
 
     // Write a JSON report file for EVERY scan (audit trail). Path:
@@ -1537,6 +1375,9 @@ void MainWindow::onScannerFinished(ScanReport report)
     root["finishedAt"]     = qint64(report.finishedAt);
     root["durationSec"]    = qint64(report.finishedAt - report.startedAt);
     root["filesScanned"]   = report.filesScanned;
+    root["filesSkipped"] = report.filesSkipped;
+    root["cancelled"] = report.cancelled;
+    root["error"] = report.errorMessage;
     root["threatsFound"]   = report.threatsFound;
     root["action"]         = Settings::instance().detectionAction();
     QJsonArray arr;
@@ -1563,22 +1404,11 @@ void MainWindow::onScannerFinished(ScanReport report)
         Logger::error(QStringLiteral("Scan report FAILED: %1").arg(reportPath));
     }
 
-    Toaster::show(this,
-                  report.threatsFound > 0
-                      ? tr("Scan finished: %1 threat(s) found").arg(report.threatsFound)
-                      : tr("Scan finished: no threats"),
-                  report.threatsFound > 0 ? Toaster::Warn : Toaster::Success);
+    Toaster::show(this, summary, complete && !report.threatsFound ? Toaster::Success : Toaster::Warn);
+    if (m_tray && !isVisible() && Settings::instance().showNotifications())
+        m_tray->showMessage(QStringLiteral("Multi-Guard"), summary,
+            complete && !report.threatsFound ? QSystemTrayIcon::Information : QSystemTrayIcon::Warning, 4000);
 
-    if (m_tray && !isVisible()) {
-        m_tray->showMessage(
-            QStringLiteral("Multi-Guard Endpoint Security"),
-            report.threatsFound > 0
-                ? tr("Wykryto zagrożenia (%1)! Sprawdź stan ochrony.").arg(report.threatsFound)
-                : tr("Skanowanie zakończone. System jest czysty i bezpieczny."),
-            report.threatsFound > 0 ? QSystemTrayIcon::Warning : QSystemTrayIcon::Information,
-            4000
-        );
-    }
 }
 
 void MainWindow::initDefenderIntegration()
@@ -1586,15 +1416,17 @@ void MainWindow::initDefenderIntegration()
     connect(&DefenderEngine::instance(), &DefenderEngine::scanStarted, this, [this](const QString &scanType){
         m_pendingReport.clear();
         primeScanUi(scanType);
+        if (ui->btnPauseScan) ui->btnPauseScan->setEnabled(false);
+        if (ui->btnStopScan) { ui->btnStopScan->setEnabled(DefenderEngine::instance().canCancel()); ui->btnStopScan->setToolTip(tr("MpCmdRun pozwala anulować szybki i pełny skan.")); }
         m_activeScanPhase = scanType;
     });
 
     connect(&DefenderEngine::instance(), &DefenderEngine::scanProgress, this, [this](int percent, const QString &statusText){
-        if (auto *pb = findChild<QProgressBar*>("scanProgressBar")) pb->setValue(percent);
+        if (auto *pb = findChild<QProgressBar*>("scanProgressBar")) { pb->setRange(0, percent < 0 ? 0 : 100); if (percent >= 0) pb->setValue(percent); }
         if (ui->lblScanCurrent) ui->lblScanCurrent->setText(statusText);
         if (ui->scanRing) {
-            ui->scanRing->setValue(percent / 100.0);
-            ui->scanRing->setCenterText(QStringLiteral("%1%").arg(percent));
+            ui->scanRing->setValue(qMax(0, percent) / 100.0);
+            ui->scanRing->setCenterText(percent < 0 ? tr("Skanowanie") : QStringLiteral("%1%").arg(percent));
         }
     });
 
@@ -1602,21 +1434,17 @@ void MainWindow::initDefenderIntegration()
     connect(&DefenderEngine::instance(), &DefenderEngine::threatDetected, this, &MainWindow::onScannerThreatFound);
 
     connect(&DefenderEngine::instance(), &DefenderEngine::scanFinished, this, [this](bool ok, int threatsCount, const QList<ThreatInfo> &threats){
-        Q_UNUSED(ok);
         Q_UNUSED(threats);
         ScanReport rep;
-        rep.filesScanned = 11500;
+        rep.filesScanned = -1;
+        rep.startedAt = DefenderEngine::instance().scanStartedAt();
+        rep.cancelled = DefenderEngine::instance().wasCancelled();
+        if (!ok && !rep.cancelled) rep.errorMessage = DefenderEngine::instance().lastError();
         rep.threatsFound = threatsCount;
         rep.finishedAt = QDateTime::currentSecsSinceEpoch();
         onScannerFinished(rep);
-    });
-
-    connect(&DefenderEngine::instance(), &DefenderEngine::protectionStateChanged, this, [this](bool enabled){
-        if (auto *lbl = findChild<QLabel*>("statusMod1")) {
-            lbl->setText(enabled ? tr("● Aktywna") : tr("○ Wyłączona"));
-            lbl->setStyleSheet(enabled ? QStringLiteral("color: #00F076; font-weight: 600; font-size: 8.5pt;")
-                                       : QStringLiteral("color: #EF4444; font-weight: 600; font-size: 8.5pt;"));
-        }
+        refreshDefenderStatus();
+        populateQuarantineTable();
     });
 
     connect(&DefenderEngine::instance(), &DefenderEngine::signaturesUpdated, this, [this](bool ok, const QString &ver){
@@ -1630,277 +1458,111 @@ void MainWindow::initDefenderIntegration()
         }
     });
 
-    QTimer::singleShot(100, this, [this]{
-        DefenderStatus st = DefenderEngine::instance().getStatus();
-        if (auto *lbl = findChild<QLabel*>("statusMod1")) {
-            lbl->setText(st.realTimeProtectionEnabled ? tr("● Aktywna") : tr("○ Wyłączona"));
-            lbl->setStyleSheet(st.realTimeProtectionEnabled ? QStringLiteral("color: #00F076; font-weight: 600; font-size: 8.5pt;")
-                                                           : QStringLiteral("color: #EF4444; font-weight: 600; font-size: 8.5pt;"));
-        }
-        if (!st.signatureVersion.isEmpty()) {
-            if (auto *lbl = findChild<QLabel*>("lblDbVersion")) {
-                lbl->setText(tr("Wersja sygnatur: %1").arg(st.signatureVersion));
-            }
-        }
+    auto *statusTimer = new QTimer(this);
+    statusTimer->setInterval(30000);
+    connect(statusTimer, &QTimer::timeout, this, &MainWindow::refreshDefenderStatus);
+    statusTimer->start();
+    QTimer::singleShot(0, this, &MainWindow::refreshDefenderStatus);
+}
 
-        // Apply mutual exclusions and suppress Microsoft Defender alerts so Multi-Guard owns the UI
-        DefenderEngine::instance().ensureMutualExclusions();
-        DefenderEngine::instance().suppressDefenderPopups();
-        DefenderEngine::instance().hijackDefenderTrayAndSettings();
+void MainWindow::startDefenderScan(int mode, const QStringList &paths)
+{
+    if (!LicenseManager::instance().accessAllowed()) { setActiveNav(PageLicenseLocked); return; }
+    if (!DefenderEngine::instance().startScan(static_cast<DefenderEngine::ScanMode>(mode), paths))
+        Toaster::show(this, DefenderEngine::instance().lastError(), Toaster::Error);
+}
 
-        // Enforce enterprise ASR and Network Protection
-        if (Settings::instance().asrProtection()) {
-            DefenderEngine::instance().enableAsrRules(true);
-        }
-        if (Settings::instance().webShield()) {
-            DefenderEngine::instance().setNetworkProtection(true);
-        }
-
-        // Sync native Defender scan schedule
-        const QString sched = Settings::instance().scheduledScan();
-        if (sched != QLatin1String("off")) {
-            int day = (sched == QLatin1String("daily")) ? 0 : 1;
-            QTime targetTime = QTime::fromString(Settings::instance().scheduledTime(), QStringLiteral("HH:mm"));
-            DefenderEngine::instance().setScheduledScan(true, day, targetTime.isValid() ? targetTime : QTime(12, 0));
-        }
+void MainWindow::refreshDefenderStatus()
+{
+    // The UI remains responsive while PowerShell queries the service.
+    if (findChild<QFutureWatcher<DefenderStatus>*>("defenderStatusQuery")) return;
+    auto *watcher = new QFutureWatcher<DefenderStatus>(this);
+    watcher->setObjectName("defenderStatusQuery");
+    connect(watcher, &QFutureWatcher<DefenderStatus>::finished, this, [this, watcher] {
+        const auto st = watcher->result();
+        watcher->deleteLater();
+        const QString text = !st.known ? tr("Stan Defendera nieustalony")
+            : st.antivirusEnabled && st.realTimeProtectionEnabled ? tr("Defender: ochrona aktywna")
+            : tr("Defender: ochrona nieaktywna / tryb pasywny");
+        for (const char *name : {"statusMod1", "lblDashStatusPill"})
+            if (auto *label = findChild<QLabel*>(name)) { label->setText(text); label->setToolTip(st.error); }
+        if (ui->dashRing) { ui->dashRing->setMode(st.known && st.antivirusEnabled && st.realTimeProtectionEnabled ? "heroCheck" : "idle"); ui->dashRing->setCenterText(st.known ? st.runningMode : tr("Brak danych")); }
+        if (auto *label = findChild<QLabel*>("lblDbVersion")) label->setText(st.signatureVersion.isEmpty() ? tr("Wersja sygnatur nieustalona") : tr("Defender: %1").arg(st.signatureVersion));
+        if (m_trayToggleRtAction) { QSignalBlocker blocker(m_trayToggleRtAction); m_trayToggleRtAction->setChecked(st.known && st.realTimeProtectionEnabled); m_trayToggleRtAction->setEnabled(st.known); }
+        if (auto *toggle = findChild<QCheckBox*>("defenderRealtimeToggle")) { QSignalBlocker blocker(toggle); toggle->setChecked(st.known && st.realTimeProtectionEnabled); toggle->setEnabled(st.known); }
     });
+    watcher->setFuture(QtConcurrent::run([] { return DefenderEngine::instance().getStatus(); }));
 }
 
 void MainWindow::onToggleRealTimeClicked()
 {
-    bool current = DefenderEngine::instance().isRealTimeProtectionEnabled();
-    bool newState = !current;
-    DefenderEngine::instance().setRealTimeProtection(newState);
-    Toaster::show(this, newState ? tr("Ochrona w czasie rzeczywistym Microsoft Defender została włączona.")
-                                 : tr("Ochrona w czasie rzeczywistym Microsoft Defender została wyłączona."),
-                  newState ? Toaster::Success : Toaster::Warn);
+    const auto status = DefenderEngine::instance().getStatus();
+    if (!status.known) { Toaster::show(this, status.error, Toaster::Warn); return; }
+    const bool ok = DefenderEngine::instance().setRealTimeProtection(!status.realTimeProtectionEnabled);
+    Toaster::show(this, ok ? tr("Potwierdzono zmianę ochrony Defendera.") : tr("Nie potwierdzono zmiany. %1").arg(DefenderEngine::instance().lastError()), ok ? Toaster::Info : Toaster::Warn);
+    refreshDefenderStatus();
 }
 
 void MainWindow::populateQuarantineTable()
 {
-    auto *t = findChild<QTableWidget*>("tableQuarantine");
-    if (!t) return;
-    t->clearContents();
-    t->setColumnCount(6);
-    t->setHorizontalHeaderLabels({ QString(), tr("Nazwa zagrożenia"), tr("Typ"), tr("Data"), tr("Lokalizacja"), tr("Akcja") });
-    t->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Fixed);
-    t->setColumnWidth(0, 36);
-    t->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
-    t->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    t->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    t->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
-    t->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Fixed);
-    t->setColumnWidth(5, 54);
-    t->verticalHeader()->setVisible(false);
-    t->setShowGrid(false);
-    t->setFrameShape(QFrame::NoFrame);
-    t->setSelectionBehavior(QAbstractItemView::SelectRows);
-    t->setSelectionMode(QAbstractItemView::ExtendedSelection);
-    t->setStyleSheet(QStringLiteral(
-        "QTableWidget { background-color: rgba(10, 24, 42, 0.75); border: 1px solid rgba(28, 54, 88, 0.55); border-radius: 12px; gridline-color: transparent; outline: none; }"
-        "QHeaderView::section { background-color: rgba(14, 28, 48, 0.95); color: #8FA3BF; font-weight: 700; font-size: 8.5pt; text-transform: uppercase; border: none; border-bottom: 1px solid rgba(28, 54, 88, 0.7); padding: 9px 12px; }"
-        "QTableWidget::item { padding: 8px 10px; border-bottom: 1px solid rgba(25, 48, 78, 0.3); font-size: 9.5pt; }"
-        "QTableWidget::item:selected { background-color: rgba(0, 240, 118, 0.12); color: #FFFFFF; }"
-    ));
-
-    const auto entries = Quarantine::instance().list();
-    QList<DefenderQuarantineItem> defEntries;
-    if (DefenderEngine::instance().isAvailable()) {
-        defEntries = DefenderEngine::instance().getQuarantineItems();
+    auto *table = ui->tableQuarantine;
+    if (!table) return;
+    const auto entries = DefenderEngine::instance().getQuarantineItems();
+    const QString error = DefenderEngine::instance().lastError();
+    table->setRowCount(0);
+    table->setColumnCount(6);
+    table->setHorizontalHeaderLabels({tr("ID"), tr("Wykrycie"), tr("Akcja Defendera"), tr("Data UTC"), tr("Zasoby"), tr("Stan")});
+    for (const auto &entry : entries) {
+        const int row = table->rowCount(); table->insertRow(row);
+        const QStringList values = {entry.id, entry.name, QString::number(entry.actionId), entry.detectedTime.toUTC().toString(Qt::ISODate), entry.path,
+            entry.active ? tr("Aktywne zagrożenie") : entry.actionSuccess ? tr("Akcja wykonana") : tr("Sprawdź historię ochrony")};
+        for (int col = 0; col < values.size(); ++col) table->setItem(row, col, new QTableWidgetItem(values[col]));
     }
-    int totalCount = entries.size() + defEntries.size();
+    if (ui->lblQuarantineSummary) ui->lblQuarantineSummary->setText(error.isEmpty()
+        ? tr("Historia Microsoft Defender: %1 zdarzeń. Historia nie jest listą aktualnej kwarantanny. Użyj przycisku listy kwarantanny, aby odczytać MpCmdRun -Restore -ListAll.").arg(entries.size())
+        : tr("Nie udało się odczytać Defendera: %1").arg(error));
+}
 
-    if (totalCount > 0) {
-        t->setRowCount(totalCount);
-        int rowIdx = 0;
-        for (int i = 0; i < entries.size(); ++i) {
-            const auto &e = entries[i];
-            auto *cbItem = new QTableWidgetItem();
-            cbItem->setCheckState(Qt::Unchecked);
-            cbItem->setData(Qt::UserRole, e.id);
-            t->setItem(rowIdx, 0, cbItem);
-
-            auto *tName = new QTableWidgetItem(e.detectionName);
-            tName->setData(Qt::UserRole, e.id);
-            tName->setForeground(QColor("#FFFFFF"));
-            t->setItem(rowIdx, 1, tName);
-
-            auto *tType = new QTableWidgetItem(tr("Trojan"));
-            tType->setForeground(QColor("#EF4444"));
-            t->setItem(rowIdx, 2, tType);
-
-            auto *tDate = new QTableWidgetItem(QDateTime::fromSecsSinceEpoch(e.quarantinedAt).toString("dd.MM.yyyy"));
-            tDate->setForeground(QColor("#8FA3BF"));
-            t->setItem(rowIdx, 3, tDate);
-
-            auto *tPath = new QTableWidgetItem(e.originalPath);
-            tPath->setForeground(QColor("#8FA3BF"));
-            t->setItem(rowIdx, 4, tPath);
-
-            auto *btnTrash = new QPushButton();
-            btnTrash->setIcon(QIcon(QStringLiteral(":/assets/icons/icon_trash.svg")));
-            btnTrash->setIconSize(QSize(16, 16));
-            btnTrash->setFixedSize(32, 28);
-            btnTrash->setCursor(Qt::PointingHandCursor);
-            btnTrash->setToolTip(tr("Usuń z kwarantanny"));
-            btnTrash->setStyleSheet(QStringLiteral(
-                "QPushButton { background: transparent; border: none; border-radius: 6px; padding: 4px; }"
-                "QPushButton:hover { background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.5); }"
-            ));
-            int entryId = e.id;
-            connect(btnTrash, &QPushButton::clicked, this, [this, entryId]() {
-                Quarantine::instance().permanentDelete(entryId);
-                populateQuarantineTable();
-            });
-            t->setCellWidget(rowIdx, 5, btnTrash);
-            rowIdx++;
-        }
-
-        for (int i = 0; i < defEntries.size(); ++i) {
-            const auto &de = defEntries[i];
-            auto *cbItem = new QTableWidgetItem();
-            cbItem->setCheckState(Qt::Unchecked);
-            cbItem->setData(Qt::UserRole, -1);
-            cbItem->setData(Qt::UserRole + 1, de.name);
-            t->setItem(rowIdx, 0, cbItem);
-
-            auto *tName = new QTableWidgetItem(de.name);
-            tName->setData(Qt::UserRole, -1);
-            tName->setData(Qt::UserRole + 1, de.name);
-            tName->setForeground(QColor("#FFFFFF"));
-            t->setItem(rowIdx, 1, tName);
-
-            auto *tType = new QTableWidgetItem(tr("Microsoft Defender"));
-            tType->setForeground(QColor("#38BDF8"));
-            t->setItem(rowIdx, 2, tType);
-
-            auto *tDate = new QTableWidgetItem(de.detectedTime.toString("dd.MM.yyyy"));
-            tDate->setForeground(QColor("#8FA3BF"));
-            t->setItem(rowIdx, 3, tDate);
-
-            auto *tPath = new QTableWidgetItem(de.path.isEmpty() ? tr("Zabezpieczone przez Defender") : de.path);
-            tPath->setForeground(QColor("#8FA3BF"));
-            t->setItem(rowIdx, 4, tPath);
-
-            auto *btnTrash = new QPushButton();
-            btnTrash->setIcon(QIcon(QStringLiteral(":/assets/icons/icon_trash.svg")));
-            btnTrash->setIconSize(QSize(16, 16));
-            btnTrash->setFixedSize(32, 28);
-            btnTrash->setCursor(Qt::PointingHandCursor);
-            btnTrash->setToolTip(tr("Usuń z kwarantanny"));
-            btnTrash->setStyleSheet(QStringLiteral(
-                "QPushButton { background: transparent; border: none; border-radius: 6px; padding: 4px; }"
-                "QPushButton:hover { background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.5); }"
-            ));
-            QString defThreatName = de.name;
-            connect(btnTrash, &QPushButton::clicked, this, [this, defThreatName]() {
-                DefenderEngine::instance().removeQuarantinedItem(defThreatName);
-                populateQuarantineTable();
-            });
-            t->setCellWidget(rowIdx, 5, btnTrash);
-            rowIdx++;
-        }
-    } else {
-        t->setRowCount(0);
-    }
-
-    if (ui->lblQuarantineSummary) {
-        auto makeRow = [](const QString &color, const QString &label, const QString &value) {
-            return QStringLiteral(
-                       "<tr>"
-                       "<td style='vertical-align: middle; width: 10px; padding: 2.5px 0;'>"
-                       "<div style='width: 3px; height: 13px; border-radius: 2px; background-color: %1;'></div>"
-                       "</td>"
-                       "<td dir='ltr' style='vertical-align: middle; padding: 2.5px 8px; font-size: 9.5pt; color: #94A3B8; font-weight: 600; font-family: \"Nunito\", \"Segoe UI\", sans-serif; white-space: nowrap; min-width: 90px; text-align: left;'>"
-                       "%2"
-                       "</td>"
-                       "<td dir='ltr' style='vertical-align: middle; padding: 2.5px 0; font-size: 9.5pt; color: #F1F5F9; font-weight: 700; font-family: \"Nunito\", \"Segoe UI\", sans-serif; white-space: nowrap; text-align: left;'>"
-                       "%3"
-                       "</td>"
-                       "</tr>"
-                       ).arg(color, label.toHtmlEscaped(), value.toHtmlEscaped());
-        };
-
-        QString html;
-        html += QStringLiteral("<table style='border-collapse: collapse; width: 100%; margin: 0; padding: 0;'>");
-        html += makeRow(QStringLiteral("#10B981"), tr("Stan"), totalCount > 0 ? tr("⚠️ Zablokowane zagrożenia") : tr("🟢 Bezpiecznie (Brak)"));
-        html += makeRow(QStringLiteral("#F59E0B"), tr("W kwarantannie"), QStringLiteral("%1 obiektów").arg(totalCount));
-        html += makeRow(QStringLiteral("#6366F1"), tr("Rozmiar danych"), FileOps::humanSize(Quarantine::instance().totalBytes()));
-        html += makeRow(QStringLiteral("#38BDF8"), tr("Izolacja"), tr("Microsoft Defender & Skarbiec"));
-        html += QStringLiteral("</table>");
-        ui->lblQuarantineSummary->setText(html);
-    }
+void MainWindow::showDefenderQuarantine()
+{
+    bool ok = false;
+    const QString listing = DefenderEngine::instance().quarantineListing(&ok);
+    QDialog dialog(this); dialog.setWindowTitle(tr("Aktualna kwarantanna Microsoft Defender")); dialog.resize(760, 500);
+    auto *layout = new QVBoxLayout(&dialog);
+    auto *text = new QPlainTextEdit(&dialog); text->setReadOnly(true); text->setPlainText(listing); layout->addWidget(text);
+    auto *restore = new QPushButton(tr("Przywróć według nazwy z listy…"), &dialog); restore->setEnabled(ok); layout->addWidget(restore);
+    connect(restore, &QPushButton::clicked, &dialog, [this, &dialog, text] {
+        bool accepted = false;
+        const QString name = QInputDialog::getText(&dialog, tr("Przywracanie Defendera"), tr("Dokładna nazwa zagrożenia z powyższej listy. Defender przywróci najnowszą pozycję o tej nazwie (może obejmować wiele plików)."), QLineEdit::Normal, {}, &accepted);
+        if (!accepted || name.trimmed().isEmpty()) return;
+        if (QMessageBox::warning(&dialog, tr("Przywrócenie zagrożenia"), tr("Przywrócić najnowszą pozycję %1 do oryginalnej lokalizacji? Defender może ponownie wykryć pliki.").arg(name), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes) return;
+        const bool restored = DefenderEngine::instance().restoreQuarantinedItem(name.trimmed());
+        QMessageBox::information(&dialog, tr("Wynik"), restored ? tr("Defender potwierdził przywrócenie.") : DefenderEngine::instance().lastError());
+        text->setPlainText(DefenderEngine::instance().quarantineListing());
+    });
+    auto *close = new QDialogButtonBox(QDialogButtonBox::Close, &dialog); layout->addWidget(close); connect(close, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+    dialog.exec();
 }
 
 void MainWindow::onQuarantineRefresh() { populateQuarantineTable(); }
-
-void MainWindow::onQuarantineRestoreSelected()
-{
-    if (!ui->tableQuarantine) return;
-    int ok = 0;
-    for (int r = ui->tableQuarantine->rowCount() - 1; r >= 0; --r) {
-        auto *item = ui->tableQuarantine->item(r, 0);
-        bool selected = (item && item->checkState() == Qt::Checked) ||
-                        ui->tableQuarantine->selectionModel()->isRowSelected(r, QModelIndex());
-        if (!selected) continue;
-
-        int id = item ? item->data(Qt::UserRole).toInt() : 0;
-        if (id > 0) {
-            if (verax::Quarantine::instance().restore(id)) ++ok;
-        } else if (id == -1 && item) {
-            QString threatName = item->data(Qt::UserRole + 1).toString();
-            if (DefenderEngine::instance().restoreQuarantinedItem(threatName)) ++ok;
-        }
-    }
-    Toaster::show(this, tr("%n item(s) restored", "", ok), Toaster::Success);
-    populateQuarantineTable();
-}
-
+void MainWindow::onQuarantineRestoreSelected() { showDefenderQuarantine(); }
 void MainWindow::onQuarantineDeleteSelected()
 {
-    if (!ui->tableQuarantine) return;
-    int ok = 0;
-    for (int r = ui->tableQuarantine->rowCount() - 1; r >= 0; --r) {
-        auto *item = ui->tableQuarantine->item(r, 0);
-        bool selected = (item && item->checkState() == Qt::Checked) ||
-                        ui->tableQuarantine->selectionModel()->isRowSelected(r, QModelIndex());
-        if (!selected) continue;
-
-        int id = item ? item->data(Qt::UserRole).toInt() : 0;
-        if (id > 0) {
-            if (verax::Quarantine::instance().permanentDelete(id)) ++ok;
-        } else if (id == -1 && item) {
-            QString threatName = item->data(Qt::UserRole + 1).toString();
-            if (DefenderEngine::instance().removeQuarantinedItem(threatName)) ++ok;
-        }
-    }
-    Toaster::show(this, tr("%n item(s) deleted permanently", "", ok), Toaster::Warn);
+    if (QMessageBox::question(this, tr("Remediacja Defendera"), tr("Uruchomić Remove-MpThreat dla wszystkich aktywnych zagrożeń? Nie jest to usuwanie wybranych rekordów historii ani opróżnianie kwarantanny."), QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes) return;
+    const bool ok = DefenderEngine::instance().remediateActiveThreats();
+    Toaster::show(this, ok ? tr("Defender wykonał remediację; sprawdź aktualny stan historii.") : DefenderEngine::instance().lastError(), ok ? Toaster::Info : Toaster::Error);
     populateQuarantineTable();
 }
-
 void MainWindow::onQuarantineExportReport()
 {
-    const QString dst = QFileDialog::getSaveFileName(this, tr("Export quarantine report"), QStringLiteral("quarantine_report.json"), QStringLiteral("JSON (*.json)"));
-    if (dst.isEmpty()) return;
-
-    QJsonArray arr;
-    for (const auto &e : Quarantine::instance().list()) {
-        QJsonObject o;
-        o["id"]            = e.id;
-        o["original_path"] = e.originalPath;
-        o["detection"]     = e.detectionName;
-        o["sha256"]        = e.sha256;
-        o["size"]          = double(e.size);
-        o["quarantined_at"] = QDateTime::fromSecsSinceEpoch(e.quarantinedAt).toString(Qt::ISODate);
-        arr.append(o);
-    }
-    QJsonObject root;
-    root["product"] = APP_NAME;
-    root["version"] = APP_VERSION_STR;
-    root["generated_at"] = QDateTime::currentDateTime().toString(Qt::ISODate);
-    root["entries"] = arr;
-    FileOps::atomicWrite(dst, QJsonDocument(root).toJson());
-    Toaster::show(this, tr("Report saved"), Toaster::Success);
+    const auto entries = DefenderEngine::instance().getQuarantineItems();
+    if (!DefenderEngine::instance().lastError().isEmpty()) { Toaster::show(this, DefenderEngine::instance().lastError(), Toaster::Error); return; }
+    const QString path = QFileDialog::getSaveFileName(this, tr("Eksport historii Defendera"), "defender-history.json", "JSON (*.json)");
+    if (path.isEmpty()) return;
+    QJsonArray array;
+    for (const auto &entry : entries) array.append(QJsonObject{{"id", entry.id}, {"name", entry.name}, {"resources", entry.path}, {"time", entry.detectedTime.toString(Qt::ISODate)}, {"action", entry.actionId}, {"actionSuccess", entry.actionSuccess}, {"active", entry.active}});
+    const bool ok = FileOps::atomicWrite(path, QJsonDocument(array).toJson());
+    Toaster::show(this, ok ? tr("Zapisano historię Defendera.") : tr("Nie udało się zapisać raportu."), ok ? Toaster::Success : Toaster::Error);
 }
 
 void MainWindow::populateRepairCards()
@@ -2265,7 +1927,7 @@ void MainWindow::updateTrayLicenseState()
     if (!m_tray) return;
 
     const auto &lm = LicenseManager::instance();
-    bool valid = lm.isValid();
+    bool valid = lm.accessAllowed();
 
     auto *oldMenu = m_tray->contextMenu();
     auto *menu = new QMenu(this);
@@ -2314,8 +1976,9 @@ void MainWindow::updateTrayLicenseState()
         m_trayToggleRtAction->setCheckable(true);
         m_trayToggleRtAction->setChecked(Settings::instance().realTimeProtection());
         connect(m_trayToggleRtAction, &QAction::toggled, this, [this](bool v){
-            Settings::instance().setRealTimeProtection(v);
-            RealTimeShield::instance().setEnabled(v);
+            const bool ok = DefenderEngine::instance().setRealTimeProtection(v);
+            if (!ok) Toaster::show(this, DefenderEngine::instance().lastError(), Toaster::Warn);
+            refreshDefenderStatus();
             NotificationAlert::showInfo(tr("Multi-Guard"), v ? tr("Ochrona w czasie rzeczywistym została włączona.") : tr("Ochrona w czasie rzeczywistym została wyłączona."));
         });
 
@@ -2368,7 +2031,7 @@ void MainWindow::updateTrayLicenseState()
 void MainWindow::onTrayActivated(QSystemTrayIcon::ActivationReason r)
 {
     if (r == QSystemTrayIcon::Trigger) {
-        if (!LicenseManager::instance().isValid()) {
+        if (!LicenseManager::instance().accessAllowed()) {
             show();
             raise();
             activateWindow();
@@ -2381,7 +2044,7 @@ void MainWindow::onTrayActivated(QSystemTrayIcon::ActivationReason r)
 
 void MainWindow::onCheckUpdatesClicked()
 {
-    if (!LicenseManager::instance().isValid()) {
+    if (!LicenseManager::instance().accessAllowed()) {
         Toaster::show(this, tr("Aktualizacje wymagają aktywacji programu Multi-Guard."), Toaster::Warn);
         return;
     }
@@ -2392,7 +2055,7 @@ void MainWindow::onCheckUpdatesClicked()
 void MainWindow::onNotificationsClicked()
 {
     QString msg;
-    if (!LicenseManager::instance().isValid()) {
+    if (!LicenseManager::instance().accessAllowed()) {
         msg = tr("⚠️ Multi-Guard: Program nieaktywowany. Ochrona wstrzymana.");
     } else {
         msg = tr("🛡 Multi-Guard: System chroniony. Brak zaległych alertów.");
@@ -3267,7 +2930,7 @@ void MainWindow::onGenerateServiceReportClicked()
 void MainWindow::applyLicenseGating()
 {
     const auto &lm = LicenseManager::instance();
-    bool valid = lm.isValid();
+    bool valid = lm.accessAllowed();
 
     // 0. Complete lockdown if license has expired or is invalid
     if (!valid) {
@@ -3600,6 +3263,7 @@ void MainWindow::initFirewallPage()
 {
     const bool enabled = FirewallManager::instance().isFirewallEnabled();
     const QString profile = FirewallManager::instance().activeProfile();
+    const bool known = FirewallManager::instance().statusKnown();
 
     if (auto *cb = findChild<QCheckBox*>("cbFwMasterToggle")) {
         cb->blockSignals(true);
@@ -3609,11 +3273,11 @@ void MainWindow::initFirewallPage()
     }
 
     if (auto *lblHead = findChild<QLabel*>("lblFwStatusHead")) {
-        lblHead->setText(enabled ? tr("Stan: Zapora aktywna i włączona") : tr("Stan: Zapora wyłączona!"));
+        lblHead->setText(!known ? tr("Stan zapory: nieustalony") : enabled ? tr("Stan: Zapora aktywna i włączona") : tr("Stan: Zapora wyłączona!"));
         lblHead->setStyleSheet(enabled ? "color: #38bdf8; font-size: 15px; font-weight: bold;" : "color: #f87171; font-size: 15px; font-weight: bold;");
     }
     if (auto *lblDesc = findChild<QLabel*>("lblFwStatusDesc")) {
-        lblDesc->setText(enabled ? tr("Multi-Guard aktywnie filtruje ruch sieciowy i chroni porty komunikacyjne.") : tr("Uwaga! Ruch sieciowy nie jest filtrowany. Komputer jest podatny na ataki sieciowe."));
+        lblDesc->setText(enabled ? tr("Wszystkie profile Zapory Windows są włączone.") : tr("Co najmniej jeden profil jest wyłączony lub stan jest nieustalony."));
     }
     if (auto *lblProf = findChild<QLabel*>("lblFwProfile")) {
         lblProf->setText(tr("Profil sieci: %1").arg(profile));
@@ -3629,15 +3293,17 @@ void MainWindow::onToggleFirewallClicked()
 {
     const bool current = FirewallManager::instance().isFirewallEnabled();
     const bool target = !current;
-    FirewallManager::instance().setFirewallEnabled(target);
+    const bool ok = FirewallManager::instance().setFirewallEnabled(target);
     initFirewallPage();
+    if (!ok) { Toaster::show(this, tr("Nie potwierdzono zmiany zapory."), Toaster::Error); return; }
     Toaster::show(this, target ? tr("Zapora sieciowa została włączona.") : tr("Zapora sieciowa została wyłączona."), target ? Toaster::Success : Toaster::Warn);
 }
 
 void MainWindow::onResetFirewallClicked()
 {
-    FirewallManager::instance().resetToDefaults();
+    const bool ok = FirewallManager::instance().resetToDefaults();
     initFirewallPage();
+    if (!ok) { Toaster::show(this, tr("Nie udało się zresetować zapory."), Toaster::Error); return; }
     Toaster::show(this, tr("Przywrócono domyślne reguły zapory sieciowej."), Toaster::Info);
 }
 
@@ -3740,7 +3406,7 @@ void MainWindow::initBrowserProtectionPage()
 
         if (lbl) {
             if (b.installed) {
-                lbl->setText(b.extensionActive ? tr("🟢 Ochrona aktywna") : tr("🟡 Gotowy do integracji"));
+                lbl->setText(b.extensionActive ? tr("🟢 Ochrona aktywna") : tr("🟡 Stan dodatku niezweryfikowany"));
                 lbl->setStyleSheet(b.extensionActive ? "color: #00F076; font-weight: 600; font-size: 8.5pt;"
                                                      : "color: #38BDF8; font-weight: 600; font-size: 8.5pt;");
                 if (card) card->setStyleSheet(".QFrame { background-color: rgba(11, 23, 39, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 14px; }");
@@ -3753,9 +3419,9 @@ void MainWindow::initBrowserProtectionPage()
     }
 
     if (auto *lblSites = findChild<QLabel*>("lblStatSitesNum"))
-        lblSites->setText(QString::number(BrowserProtectionManager::instance().blockedWebsitesCount()));
+        lblSites->setText(tr("Brak telemetrii"));
     if (auto *lblDl = findChild<QLabel*>("lblStatDownloadsNum"))
-        lblDl->setText(QString::number(BrowserProtectionManager::instance().blockedDownloadsCount()));
+        lblDl->setText(tr("Brak telemetrii"));
 }
 
 void MainWindow::onInstallBrowserExtClicked()
@@ -3763,9 +3429,9 @@ void MainWindow::onInstallBrowserExtClicked()
     bool ok = BrowserProtectionManager::instance().installAll();
     initBrowserProtectionPage();
     if (ok) {
-        Toaster::show(this, tr("Zintegrowano dodatek Multi-Guard WebShield z przeglądarkami!"), Toaster::Success);
+        QMessageBox::information(this, tr("Dodatek przeglądarki"), tr("Otwarto folder dodatku. W przeglądarce Chromium otwórz stronę rozszerzeń, włącz tryb programisty i wybierz Wczytaj rozpakowane. Instalacja produkcyjna wymaga publikacji w sklepie. Stan dodatku sprawdź w przeglądarce; aplikacja nie ma jeszcze kanału telemetrii. Firefox nie jest obsługiwany."));
     } else {
-        Toaster::show(this, tr("Błąd rejestracji dodatku w przeglądarce."), Toaster::Error);
+        Toaster::show(this, tr("Nie znaleziono plików dodatku lub nie udało się otworzyć folderu."), Toaster::Error);
     }
 }
 
@@ -4032,8 +3698,8 @@ void MainWindow::populateAccountPage()
     }
 
     if (m_lblAccountStatus) {
-        m_lblAccountStatus->setText(lm.isValid() ? tr("✅ Aktywna — Ochrona stacji włączona") : tr("⚠️ Wymagana aktywacja"));
-        m_lblAccountStatus->setStyleSheet(lm.isValid() ? "font-size: 11pt; font-weight: 700; color: #00F076;" : "font-size: 11pt; font-weight: 700; color: #EF4444;");
+        m_lblAccountStatus->setText(lm.accessAllowed() ? tr("✅ Aktywna — Ochrona stacji włączona") : tr("⚠️ Wymagana aktywacja"));
+        m_lblAccountStatus->setStyleSheet(lm.accessAllowed() ? "font-size: 11pt; font-weight: 700; color: #00F076;" : "font-size: 11pt; font-weight: 700; color: #EF4444;");
     }
 
     if (m_lblAccountDays) {
@@ -4067,8 +3733,8 @@ void MainWindow::populateAccountPage()
         m_lblStatsThreats->setText(QLocale().toString(s.threatsBlockedCount()));
     }
     if (m_lblStatsHealth) {
-        m_lblStatsHealth->setText(lm.isValid() ? QStringLiteral("100% (Świetna)") : QStringLiteral("Zagrożona"));
-        m_lblStatsHealth->setStyleSheet(lm.isValid() ? "font-size: 15pt; font-weight: 800; color: #00E676;" : "font-size: 15pt; font-weight: 800; color: #EF4444;");
+        m_lblStatsHealth->setText(lm.accessAllowed() ? QStringLiteral("100% (Świetna)") : QStringLiteral("Zagrożona"));
+        m_lblStatsHealth->setStyleSheet(lm.accessAllowed() ? "font-size: 15pt; font-weight: 800; color: #00E676;" : "font-size: 15pt; font-weight: 800; color: #EF4444;");
     }
 
     // Populate history table
@@ -4090,8 +3756,8 @@ void MainWindow::populateAccountPage()
         itDev->setForeground(QColor("#CBD5E1"));
         m_tableAccountHistory->setItem(0, 2, itDev);
 
-        auto *itStatus = new QTableWidgetItem(lm.isValid() ? tr("Zweryfikowano (Ed25519)") : tr("Brak licencji"));
-        itStatus->setForeground(lm.isValid() ? QColor("#00F076") : QColor("#EF4444"));
+        auto *itStatus = new QTableWidgetItem(lm.accessAllowed() ? tr("Zweryfikowano (Ed25519)") : tr("Brak licencji"));
+        itStatus->setForeground(lm.accessAllowed() ? QColor("#00F076") : QColor("#EF4444"));
         m_tableAccountHistory->setItem(0, 3, itStatus);
     }
 

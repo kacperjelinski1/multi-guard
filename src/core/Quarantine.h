@@ -2,6 +2,7 @@
 // By Ali Sakkaf - https://alisakkaf.com
 #pragma once
 #include <QObject>
+#include <QMutex>
 #include <QString>
 #include <QVector>
 
@@ -41,6 +42,7 @@ signals:
     void itemAdded(QuarantineEntry e);
 
 private:
+    mutable QMutex m_mutex;
     explicit Quarantine(QObject *parent = nullptr);
     QString vaultDir() const;
     QByteArray deriveKey() const;

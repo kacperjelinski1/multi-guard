@@ -35,18 +35,12 @@ void ShieldEngine::startScan(const ScanRequest &req) {
         Logger::warn("ShieldEngine: Pominięto skanowanie — brak uprawnień licencyjnych.");
         return;
     }
-    // Force-reset stale state: if scanner thread is not actually running but
-    // state was left as Scanning from a previous crash/error, allow restart.
-    if (m_state == Scanning && !m_scanner->isRunning()) {
-        Logger::warn("ShieldEngine: resetting stale Scanning state");
-        setState(Idle);
-    }
-    if (m_state == Scanning) return;
-    setState(Scanning);
-    m_scanner->request(req);
+    if (m_scanner->isRunning()) return;
+    if (m_scanner->request(req)) setState(Scanning);
 }
 
-void ShieldEngine::stopScan()           { m_scanner->requestStop();  setState(Idle); }
+void ShieldEngine::stopScan() { m_scanner->requestStop(); }
+
 void ShieldEngine::pauseScan(bool p)    { m_scanner->requestPause(p); }
 
 void ShieldEngine::updateSignatures()

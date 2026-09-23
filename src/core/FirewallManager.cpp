@@ -27,7 +27,7 @@ int FirewallManager::runNetsh(const QStringList &args)
 {
 #ifndef _WIN32
     Q_UNUSED(args);
-    return 0;
+    return -1;
 #else
     QProcess p;
     p.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *a){
@@ -42,75 +42,37 @@ int FirewallManager::runNetsh(const QStringList &args)
 
 bool FirewallManager::isFirewallEnabled()
 {
-#ifndef _WIN32
-    return true;
-#else
+    m_statusKnown = false;
+#ifdef _WIN32
     QProcess p;
-    p.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *a){
-        a->flags |= 0x08000000;
-    });
+    p.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *a){ a->flags |= 0x08000000; });
     p.start(QStringLiteral("powershell.exe"), {
-        QStringLiteral("-NoProfile"), QStringLiteral("-NonInteractive"), QStringLiteral("-Command"),
-        QStringLiteral("(Get-NetFirewallProfile -Profile Domain,Public,Private | Where-Object { $_.Enabled -eq $true }).Count -gt 0")
+        "-NoProfile", "-NonInteractive", "-Command",
+        "$ErrorActionPreference='Stop'; (Get-NetFirewallProfile -Profile Domain,Public,Private | Where-Object { $_.Enabled -eq $true }).Count"
     });
-    if (p.waitForStarted(3000) && p.waitForFinished(6000)) {
-        QString out = QString::fromLatin1(p.readAllStandardOutput()).trimmed();
-        if (out.compare(QStringLiteral("True"), Qt::CaseInsensitive) == 0) return true;
-        if (out.compare(QStringLiteral("False"), Qt::CaseInsensitive) == 0) return false;
+    if (p.waitForStarted(3000) && p.waitForFinished(6000) && p.exitStatus() == QProcess::NormalExit && p.exitCode() == 0) {
+        bool ok = false;
+        const int enabled = QString::fromLatin1(p.readAllStandardOutput()).trimmed().toInt(&ok);
+        m_statusKnown = ok && enabled >= 0 && enabled <= 3;
+        return m_statusKnown && enabled == 3;
     }
-    // Netsh fallback
-    QProcess p2;
-    p2.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *a){
-        a->flags |= 0x08000000;
-    });
-    p2.start(QStringLiteral("netsh.exe"), { QStringLiteral("advfirewall"), QStringLiteral("show"), QStringLiteral("currentprofile") });
-    if (p2.waitForStarted(3000) && p2.waitForFinished(6000)) {
-        const QString out = QString::fromLocal8Bit(p2.readAllStandardOutput());
-        if (out.contains(QStringLiteral("WYŁ"), Qt::CaseInsensitive) || out.contains(QStringLiteral("OFF"), Qt::CaseInsensitive)) {
-            return false;
-        }
-        if (out.contains(QStringLiteral("State                                 ON"), Qt::CaseInsensitive) ||
-            out.contains(QStringLiteral("WŁ"), Qt::CaseInsensitive)) {
-            return true;
-        }
-    }
-    return true;
 #endif
+    return false;
 }
 
 bool FirewallManager::setFirewallEnabled(bool enable)
 {
-#ifndef _WIN32
-    Q_UNUSED(enable);
-    emit statusChanged(enable, QStringLiteral("Aktywny"));
-    return true;
-#else
-    const QString state = enable ? QStringLiteral("on") : QStringLiteral("off");
-    const QString psBool = enable ? QStringLiteral("$true") : QStringLiteral("$false");
-
-    // 1. Run authoritative PowerShell cmdlet
-    QProcess p;
-    p.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *a){
-        a->flags |= 0x08000000;
-    });
-    p.start(QStringLiteral("powershell.exe"), {
-        QStringLiteral("-NoProfile"), QStringLiteral("-NonInteractive"), QStringLiteral("-Command"),
-        QStringLiteral("Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled %1 -ErrorAction SilentlyContinue").arg(psBool)
-    });
-    p.waitForFinished(6000);
-
-    // 2. Also run netsh
-    int rc = runNetsh({ QStringLiteral("advfirewall"), QStringLiteral("set"), QStringLiteral("allprofiles"), QStringLiteral("state"), state });
-    Logger::info(QStringLiteral("FirewallManager: setFirewallEnabled(%1) -> netsh rc=%2").arg(enable).arg(rc));
-    emit statusChanged(enable, activeProfile());
-    return true;
-#endif
+    const int rc = runNetsh({"advfirewall", "set", "allprofiles", "state", enable ? "on" : "off"});
+    const bool actual = isFirewallEnabled();
+    const bool ok = rc == 0 && m_statusKnown && actual == enable;
+    if (ok) emit statusChanged(actual, activeProfile());
+    return ok;
 }
 
 QString FirewallManager::activeProfile()
 {
 #ifndef _WIN32
-    return QStringLiteral("Prywatny (Aktywny)");
+    return QStringLiteral("Niedostępne poza Windows");
 #else
     QProcess p;
     p.setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments *a){
@@ -133,7 +95,7 @@ bool FirewallManager::blockInboundTraffic(bool blockAll)
 {
 #ifndef _WIN32
     Q_UNUSED(blockAll);
-    return true;
+    return false;
 #else
     const QString val = blockAll ? QStringLiteral("blockinboundalways,allowoutbound")
                                  : QStringLiteral("blockinbound,allowoutbound");
@@ -191,9 +153,6 @@ QVector<FirewallRuleItem> FirewallManager::loadActiveRules()
 {
     QVector<FirewallRuleItem> list;
 #ifndef _WIN32
-    list.append({ QStringLiteral("Multi-Guard Core Protection"), QStringLiteral("IN/OUT"), QStringLiteral("ALLOW"), QStringLiteral("Multi-Guard.exe"), QStringLiteral("Wszystkie"), true });
-    list.append({ QStringLiteral("Blokada portu SMB (Zalecana)"), QStringLiteral("IN"), QStringLiteral("BLOCK"), QStringLiteral("System"), QStringLiteral("445"), true });
-    list.append({ QStringLiteral("Blokada portu RPC (Zalecana)"), QStringLiteral("IN"), QStringLiteral("BLOCK"), QStringLiteral("System"), QStringLiteral("135"), true });
     return list;
 #else
     QProcess p;

@@ -8,15 +8,20 @@
 #include <QTime>
 #include <QTimer>
 #include <QList>
+#include <QSet>
 #include "Scanner.h"
 
 namespace verax {
 
 struct DefenderStatus {
-    bool realTimeProtectionEnabled = true;
-    bool cloudProtectionEnabled = true;
-    bool behaviorMonitorEnabled = true;
-    bool ioavProtectionEnabled = true;
+    bool known = false;
+    QString error;
+    QString runningMode;
+    bool antivirusEnabled = false;
+    bool realTimeProtectionEnabled = false;
+    bool cloudProtectionEnabled = false;
+    bool behaviorMonitorEnabled = false;
+    bool ioavProtectionEnabled = false;
     QString engineVersion;
     QString signatureVersion;
     QDateTime signatureLastUpdated;
@@ -28,6 +33,9 @@ struct DefenderQuarantineItem {
     QString path;
     QString severity;
     QDateTime detectedTime;
+    bool actionSuccess = false;
+    int actionId = 0;
+    bool active = false;
 };
 
 class DefenderEngine : public QObject {
@@ -50,6 +58,10 @@ public:
     bool startOfflineScan();
     void cancelScan();
     bool isScanning() const { return m_isScanning; }
+    QString lastError() const { return m_lastError; }
+    bool canCancel() const { return m_currentMode != Custom; }
+    bool wasCancelled() const { return m_cancelled; }
+    qint64 scanStartedAt() const { return m_startedAt; }
 
     // Signatures
     bool updateSignatures();
@@ -85,15 +97,17 @@ public:
     DefenderStatus getStatus();
 
     // Quarantine management
-    QList<DefenderQuarantineItem> getQuarantineItems();
+    QList<DefenderQuarantineItem> getQuarantineItems(); // Detection history, not a quarantine inventory.
+    QString quarantineListing(bool *ok = nullptr);
+    bool remediateActiveThreats();
+    bool setArchiveScanning(bool enable);
+    bool archiveScanningEnabled();
+    QStringList exclusions();
+    bool setScanCpuLimit(int percent);
+    int scanCpuLimit();
     bool restoreQuarantinedItem(const QString &threatName);
     bool removeQuarantinedItem(const QString &threatName);
     bool purgeAllQuarantine();
-
-    // Mutual coexistence & Notification suppression
-    bool ensureMutualExclusions();
-    bool suppressDefenderPopups();
-    bool hijackDefenderTrayAndSettings();
 
 signals:
     void scanStarted(const QString &scanType);
@@ -104,6 +118,10 @@ signals:
     void signaturesUpdated(bool success, const QString &version);
     void protectionStateChanged(bool enabled);
 
+#ifdef MULTIGUARD_TESTING
+public:
+    void setScanExecutableForTests(const QString &path) { m_mpCmdRunPath = path; }
+#endif
 private slots:
     void onProcessReadyRead();
     void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
@@ -114,8 +132,10 @@ private:
     ~DefenderEngine() override;
 
     void locateMpCmdRun();
-    static QString runPowerShellCommand(const QString &command);
+    QString runPowerShellCommand(const QString &command, bool *ok = nullptr);
     void startNextCustomTarget();
+    void launchScan(const QStringList &args);
+    void finishScan();
 
     QString   m_mpCmdRunPath;
     bool      m_isScanning = false;
@@ -124,7 +144,12 @@ private:
 
     ScanMode m_currentMode = Quick;
     QList<ThreatInfo> m_detectedThreats;
-    int m_simulatedPercent = 0;
+    QString m_processOutput;
+    QString m_lastError;
+    QSet<QString> m_seenDetectionIds;
+    bool m_cancelled = false;
+    bool m_hadError = false;
+    qint64 m_startedAt = 0;
 
     QStringList m_pendingCustomPaths;
     int m_totalCustomPaths = 0;

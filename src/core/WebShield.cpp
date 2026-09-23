@@ -4,6 +4,7 @@
 #include "LicenseManager.h"
 
 #include <QFile>
+#include <QSaveFile>
 #include <QFileInfo>
 #include <QDir>
 #include <QTextStream>
@@ -105,7 +106,7 @@ bool WebShield::isProtectionActive() const
 {
     QFile f(hostsFilePath());
     if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        return Settings::instance().webShield();
+        return false;
     }
     const QString content = QString::fromUtf8(f.readAll());
     return content.contains(QLatin1String(kShieldStartTag));
@@ -116,13 +117,11 @@ bool WebShield::isEnabled() const
     return Settings::instance().webShield() && isProtectionActive();
 }
 
-void WebShield::setEnabled(bool enable)
+bool WebShield::setEnabled(bool enable)
 {
-    if (enable) {
-        applyBlocklist();
-    } else {
-        removeBlocklist();
-    }
+    const bool ok = enable ? applyBlocklist() : removeBlocklist();
+    if (ok) Settings::instance().setWebShield(enable);
+    return ok;
 }
 
 bool WebShield::applyBlocklist()
@@ -133,12 +132,8 @@ bool WebShield::applyBlocklist()
     }
 
     const QString hPath = hostsFilePath();
-    createBackup(hPath);
+    if (!createBackup(hPath)) return false;
 
-#ifdef Q_OS_WIN
-    SetFileAttributesW(reinterpret_cast<LPCWSTR>(hPath.utf16()), FILE_ATTRIBUTE_NORMAL);
-#endif
-    QFile::setPermissions(hPath, QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::WriteGroup | QFile::ReadOther);
 
     QFile inFile(hPath);
     if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -172,7 +167,8 @@ bool WebShield::applyBlocklist()
 
     content += block;
 
-    QFile outFile(hPath);
+    QSaveFile outFile(hPath);
+    outFile.setDirectWriteFallback(false);
     if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
         Logger::error(QStringLiteral("WebShield: Cannot write hosts file at %1 (Administrator privileges required)")
                       .arg(hPath));
@@ -182,7 +178,8 @@ bool WebShield::applyBlocklist()
     QTextStream ts(&outFile);
     ts.setCodec("UTF-8");
     ts << content;
-    outFile.close();
+    ts.flush();
+    if (ts.status() != QTextStream::Ok || !outFile.commit()) return false;
 
 #ifdef Q_OS_WIN
     // Flush Windows DNS resolver cache immediately so new DNS blocks apply
@@ -199,10 +196,6 @@ bool WebShield::removeBlocklist()
 {
     const QString hPath = hostsFilePath();
 
-#ifdef Q_OS_WIN
-    SetFileAttributesW(reinterpret_cast<LPCWSTR>(hPath.utf16()), FILE_ATTRIBUTE_NORMAL);
-#endif
-    QFile::setPermissions(hPath, QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::WriteGroup | QFile::ReadOther);
 
     QFile inFile(hPath);
     if (!inFile.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -223,7 +216,8 @@ bool WebShield::removeBlocklist()
                           QRegularExpression::DotMatchesEverythingOption);
     content.remove(re);
 
-    QFile outFile(hPath);
+    QSaveFile outFile(hPath);
+    outFile.setDirectWriteFallback(false);
     if (!outFile.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
         Logger::error(QStringLiteral("WebShield: Failed to restore clean hosts file at %1").arg(hPath));
         return false;
@@ -232,7 +226,8 @@ bool WebShield::removeBlocklist()
     QTextStream ts(&outFile);
     ts.setCodec("UTF-8");
     ts << content;
-    outFile.close();
+    ts.flush();
+    if (ts.status() != QTextStream::Ok || !outFile.commit()) return false;
 
 #ifdef Q_OS_WIN
     // Flush Windows DNS resolver cache immediately
