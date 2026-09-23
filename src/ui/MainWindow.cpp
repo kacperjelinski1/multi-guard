@@ -4480,7 +4480,7 @@ void MainWindow::initSettingsTabs()
         connect(cb, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, cb](int idx){
             QString lang = cb->itemData(idx).toString();
             Settings::instance().setLanguage(lang);
-            Translator::instance().loadLanguage(lang);
+            Translator::instance().install(lang);
             Toaster::show(this, tr("Język został zmieniony na: %1").arg(cb->currentText()), Toaster::Success);
         });
     }

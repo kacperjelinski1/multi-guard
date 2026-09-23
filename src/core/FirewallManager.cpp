@@ -265,6 +265,14 @@ QVector<RealConnectionItem> FirewallManager::loadActiveConnections()
                 ci.remoteAddress = parts[2].trimmed();
                 ci.state = parts[3].trimmed();
                 ci.pid = parts[4].trimmed().toInt();
+                ci.direction = (ci.remoteAddress.startsWith(QStringLiteral("0.0.0.0")) ||
+                                ci.remoteAddress.startsWith(QStringLiteral("[::]")) ||
+                                ci.state.contains(QStringLiteral("Listen"), Qt::CaseInsensitive))
+                               ? QStringLiteral("IN") : QStringLiteral("OUT");
+                ci.status = ci.state.contains(QStringLiteral("Established"), Qt::CaseInsensitive)
+                               ? QStringLiteral("🟢 Aktywne")
+                               : (ci.state.contains(QStringLiteral("Listen"), Qt::CaseInsensitive)
+                                  ? QStringLiteral("🟡 Nasłuch") : ci.state);
                 items.append(ci);
             }
         }

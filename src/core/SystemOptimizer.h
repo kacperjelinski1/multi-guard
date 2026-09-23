@@ -22,6 +22,7 @@ public:
 
     QList<CleanItem> scanSystem();
     qint64 cleanItems(const QStringList &categoryIds);
+    void optimizeMemory();
 
     // File Shredder
     static bool shredFile(const QString &path, std::function<void(int)> progressCb = nullptr);

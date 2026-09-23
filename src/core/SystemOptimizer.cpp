@@ -23,6 +23,13 @@ SystemOptimizer& SystemOptimizer::instance()
     return s_inst;
 }
 
+void SystemOptimizer::optimizeMemory()
+{
+#ifdef Q_OS_WIN
+    SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
+#endif
+}
+
 QString SystemOptimizer::formatBytes(qint64 bytes)
 {
     if (bytes < 1024)

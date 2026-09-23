@@ -15,6 +15,7 @@ public:
     // Loads the .qm file for the given language code ("en" or "ar"),
     // installs it on QApplication, and toggles layoutDirection.
     void install(const QString &code);
+    void loadLanguage(const QString &code) { install(code); }
 
     QString currentLanguage() const { return m_current; }
     bool    isRtl() const           { return false; }

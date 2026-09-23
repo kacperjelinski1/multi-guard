@@ -18,9 +18,11 @@ struct FirewallRuleItem {
 
 struct RealConnectionItem {
     QString processName;
+    QString direction; // "IN" / "OUT"
     QString localAddress;
     QString remoteAddress;
     QString state;
+    QString status;
     int pid = 0;
 };
 
