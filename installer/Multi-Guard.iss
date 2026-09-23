@@ -2,7 +2,7 @@
 ; Developed by Multi-Servis (https://multi-servis.pl)
 
 #define MyAppName "Multi-Guard"
-#define MyAppVersion "2.0.2.1"
+#define MyAppVersion "2.0.3.0"
 #define MyAppPublisher "Multi-Servis"
 #define MyAppURL "https://multi-servis.pl"
 #define MyAppExeName "Multi-Guard.exe"
@@ -79,7 +79,12 @@ Filename: "{app}\{#MyAppExeName}"; Parameters: "--tray"; Description: "{cm:Launc
 
 [UninstallRun]
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""Multi-Guard"" /F"; Flags: runhidden
-Filename: "powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ""Remove-MpPreference -ExclusionPath '{app}' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionPath '{commonappdata}\Multi-Guard' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionProcess 'Multi-Guard.exe' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionProcess '{app}\{#MyAppExeName}' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionExtension '.mgvault' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionExtension '.mgenc' -ErrorAction SilentlyContinue"""; Flags: runhidden
+Filename: "powershell.exe"; Parameters: "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command ""Remove-MpPreference -ExclusionPath '{app}' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionPath '{commonappdata}\Multi-Guard' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionProcess 'Multi-Guard.exe' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionProcess '{app}\{#MyAppExeName}' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionExtension '.mgvault' -ErrorAction SilentlyContinue; Remove-MpPreference -ExclusionExtension '.mgenc' -ErrorAction SilentlyContinue; Set-MpPreference -DisableNotificationOptions 0 -ErrorAction SilentlyContinue; Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Reporting' -Name 'DisableEnhancedNotifications' -Force -ErrorAction SilentlyContinue; Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications' -Name 'DisableNotifications' -Force -ErrorAction SilentlyContinue; Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Notifications' -Name 'DisableEnhancedNotifications' -Force -ErrorAction SilentlyContinue; Remove-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender Security Center\Systray' -Name 'HideSystray' -Force -ErrorAction SilentlyContinue; Remove-Item -Path 'HKCU:\Software\Classes\windowsdefender' -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item -Path 'HKLM:\SOFTWARE\Google\Chrome\Extensions\multiguard_webshield' -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item -Path 'HKLM:\SOFTWARE\WOW6432Node\Google\Chrome\Extensions\multiguard_webshield' -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item -Path 'HKLM:\SOFTWARE\Microsoft\Edge\Extensions\multiguard_webshield' -Recurse -Force -ErrorAction SilentlyContinue; Remove-Item -Path 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\Edge\Extensions\multiguard_webshield' -Recurse -Force -ErrorAction SilentlyContinue; netsh advfirewall firewall delete rule name='Multi-Guard Core Security Hub' 2>&1 | Out-Null; Start-Process -FilePath """"$env:windir\System32\SecurityHealthSystray.exe"""" -ErrorAction SilentlyContinue"""; Flags: runhidden
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{commonappdata}\Multi-Guard"
+Type: filesandordirs; Name: "{userappdata}\Multi-Guard"
+Type: filesandordirs; Name: "{app}"
 
 [Code]
 var
@@ -233,5 +238,17 @@ begin
     if WizardSilent then begin
       Exec(ExpandConstant('{app}\{#MyAppExeName}'), '', '', SW_SHOWNORMAL, ewNoWait, ResultCode);
     end;
+  end;
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  ResultCode: Integer;
+begin
+  if CurUninstallStep = usPostUninstall then begin
+    RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, 'SOFTWARE\Multi-Guard');
+    RegDeleteKeyIncludingSubkeys(HKEY_LOCAL_MACHINE, 'SOFTWARE\WOW6432Node\Multi-Guard');
+    RegDeleteKeyIncludingSubkeys(HKEY_CURRENT_USER, 'Software\Multi-Guard');
+    Exec('powershell.exe', '-NoProfile -Command "Start-Process $env:windir\System32\SecurityHealthSystray.exe -ErrorAction SilentlyContinue"', '', SW_HIDE, ewNoWait, ResultCode);
   end;
 end;

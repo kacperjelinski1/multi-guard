@@ -1,12 +1,16 @@
-2.0.2.1
-Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-2.0.2.1.exe
+2.0.3.0
+Url=>https://github.com/kacperjelinski1/multi-guard/releases/latest/download/Multi-Guard-Setup-2.0.3.0.exe
 Changelog=>
-Multi-Guard Endpoint Security 2.0.2.1:
-- Naprawa instalatora: bezpieczna rejestracja wykluczeń przez PowerShell Add-MpPreference bez błędów uprawnień rejestru (kod 5 / odmowa dostępu)
-- Pełna zgodność instalatora z Windows Defender Tamper Protection na Windows 10 i 11
-- W 100% asynchroniczna aktualizacja definicji Microsoft w tle (zero zawieszania GUI)
-- Autostart bez denerwującego monitu UAC przez Harmonogram Zadań Windows (schtasks /RL HIGHEST)
-- Eleganckie systemowe dymki powiadomień w zasobniku (Windows Tray Toasts)
-- Wskaźnik lekkości pamięci RAM Multi-Guard (~28 MB, < 0.1% CPU) w zakładce Narzędzia
+Multi-Guard Endpoint Security 2.0.3.0:
+- Dynamiczne, pełne dopasowanie panoramy gór (Dashboard) bez żadnych przerw na dole okna
+- Naprawa podwójnego języka polskiego i czyste przełączanie Polski / English
+- Eliminacja nakładających się powiadomień Toaster na ekranie
+- Działające zakładki w Ustawieniach z 6 dedykowanymi podstronami
+- Działające zakładki w Zaporze ogniowej i odczyt rzeczywistych połączeń sieciowych (brak fałszywych procesów)
+- Realne włączanie i wyłączanie Zapory Windows Defender przez PowerShell i netsh
+- Poprawa detekcji przeglądarek w Ochronie WWW (prawidłowy stan Firefoksa/Edge)
+- Działający przycisk startu skanowania na karcie wyboru oraz płynna animacja paska postępu Defender
+- Szybka optymalizacja w zakładce Wydajność w miejscu (bez dublujących się okien)
+- Zaktualizowana wersja 2.0.3.0 w stopce i oknie O programie
 
 

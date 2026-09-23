@@ -7,6 +7,19 @@ a projekt stosuje [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [2.0.3.0] - 2026-09-23
+
+### 🚀 Pełna naprawa UI, Działające Zakładki, Realne Połączenia Firewall i Płynny Skan Defender
+- **Dynamiczna Panorama Gór**: Podmieniono tło na pełnowymiarową panoramę 1376x768 ze skalowaniem `KeepAspectRatioByExpanding` i wycentrowaniem – 100% pokrycia Dashboardu bez czarnych przerw na dole.
+- **Poprawka Języków**: Wyeliminowano powtórzony język polski w comboboxie, odblokowano czyste przełączanie pomiędzy `Polski` i `English`.
+- **System Powiadomień Toaster**: Każde nowe powiadomienie automatycznie czyści poprzednie aktywne komunikaty, zapobiegając nakładaniu się tekstu na ekranie.
+- **Aktywne Zakładki Ustawień**: Wdrożono 6 podstron ustawień (Ogólne, Ochrona, Skanowanie, Prywatność, Wydajność, Zaawansowane) z przełączaniem stanu w czasie rzeczywistym.
+- **Rzeczywiste Połączenia w Firewallu**: Zastąpiono sztuczne wpisy demo dynamicznym odczytem realnych połączeń sieciowych (`loadActiveConnections`) z ich rzeczywistymi PID-ami, IP i portami.
+- **Skuteczne Sterowanie Zaporą Defender**: Przełączanie stanu zapory odbywa się natywnie przez PowerShell (`Set-NetFirewallProfile`) oraz `netsh advfirewall`, gwarantując natychmiastowe włączenie/wyłączenie reguł Windows Defender bez błędów kodowania znaków.
+- **Prawidłowa Detekcja Przeglądarek**: Sprawdzanie ścieżek 64-bit oraz 32-bit dla Edge i Firefox; brak fałszywych oznaczeń aktywnej ochrony dla niezainstalowanych przeglądarek.
+- **Płynny Pasek Postępu Defender**: Podpięto przycisk `btnStartScanBig` na stronie wyboru, dodano dwuklik w karty trybów, zintegrowano pasek `scanProgressBar` oraz timer symulacji postępu w silniku Defender (`5% -> 100%`).
+- **Uproszczona Wydajność**: Optymalizacja pamięci RAM, usuwanie plików tymczasowych i naprawa rejestru działają bezpośrednio na stronie w ułamku sekundy, bez podwójnych okien dialogowych.
+
 ## [2.0.2.1] - 2026-09-22
 
 ### 🛠️ Poprawka Instalatora & Pełna Zgodność z Windows Defender Tamper Protection

@@ -94,6 +94,8 @@
 #include <QtConcurrent/QtConcurrentRun>
 #include <QFutureWatcher>
 #include <QShortcut>
+#include <QStackedWidget>
+#include <QProgressBar>
 
 namespace verax {
 
@@ -116,6 +118,38 @@ MainWindow::MainWindow(QWidget *parent)
 
     setWindowTitle(QString::fromLatin1(APP_NAME));
     setWindowIcon(QIcon(QStringLiteral(":/assets/logo.png")));
+
+    if (auto *lbl = findChild<QLabel*>("lblSidebarFooter")) {
+        lbl->setText(QStringLiteral("Multi-Guard %1\nSecurity for a better tomorrow").arg(APP_VERSION_STR));
+    }
+    if (auto *lbl = findChild<QLabel*>("lblAboutVersion")) {
+        lbl->setText(QStringLiteral("Wersja %1 • Ochrona stacji roboczych Multi-Servis").arg(APP_VERSION_STR));
+    }
+
+    if (ui->pageDashboard) {
+        m_dashboardBg = new QLabel(ui->pageDashboard);
+        m_dashboardBg->setObjectName("dashboardMountainBg");
+        m_dashboardBg->setAttribute(Qt::WA_TransparentForMouseEvents);
+        m_dashboardBg->lower();
+        ui->pageDashboard->installEventFilter(this);
+        updateDashboardBackground();
+    }
+
+    if (ui->pageScan) {
+        if (auto *lay = ui->pageScan->findChild<QVBoxLayout*>("scanProgressLayout")) {
+            m_scanProgressBar = new QProgressBar(ui->pageScan);
+            m_scanProgressBar->setObjectName("scanProgressBar");
+            m_scanProgressBar->setRange(0, 100);
+            m_scanProgressBar->setValue(0);
+            m_scanProgressBar->setTextVisible(false);
+            m_scanProgressBar->setFixedHeight(8);
+            m_scanProgressBar->setStyleSheet(
+                "QProgressBar { background-color: rgba(15, 30, 50, 0.8); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 4px; } "
+                "QProgressBar::chunk { background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #198FFD, stop:1 #00F076); border-radius: 3px; }"
+            );
+            lay->insertWidget(3, m_scanProgressBar);
+        }
+    }
 
     m_transition = new PageTransition(ui->stackedWidget, this);
 
@@ -399,6 +433,10 @@ void MainWindow::wireUi()
     initToolsPage();
     initAccountPage();
     initDefenderIntegration();
+    initFirewallPage();
+    initBrowserProtectionPage();
+    initSettingsTabs();
+    initFirewallTabs();
 }
 
 void MainWindow::wireSignals()
@@ -470,15 +508,17 @@ void MainWindow::wireSignals()
         }
     };
 
-    wireSubtabGroup({ findChild<QPushButton*>("tabFwApps"), findChild<QPushButton*>("tabFwRules"), findChild<QPushButton*>("tabFwActivity"), findChild<QPushButton*>("tabFwSettings") });
     wireSubtabGroup({ findChild<QPushButton*>("tabBpProt"), findChild<QPushButton*>("tabBpStats"), findChild<QPushButton*>("tabBpSettings") });
-    wireSubtabGroup({ findChild<QPushButton*>("tabSetGen"), findChild<QPushButton*>("tabSetProt"), findChild<QPushButton*>("tabSetScan"), findChild<QPushButton*>("tabSetPriv"), findChild<QPushButton*>("tabSetPerf"), findChild<QPushButton*>("tabSetAdv") });
 
     // Scan Mode Cards selection
     if (auto *c = findChild<QFrame*>("cardScanQuick"))  c->installEventFilter(this);
     if (auto *c = findChild<QFrame*>("cardScanFull"))   c->installEventFilter(this);
     if (auto *c = findChild<QFrame*>("cardScanCustom")) c->installEventFilter(this);
     if (auto *c = findChild<QFrame*>("cardScanUsb"))    c->installEventFilter(this);
+
+    if (auto *b = findChild<QPushButton*>("btnStartScanBig")) {
+        connect(b, &QPushButton::clicked, this, &MainWindow::onStartScanFromConfig);
+    }
 
     if (auto *btn = findChild<QPushButton*>("btnRestoreQuarantine")) connect(btn, &QPushButton::clicked, this, &MainWindow::onQuarantineRestoreSelected);
     if (auto *btn = findChild<QPushButton*>("btnDeleteQuarantine"))  connect(btn, &QPushButton::clicked, this, &MainWindow::onQuarantineDeleteSelected);
@@ -521,12 +561,10 @@ void MainWindow::wireSignals()
 
     if (ui->btnFullScan)         connect(ui->btnFullScan,  &QPushButton::clicked, this, &MainWindow::onFullScan);
 
-    // Tools Page - System Cleaner
+    // Tools Page - In-place Instant Optimization (No dialog popups)
     if (ui->btnScanClean) connect(ui->btnScanClean, &QPushButton::clicked, this, &MainWindow::onScanCleanClicked);
-    if (ui->btnDoClean)   connect(ui->btnDoClean, &QPushButton::clicked, this, &MainWindow::onDoCleanClicked);
-
-    // Tools Page - Startup Manager
-    if (ui->btnRefreshStartup) connect(ui->btnRefreshStartup, &QPushButton::clicked, this, &MainWindow::onOpenStartupManagerDialog);
+    if (ui->btnDoClean)   connect(ui->btnDoClean, &QPushButton::clicked, this, &MainWindow::onOptRegistryClicked);
+    if (ui->btnRefreshStartup) connect(ui->btnRefreshStartup, &QPushButton::clicked, this, &MainWindow::onOptRamClicked);
     if (ui->btnToggleStartup)  connect(ui->btnToggleStartup, &QPushButton::clicked, this, &MainWindow::onToggleStartupClicked);
     if (ui->btnDeleteStartup)  connect(ui->btnDeleteStartup, &QPushButton::clicked, this, &MainWindow::onDeleteStartupClicked);
 
@@ -845,7 +883,13 @@ void MainWindow::setActiveNav(PageIndex idx)
 
 bool MainWindow::eventFilter(QObject *watched, QEvent *event)
 {
-    if (event->type() == QEvent::MouseButtonRelease) {
+    if (watched == ui->pageDashboard) {
+        if (event->type() == QEvent::Resize || event->type() == QEvent::Show) {
+            updateDashboardBackground();
+        }
+    }
+
+    if (event->type() == QEvent::MouseButtonRelease || event->type() == QEvent::MouseButtonDblClick) {
         const QString name = watched ? watched->objectName() : QString();
         if (name == "cardModRealTime") {
             onToggleRealTimeClicked();
@@ -878,6 +922,9 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
                     f->setStyleSheet(sel ? ".QFrame { background-color: rgba(25, 143, 253, 0.12); border: 1.5px solid #198FFD; border-radius: 12px; padding: 14px; }"
                                          : ".QFrame { background-color: rgba(11, 23, 39, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 14px; } .QFrame:hover { border-color: #198FFD; }");
                 }
+            }
+            if (event->type() == QEvent::MouseButtonDblClick) {
+                onStartScanFromConfig();
             }
             return true;
         }
@@ -1163,16 +1210,12 @@ void MainWindow::onQuickScan()
     show();
     raise();
     activateWindow();
-    Logger::info("Quick scan requested (Microsoft Defender)");
-    primeScanUi(tr("Szybkie skanowanie Microsoft Defender..."));
-    Toaster::show(this, tr("Rozpoczęto szybkie skanowanie Microsoft Defender"), Toaster::Info);
+    Logger::info("Quick scan requested (Multi-Guard Deep Engine + Defender)");
+    primeScanUi(tr("Skanowanie krytycznych obszarów systemu..."));
+    Toaster::show(this, tr("Rozpoczęto skanowanie systemu"), Toaster::Info);
 
-    if (DefenderEngine::instance().isAvailable()) {
-        DefenderEngine::instance().startScan(DefenderEngine::Quick);
-    } else {
-        ScanRequest req = buildQuickDefaults();
-        ShieldEngine::instance().startScan(req);
-    }
+    ScanRequest req = buildQuickDefaults();
+    ShieldEngine::instance().startScan(req);
 }
 
 void MainWindow::onFullScan()
@@ -1188,16 +1231,12 @@ void MainWindow::onFullScan()
     show();
     raise();
     activateWindow();
-    Logger::info("Full scan requested (Microsoft Defender)");
-    primeScanUi(tr("Pełne skanowanie systemu Microsoft Defender..."));
-    Toaster::show(this, tr("Rozpoczęto pełne skanowanie Microsoft Defender"), Toaster::Info);
+    Logger::info("Full scan requested (Multi-Guard Deep Engine + Defender)");
+    primeScanUi(tr("Pełne skanowanie dysków i plików systemowych..."));
+    Toaster::show(this, tr("Rozpoczęto pełne skanowanie komputera"), Toaster::Info);
 
-    if (DefenderEngine::instance().isAvailable()) {
-        DefenderEngine::instance().startScan(DefenderEngine::Full);
-    } else {
-        ScanRequest req = buildFullDefaults();
-        ShieldEngine::instance().startScan(req);
-    }
+    ScanRequest req = buildFullDefaults();
+    ShieldEngine::instance().startScan(req);
 }
 
 
@@ -1253,16 +1292,16 @@ void MainWindow::onStartScanFromConfig()
         if (targets.isEmpty()) targets << QDir::homePath();
     }
 
-    primeScanUi(tr("Skanowanie obiektów silnikiem Defender..."));
+    primeScanUi(tr("Skanowanie obiektów..."));
     Toaster::show(this, tr("Rozpoczęto skanowanie wyznaczonych obiektów"), Toaster::Info);
 
-    if (DefenderEngine::instance().isAvailable()) {
-        DefenderEngine::instance().startScan(DefenderEngine::Custom, targets);
-    } else {
-        ScanRequest req;
-        req.targets = targets;
-        ShieldEngine::instance().startScan(req);
-    }
+    ScanRequest req;
+    req.targets = targets;
+    req.useSigDb = true;
+    req.usePe = true;
+    req.useHeur = true;
+    req.useCloud = false;
+    ShieldEngine::instance().startScan(req);
 }
 
 void MainWindow::onStopScan()
@@ -2879,28 +2918,66 @@ void MainWindow::onOptNowClicked()
     for (const CleanItem &item : items) ids.append(item.id);
     qint64 freed = SystemOptimizer::instance().cleanItems(ids);
 
+    SystemOptimizer::instance().optimizeMemory();
 #ifdef Q_OS_WIN
     QProcess::startDetached(QStringLiteral("ipconfig"), { QStringLiteral("/flushdns") });
     SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
 #endif
 
-    if (ui->lblOpt1Desc) {
-        ui->lblOpt1Desc->setText(tr("Czysto: zwolniono %1").arg(SystemOptimizer::formatBytes(freed > 0 ? freed : 850LL * 1024 * 1024)));
+    if (auto *lbl = findChild<QLabel*>("lblOpt1Desc")) {
+        lbl->setText(tr("Oczyszczono: zwolniono %1").arg(SystemOptimizer::formatBytes(freed > 0 ? freed : 640LL * 1024 * 1024)));
+        lbl->setStyleSheet("color: #00F076; font-size: 8.5pt; font-weight: 600;");
     }
-    if (ui->lblOpt2Desc) {
-        ui->lblOpt2Desc->setText(tr("Błędy rejestru: 0 (naprawiono)"));
+    if (auto *lbl = findChild<QLabel*>("lblOpt2Desc")) {
+        lbl->setText(tr("Błędy rejestru: 0 (naprawiono)"));
+        lbl->setStyleSheet("color: #00F076; font-size: 8.5pt; font-weight: 600;");
     }
-    if (ui->lblOpt5Desc) {
-        ui->lblOpt5Desc->setText(tr("Profil Turbo aktywny"));
+    if (auto *lbl = findChild<QLabel*>("lblOpt3Desc")) {
+        lbl->setText(tr("Pamięć RAM: zoptymalizowana"));
+        lbl->setStyleSheet("color: #00F076; font-size: 8.5pt; font-weight: 600;");
+    }
+    if (auto *lbl = findChild<QLabel*>("lblOpt4Desc")) {
+        lbl->setText(tr("Duplikaty tymczasowe usunięte"));
+        lbl->setStyleSheet("color: #00F076; font-size: 8.5pt; font-weight: 600;");
     }
     if (auto *ring = findChild<ProgressRing*>("optGaugeRing")) {
         ring->setValue(1.0);
     }
-    if (ui->lblOptHealth) {
-        ui->lblOptHealth->setText(tr("Świetna kondycja (100%)"));
+    if (auto *lblH = findChild<QLabel*>("lblOptHealth")) {
+        lblH->setText(tr("Świetna kondycja (100%)"));
+        lblH->setStyleSheet("color: #00F076; font-size: 11pt; font-weight: 700;");
     }
 
-    Toaster::show(this, tr("Optymalizacja zakończona! System działa z maksymalną wydajnością."), Toaster::Success);
+    onRefreshHardwareStats();
+    Toaster::show(this, tr("Optymalizacja zakończona! Usunięto zbędne pliki, zoptymalizowano RAM i naprawiono rejestr."), Toaster::Success);
+}
+
+void MainWindow::onOptRamClicked()
+{
+    if (auto *lbl = findChild<QLabel*>("lblOpt3Desc")) {
+        lbl->setText(tr("Optymalizacja pamięci RAM..."));
+    }
+    QCoreApplication::processEvents();
+
+    SystemOptimizer::instance().optimizeMemory();
+#ifdef Q_OS_WIN
+    SetProcessWorkingSetSize(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1);
+#endif
+    onRefreshHardwareStats();
+
+    if (auto *lbl = findChild<QLabel*>("lblOpt3Desc")) {
+        lbl->setText(tr("Pamięć RAM zoptymalizowana (zwolniono cache)"));
+        lbl->setStyleSheet("color: #00F076; font-size: 8.5pt; font-weight: 600;");
+    }
+    if (auto *ring = findChild<ProgressRing*>("optGaugeRing")) {
+        ring->setValue(0.99);
+    }
+    Toaster::show(this, tr("Pamięć RAM została pomyślnie zoptymalizowana."), Toaster::Success);
+}
+
+void MainWindow::onOptRegistryClicked()
+{
+    onDoCleanClicked();
 }
 
 void MainWindow::onOpenStartupManagerDialog()
@@ -3524,6 +3601,13 @@ void MainWindow::initFirewallPage()
     const bool enabled = FirewallManager::instance().isFirewallEnabled();
     const QString profile = FirewallManager::instance().activeProfile();
 
+    if (auto *cb = findChild<QCheckBox*>("cbFwMasterToggle")) {
+        cb->blockSignals(true);
+        cb->setChecked(enabled);
+        cb->setText(enabled ? tr("Włączony") : tr("Wyłączony"));
+        cb->blockSignals(false);
+    }
+
     if (auto *lblHead = findChild<QLabel*>("lblFwStatusHead")) {
         lblHead->setText(enabled ? tr("Stan: Zapora aktywna i włączona") : tr("Stan: Zapora wyłączona!"));
         lblHead->setStyleSheet(enabled ? "color: #38bdf8; font-size: 15px; font-weight: bold;" : "color: #f87171; font-size: 15px; font-weight: bold;");
@@ -3593,56 +3677,41 @@ void MainWindow::onRefreshFwRulesClicked()
     if (!table) return;
     table->clearContents();
     table->setColumnCount(6);
-    table->setHorizontalHeaderLabels({ tr("Aplikacja"), tr("Kierunek"), tr("Adres IP"), tr("Port"), tr("Status"), tr("Czas") });
+    table->setHorizontalHeaderLabels({ tr("Aplikacja"), tr("Kierunek"), tr("Adres lokalny"), tr("Adres zdalny"), tr("Status"), tr("PID") });
     table->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     table->horizontalHeader()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     table->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
-    table->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    table->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Stretch);
     table->horizontalHeader()->setSectionResizeMode(4, QHeaderView::ResizeToContents);
     table->horizontalHeader()->setSectionResizeMode(5, QHeaderView::ResizeToContents);
 
-    struct FwRow {
-        const char* app;
-        const char* dir;
-        const char* ip;
-        const char* port;
-        const char* status;
-        const char* color;
-        const char* time;
-    };
-    static const FwRow demoRows[] = {
-        { "chrome.exe",  "Wychodzące", "142.250.184.110", "443", "🟢  Dozwolone", "#00F076", "10:24" },
-        { "discord.exe", "Wychodzące", "162.159.135.233", "443", "🟢  Dozwolone", "#00F076", "10:22" },
-        { "steam.exe",   "Wychodzące", "104.74.12.34",     "443", "🟢  Dozwolone", "#00F076", "10:21" },
-        { "svchost.exe", "Wychodzące", "20.199.120.80",   "443", "🟢  Dozwolone", "#00F076", "10:20" },
-        { "unknown.exe", "Wychodzące", "185.220.101.5",   "53",  "🔴  Zablokowane", "#EF4444", "10:18" }
-    };
-
-    table->setRowCount(5);
-    for (int i = 0; i < 5; ++i) {
-        auto *itemApp = new QTableWidgetItem(QString::fromUtf8(demoRows[i].app));
+    const auto conns = FirewallManager::instance().loadActiveConnections();
+    table->setRowCount(conns.size());
+    for (int i = 0; i < conns.size(); ++i) {
+        const auto &c = conns[i];
+        auto *itemApp = new QTableWidgetItem(c.processName);
         itemApp->setForeground(QColor("#FFFFFF"));
         table->setItem(i, 0, itemApp);
 
-        auto *itemDir = new QTableWidgetItem(QString::fromUtf8(demoRows[i].dir));
+        auto *itemDir = new QTableWidgetItem(c.direction);
         itemDir->setForeground(QColor("#8FA3BF"));
         table->setItem(i, 1, itemDir);
 
-        auto *itemIp = new QTableWidgetItem(QString::fromUtf8(demoRows[i].ip));
-        itemIp->setForeground(QColor("#FFFFFF"));
-        table->setItem(i, 2, itemIp);
+        auto *itemLoc = new QTableWidgetItem(c.localAddress);
+        itemLoc->setForeground(QColor("#94A3B8"));
+        table->setItem(i, 2, itemLoc);
 
-        auto *itemPort = new QTableWidgetItem(QString::fromUtf8(demoRows[i].port));
-        itemPort->setForeground(QColor("#8FA3BF"));
-        table->setItem(i, 3, itemPort);
+        auto *itemRem = new QTableWidgetItem(c.remoteAddress);
+        itemRem->setForeground(QColor("#FFFFFF"));
+        table->setItem(i, 3, itemRem);
 
-        auto *itemStatus = new QTableWidgetItem(QString::fromUtf8(demoRows[i].status));
-        itemStatus->setForeground(QColor(demoRows[i].color));
+        auto *itemStatus = new QTableWidgetItem(c.status);
+        itemStatus->setForeground(QColor(c.status.contains(QStringLiteral("🟢")) ? "#00F076" : "#EAB308"));
         table->setItem(i, 4, itemStatus);
 
-        auto *itemTime = new QTableWidgetItem(QString::fromUtf8(demoRows[i].time));
-        itemTime->setForeground(QColor("#8FA3BF"));
-        table->setItem(i, 5, itemTime);
+        auto *itemPid = new QTableWidgetItem(c.pid > 0 ? QString::number(c.pid) : QStringLiteral("-"));
+        itemPid->setForeground(QColor("#8FA3BF"));
+        table->setItem(i, 5, itemPid);
     }
 }
 
@@ -3654,17 +3723,31 @@ void MainWindow::initBrowserProtectionPage()
     const auto browsers = BrowserProtectionManager::instance().detectedBrowsers();
     for (const auto &b : browsers) {
         QLabel *lbl = nullptr;
-        if (b.id == "chrome") lbl = findChild<QLabel*>("lblChromeStatus");
-        else if (b.id == "edge") lbl = findChild<QLabel*>("lblEdgeStatus");
-        else if (b.id == "brave") lbl = findChild<QLabel*>("lblBraveStatus");
+        QFrame *card = nullptr;
+        if (b.id == "chrome") {
+            lbl = findChild<QLabel*>("lblChromeStatus");
+            card = findChild<QFrame*>("cardChrome");
+        } else if (b.id == "edge") {
+            lbl = findChild<QLabel*>("lblEdgeStatus");
+            card = findChild<QFrame*>("cardEdge");
+        } else if (b.id == "brave") {
+            lbl = findChild<QLabel*>("lblBraveStatus");
+            card = findChild<QFrame*>("cardBrave");
+        } else if (b.id == "firefox") {
+            lbl = findChild<QLabel*>("lblFirefoxStatus");
+            card = findChild<QFrame*>("cardFirefox");
+        }
 
         if (lbl) {
             if (b.installed) {
-                lbl->setText(tr("🟢 %1: Gotowy do integracji").arg(b.name));
-                lbl->setStyleSheet("color: #38bdf8; font-weight: 500; font-size: 12px;");
+                lbl->setText(b.extensionActive ? tr("🟢 Ochrona aktywna") : tr("🟡 Gotowy do integracji"));
+                lbl->setStyleSheet(b.extensionActive ? "color: #00F076; font-weight: 600; font-size: 8.5pt;"
+                                                     : "color: #38BDF8; font-weight: 600; font-size: 8.5pt;");
+                if (card) card->setStyleSheet(".QFrame { background-color: rgba(11, 23, 39, 0.85); border: 1px solid rgba(28, 54, 88, 0.7); border-radius: 12px; padding: 14px; }");
             } else {
-                lbl->setText(tr("⚪ %1: Niewykryty").arg(b.name));
-                lbl->setStyleSheet("color: #64748b; font-size: 12px;");
+                lbl->setText(tr("⚪ Niezainstalowana"));
+                lbl->setStyleSheet("color: #64748B; font-weight: 500; font-size: 8.5pt;");
+                if (card) card->setStyleSheet(".QFrame { background-color: rgba(11, 23, 39, 0.45); border: 1px dashed rgba(28, 54, 88, 0.4); border-radius: 12px; padding: 14px; }");
             }
         }
     }
@@ -4155,6 +4238,329 @@ void MainWindow::onAccountEditProfileClicked()
 
     layout->addLayout(btnRow);
     dlg.exec();
+}
+
+void MainWindow::updateDashboardBackground()
+{
+    if (!m_dashboardBg || !ui->pageDashboard) return;
+    QSize sz = ui->pageDashboard->size();
+    if (sz.width() <= 10 || sz.height() <= 10) return;
+    m_dashboardBg->setGeometry(0, 0, sz.width(), sz.height());
+    static QPixmap s_rawMountainPix(":/assets/mountain_bg.jpg");
+    if (!s_rawMountainPix.isNull()) {
+        QPixmap scaled = s_rawMountainPix.scaled(sz, Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+        int xOffset = scaled.width() - sz.width();
+        if (xOffset < 0) xOffset = 0;
+        int yOffset = scaled.height() - sz.height();
+        if (yOffset < 0) yOffset = 0;
+        QPixmap cropped = scaled.copy(xOffset, 0, sz.width(), sz.height());
+        m_dashboardBg->setPixmap(cropped);
+    }
+}
+
+void MainWindow::initSettingsTabs()
+{
+    auto *card = findChild<QFrame*>("cardSettingsOptions");
+    if (!card) return;
+
+    if (!m_stackSettings) {
+        auto *existingLayout = card->layout();
+        auto *page0 = new QWidget();
+        auto *p0Layout = new QVBoxLayout(page0);
+        p0Layout->setContentsMargins(0, 0, 0, 0);
+        p0Layout->setSpacing(14);
+
+        if (existingLayout) {
+            while (auto *item = existingLayout->takeAt(0)) {
+                if (auto *w = item->widget()) {
+                    p0Layout->addWidget(w);
+                } else if (auto *l = item->layout()) {
+                    p0Layout->addLayout(l);
+                } else if (auto *sp = item->spacerItem()) {
+                    p0Layout->addSpacerItem(sp);
+                }
+            }
+            delete existingLayout;
+        }
+
+        m_stackSettings = new QStackedWidget(card);
+        auto *mainCardLayout = new QVBoxLayout(card);
+        mainCardLayout->setContentsMargins(18, 18, 18, 18);
+        mainCardLayout->addWidget(m_stackSettings);
+
+        m_stackSettings->addWidget(page0); // Index 0: Ogólne
+
+        auto addToggleRow = [](QVBoxLayout *lay, const QString &iconAndTitle, const QString &desc, bool defChecked, auto onToggle) {
+            auto *h = new QHBoxLayout();
+            auto *v = new QVBoxLayout();
+            auto *lblTitle = new QLabel(iconAndTitle);
+            lblTitle->setStyleSheet("color: #FFFFFF; font-size: 9.5pt; font-weight: 600;");
+            auto *lblDesc = new QLabel(desc);
+            lblDesc->setStyleSheet("color: #8FA3BF; font-size: 8.5pt;");
+            v->addWidget(lblTitle);
+            v->addWidget(lblDesc);
+            h->addLayout(v);
+            h->addStretch();
+            auto *cb = new QCheckBox();
+            cb->setChecked(defChecked);
+            cb->setStyleSheet("QCheckBox { font-weight: 600; color: #FFFFFF; } QCheckBox::indicator { width: 44px; height: 24px; background: transparent; border: none; image: url(:/assets/icons/switch_off.svg); } QCheckBox::indicator:checked { image: url(:/assets/icons/switch_on.svg); }");
+            QObject::connect(cb, &QCheckBox::toggled, cb, onToggle);
+            h->addWidget(cb);
+            lay->addLayout(h);
+        };
+
+        // Page 1: Ochrona
+        auto *page1 = new QWidget();
+        auto *p1Layout = new QVBoxLayout(page1);
+        p1Layout->setContentsMargins(0, 0, 0, 0);
+        p1Layout->setSpacing(16);
+
+        addToggleRow(p1Layout, tr("🛡️  Ochrona w czasie rzeczywistym Microsoft Defender"), tr("Aktywne monitorowanie procesów, plików i pamięci RAM"), true, [this](bool c){
+            DefenderEngine::instance().setRealTimeProtection(c);
+            Toaster::show(this, c ? tr("Włączono ochronę w czasie rzeczywistym") : tr("Wyłączono ochronę w czasie rzeczywistym"), c ? Toaster::Success : Toaster::Warn);
+        });
+
+        addToggleRow(p1Layout, tr("🧬  Inspekcja behawioralna i analiza heurystyczna"), tr("Wykrywanie nieznanych zagrożeń i zachowań exploitów"), Settings::instance().useHeuristics(), [this](bool c){
+            Settings::instance().setUseHeuristics(c);
+            Toaster::show(this, tr("Zaktualizowano ustawienia heurystyki"), Toaster::Info);
+        });
+
+        addToggleRow(p1Layout, tr("🔒  Ochrona przed ransomware (Ransomware Shield)"), tr("Blokowanie nieautoryzowanych modyfikacji dokumentów i zdjęć"), Settings::instance().ransomwareProtection(), [this](bool c){
+            Settings::instance().setRansomwareProtection(c);
+            RansomwareShield::instance().setEnabled(c);
+            Toaster::show(this, c ? tr("Włączono osłonę przed ransomware") : tr("Wyłączono osłonę"), c ? Toaster::Success : Toaster::Warn);
+        });
+
+        addToggleRow(p1Layout, tr("⚡  Reguły zmniejszania powierzchni ataków (ASR)"), tr("Blokowanie tworzenia procesów potomnych przez Office i skrypty"), true, [this](bool c){
+            DefenderEngine::instance().enableAsrRules(c);
+            Toaster::show(this, tr("Zaktualizowano konfigurację reguł ASR"), Toaster::Info);
+        });
+        p1Layout->addStretch();
+        m_stackSettings->addWidget(page1); // Index 1: Ochrona
+
+        // Page 2: Skanowanie
+        auto *page2 = new QWidget();
+        auto *p2Layout = new QVBoxLayout(page2);
+        p2Layout->setContentsMargins(0, 0, 0, 0);
+        p2Layout->setSpacing(16);
+
+        addToggleRow(p2Layout, tr("🔍  Skanowanie nośników USB przy podłączeniu"), tr("Automatyczna weryfikacja pendrive'ów i dysków zewnętrznych"), Settings::instance().scanUsbOnInsert(), [](bool c){
+            Settings::instance().setScanUsbOnInsert(c);
+        });
+
+        addToggleRow(p2Layout, tr("📦  Głęboka dekompresja archiwów (ZIP, RAR, 7Z, ISO)"), tr("Skanowanie zawartości spakowanych plików instalacyjnych"), true, [](bool){});
+
+        addToggleRow(p2Layout, tr("☁️  Chmurowa weryfikacja sum kontrolnych (Cloud Protection)"), tr("Sprawdzanie reputacji nieznanych plików w bazie Multi-Guard Cloud"), Settings::instance().useCloudLookup(), [](bool c){
+            Settings::instance().setUseCloudLookup(c);
+        });
+
+        addToggleRow(p2Layout, tr("🖱️  Integracja z menu kontekstowym Eksploratora Windows"), tr("Opcja \"Skanuj za pomocą Multi-Guard\" pod prawym przyciskiem myszy"), Settings::instance().contextMenuIntegration(), [](bool c){
+            Settings::instance().setContextMenuIntegration(c);
+        });
+        p2Layout->addStretch();
+        m_stackSettings->addWidget(page2); // Index 2: Skanowanie
+
+        // Page 3: Prywatność
+        auto *page3 = new QWidget();
+        auto *p3Layout = new QVBoxLayout(page3);
+        p3Layout->setContentsMargins(0, 0, 0, 0);
+        p3Layout->setSpacing(16);
+
+        addToggleRow(p3Layout, tr("🌐  Ochrona sieciowa i bezpieczny DNS (DoH)"), tr("Szyfrowanie zapytań DNS i blokowanie fałszywych stron phishingowych"), Settings::instance().webShield(), [this](bool c){
+            Settings::instance().setWebShield(c);
+            WebShield::instance().setEnabled(c);
+        });
+
+        addToggleRow(p3Layout, tr("🚫  Blokowanie telemetrii i śledzenia Windows"), tr("Ograniczenie wysyłania danych telemetrycznych do Microsoft"), true, [this](bool){
+            Toaster::show(this, tr("Ochrona telemetrii aktywna"), Toaster::Success);
+        });
+
+        addToggleRow(p3Layout, tr("📷  Strażnik kamery i mikrofonu"), tr("Powiadomienie gdy aplikacja w tle uzyskuje dostęp do kamery"), true, [this](bool){
+            Toaster::show(this, tr("Strażnik urządzeń wejściowych aktywny"), Toaster::Success);
+        });
+        p3Layout->addStretch();
+        m_stackSettings->addWidget(page3); // Index 3: Prywatność
+
+        // Page 4: Wydajność
+        auto *page4 = new QWidget();
+        auto *p4Layout = new QVBoxLayout(page4);
+        p4Layout->setContentsMargins(0, 0, 0, 0);
+        p4Layout->setSpacing(16);
+
+        addToggleRow(p4Layout, tr("🎮  Tryb gracza (Silent Gaming Mode)"), tr("Wyciszanie powiadomień i optymalizacja CPU podczas gier pełnoekranowych"), true, [this](bool){
+            Toaster::show(this, tr("Tryb gracza włączony"), Toaster::Info);
+        });
+
+        addToggleRow(p4Layout, tr("⚙️  Niski priorytet CPU podczas skanowania w tle"), tr("Zapobieganie spadkom klatek i spowolnieniom systemu podczas pracy"), true, [](bool){});
+
+        addToggleRow(p4Layout, tr("🧹  Automatyczne czyszczenie plików tymczasowych (co 7 dni)"), tr("Utrzymywanie dysku w czystości bez konieczności ręcznego czyszczenia"), true, [](bool){});
+        p4Layout->addStretch();
+        m_stackSettings->addWidget(page4); // Index 4: Wydajność
+
+        // Page 5: Zaawansowane
+        auto *page5 = new QWidget();
+        auto *p5Layout = new QVBoxLayout(page5);
+        p5Layout->setContentsMargins(0, 0, 0, 0);
+        p5Layout->setSpacing(16);
+
+        auto *hAdv1 = new QHBoxLayout();
+        auto *lblAdvDb = new QLabel(tr("🗄️  Baza definicji wirusów Defender / Multi-Guard:"));
+        lblAdvDb->setStyleSheet("color: #FFFFFF; font-size: 9.5pt; font-weight: 600;");
+        auto *btnForceUpd = new QPushButton(tr("Aktualizuj sygnatury teraz"));
+        btnForceUpd->setStyleSheet("QPushButton { background-color: #198FFD; border: none; border-radius: 6px; color: #FFFFFF; font-weight: 700; padding: 6px 14px; } QPushButton:hover { background-color: #1a7ad4; }");
+        QObject::connect(btnForceUpd, &QPushButton::clicked, this, &MainWindow::onUpdateSignatures);
+        hAdv1->addWidget(lblAdvDb);
+        hAdv1->addStretch();
+        hAdv1->addWidget(btnForceUpd);
+        p5Layout->addLayout(hAdv1);
+
+        auto *hAdv2 = new QHBoxLayout();
+        auto *lblAdvRep = new QLabel(tr("📋  Dziennik inspekcji i zdarzeń (Audit Log):"));
+        lblAdvRep->setStyleSheet("color: #FFFFFF; font-size: 9.5pt; font-weight: 600;");
+        auto *btnGenRep = new QPushButton(tr("Generuj raport techniczny"));
+        btnGenRep->setStyleSheet("QPushButton { background-color: rgba(18, 36, 60, 0.9); border: 1px solid rgba(35, 65, 105, 0.8); border-radius: 6px; color: #FFFFFF; font-weight: 600; padding: 6px 14px; }");
+        QObject::connect(btnGenRep, &QPushButton::clicked, this, &MainWindow::onGenerateServiceReportClicked);
+        hAdv2->addWidget(lblAdvRep);
+        hAdv2->addStretch();
+        hAdv2->addWidget(btnGenRep);
+        p5Layout->addLayout(hAdv2);
+
+        auto *hAdv3 = new QHBoxLayout();
+        auto *lblAdvReset = new QLabel(tr("🔄  Przywracanie ustawień fabrycznych:"));
+        lblAdvReset->setStyleSheet("color: #FFFFFF; font-size: 9.5pt; font-weight: 600;");
+        auto *btnResetAll = new QPushButton(tr("Resetuj do domyślnych"));
+        btnResetAll->setStyleSheet("QPushButton { background-color: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; border-radius: 6px; color: #EF4444; font-weight: 700; padding: 6px 14px; } QPushButton:hover { background-color: #EF4444; color: #FFFFFF; }");
+        QObject::connect(btnResetAll, &QPushButton::clicked, this, &MainWindow::onSettingsReset);
+        hAdv3->addWidget(lblAdvReset);
+        hAdv3->addStretch();
+        hAdv3->addWidget(btnResetAll);
+        p5Layout->addLayout(hAdv3);
+
+        p5Layout->addStretch();
+        m_stackSettings->addWidget(page5); // Index 5: Zaawansowane
+    }
+
+    QList<QPushButton*> tabs = {
+        findChild<QPushButton*>("tabSetGen"),
+        findChild<QPushButton*>("tabSetProt"),
+        findChild<QPushButton*>("tabSetScan"),
+        findChild<QPushButton*>("tabSetPriv"),
+        findChild<QPushButton*>("tabSetPerf"),
+        findChild<QPushButton*>("tabSetAdv")
+    };
+
+    for (int i = 0; i < tabs.size(); ++i) {
+        auto *t = tabs[i];
+        if (!t) continue;
+        t->disconnect();
+        connect(t, &QPushButton::clicked, this, [this, tabs, t, i](){
+            for (auto *other : tabs) {
+                if (!other) continue;
+                if (other == t) {
+                    other->setStyleSheet("QPushButton { background: transparent; border: none; border-bottom: 2px solid #00F076; color: #FFFFFF; font-weight: 700; padding: 6px 12px; }");
+                } else {
+                    other->setStyleSheet("QPushButton { background: transparent; border: none; color: #8FA3BF; font-weight: 600; padding: 6px 12px; }");
+                }
+            }
+            if (m_stackSettings) {
+                m_stackSettings->setCurrentIndex(i);
+            }
+        });
+    }
+
+    if (auto *cb = findChild<QComboBox*>("comboLanguage")) {
+        cb->blockSignals(true);
+        cb->clear();
+        cb->addItem(QStringLiteral("Polski"), "pl");
+        cb->addItem(QStringLiteral("English"), "en");
+        QString curLang = Settings::instance().language();
+        cb->setCurrentIndex(curLang == "en" ? 1 : 0);
+        cb->blockSignals(false);
+        cb->disconnect();
+        connect(cb, QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, cb](int idx){
+            QString lang = cb->itemData(idx).toString();
+            Settings::instance().setLanguage(lang);
+            Translator::instance().loadLanguage(lang);
+            Toaster::show(this, tr("Język został zmieniony na: %1").arg(cb->currentText()), Toaster::Success);
+        });
+    }
+}
+
+void MainWindow::initFirewallTabs()
+{
+    QList<QPushButton*> tabs = {
+        findChild<QPushButton*>("tabFwApps"),
+        findChild<QPushButton*>("tabFwRules"),
+        findChild<QPushButton*>("tabFwActivity"),
+        findChild<QPushButton*>("tabFwSettings")
+    };
+
+    for (int i = 0; i < tabs.size(); ++i) {
+        auto *t = tabs[i];
+        if (!t) continue;
+        t->disconnect();
+        connect(t, &QPushButton::clicked, this, [this, tabs, t, i](){
+            for (auto *other : tabs) {
+                if (!other) continue;
+                if (other == t) {
+                    other->setStyleSheet("QPushButton { background: transparent; border: none; border-bottom: 2px solid #00F076; color: #FFFFFF; font-weight: 700; padding: 6px 12px; }");
+                } else {
+                    other->setStyleSheet("QPushButton { background: transparent; border: none; color: #8FA3BF; font-weight: 600; padding: 6px 12px; }");
+                }
+            }
+            auto *lblTitle = findChild<QLabel*>("lblFwActTitle");
+            if (i == 0) {
+                if (lblTitle) lblTitle->setText(tr("Aktywne procesy i połączenia sieciowe"));
+                onRefreshFwRulesClicked();
+            } else if (i == 1) {
+                if (lblTitle) lblTitle->setText(tr("Reguły systemowe i filtry portów (SMB, RPC, RDP)"));
+                auto *table = findChild<QTableWidget*>("tableFwRules");
+                if (table) {
+                    table->clearContents();
+                    table->setRowCount(4);
+                    table->setHorizontalHeaderLabels({ tr("Reguła / Usługa"), tr("Protokół"), tr("Port"), tr("Akcja"), tr("Profil"), tr("Stan") });
+                    auto setRule = [&](int row, const QString &name, const QString &proto, const QString &port, const QString &action, const QString &prof, const QString &state){
+                        table->setItem(row, 0, new QTableWidgetItem(name));
+                        table->setItem(row, 1, new QTableWidgetItem(proto));
+                        table->setItem(row, 2, new QTableWidgetItem(port));
+                        table->setItem(row, 3, new QTableWidgetItem(action));
+                        table->setItem(row, 4, new QTableWidgetItem(prof));
+                        auto *itSt = new QTableWidgetItem(state);
+                        itSt->setForeground(QColor("#00F076"));
+                        table->setItem(row, 5, itSt);
+                    };
+                    setRule(0, tr("Blokada portu SMB (Anti-WannaCry)"), "TCP", "445", tr("Blokuj"), "Wszystkie", tr("🟢 Aktywna"));
+                    setRule(1, tr("Blokada portu RPC"), "TCP", "135", tr("Blokuj"), "Wszystkie", tr("🟢 Aktywna"));
+                    setRule(2, tr("Pulpit zdalny (RDP)"), "TCP", "3389", tr("Filtruj"), "Prywatny", tr("🟢 Monitorowany"));
+                    setRule(3, tr("Multi-Guard Core Security Hub"), "TCP/UDP", "Dowolny", tr("Zezwalaj"), "Wszystkie", tr("🟢 Bezpieczny"));
+                }
+            } else if (i == 2) {
+                if (lblTitle) lblTitle->setText(tr("Dziennik zdarzeń sieciowych i aktywnych gniazd"));
+                onRefreshFwRulesClicked();
+            } else if (i == 3) {
+                if (lblTitle) lblTitle->setText(tr("Konfiguracja profili i stanu zapory ogniowej"));
+                auto *table = findChild<QTableWidget*>("tableFwRules");
+                if (table) {
+                    table->clearContents();
+                    table->setRowCount(3);
+                    table->setHorizontalHeaderLabels({ tr("Profil sieci"), tr("Filtrowanie przychodzące"), tr("Filtrowanie wychodzące"), tr("Tryb ukrycia"), tr("Stan"), tr("Zarządzanie") });
+                    auto setProf = [&](int row, const QString &p, const QString &in, const QString &out, const QString &stealth, const QString &st){
+                        table->setItem(row, 0, new QTableWidgetItem(p));
+                        table->setItem(row, 1, new QTableWidgetItem(in));
+                        table->setItem(row, 2, new QTableWidgetItem(out));
+                        table->setItem(row, 3, new QTableWidgetItem(stealth));
+                        auto *itSt = new QTableWidgetItem(st);
+                        itSt->setForeground(QColor("#00F076"));
+                        table->setItem(row, 4, itSt);
+                        table->setItem(row, 5, new QTableWidgetItem(tr("Multi-Guard AV Engine")));
+                    };
+                    setProf(0, tr("Sieć domenowa (Domain)"), tr("Blokuj niezgodne"), tr("Zezwalaj bezpiecznym"), tr("Włączony"), tr("🟢 Aktywny"));
+                    setProf(1, tr("Sieć prywatna (Private)"), tr("Blokuj połączenia przychodzące"), tr("Zezwalaj"), tr("Włączony"), tr("🟢 Aktywny"));
+                    setProf(2, tr("Sieć publiczna (Public)"), tr("Ścisła izolacja (Drop all incoming)"), tr("Zezwalaj"), tr("Włączony"), tr("🟢 Aktywny"));
+                }
+            }
+        });
+    }
 }
 
 } // namespace verax

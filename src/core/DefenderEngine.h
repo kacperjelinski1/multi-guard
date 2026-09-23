@@ -106,6 +106,7 @@ signals:
 private slots:
     void onProcessReadyRead();
     void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void onProgressTimerTick();
 
 private:
     DefenderEngine();
@@ -118,6 +119,7 @@ private:
     QString   m_mpCmdRunPath;
     bool      m_isScanning = false;
     QProcess *m_scanProcess = nullptr;
+    QTimer   *m_progressTimer = nullptr;
 
     ScanMode m_currentMode = Quick;
     QList<ThreatInfo> m_detectedThreats;

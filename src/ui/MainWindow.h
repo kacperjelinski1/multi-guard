@@ -20,6 +20,8 @@ class QPushButton;
 class QLabel;
 class QLineEdit;
 class QTableWidget;
+class QStackedWidget;
+class QProgressBar;
 template <class T> class QFutureWatcher;
 
 QT_BEGIN_NAMESPACE
@@ -182,6 +184,7 @@ private:
 
     // Firewall & Browser Protection
     void initFirewallPage();
+    void initFirewallTabs();
     void onToggleFirewallClicked();
     void onResetFirewallClicked();
     void onBlockSMBClicked();
@@ -193,6 +196,11 @@ private:
     void initBrowserProtectionPage();
     void onInstallBrowserExtClicked();
     void onTestBlockScreenClicked();
+
+    // Settings tabs & Performance
+    void initSettingsTabs();
+    void onOptRamClicked();
+    void onOptRegistryClicked();
 
     // Licensing
     void applyLicenseGating();
@@ -261,6 +269,13 @@ private:
     QLabel  *m_lblStatsHealth = nullptr;
     QTableWidget *m_tableAccountHistory = nullptr;
     bool     m_keyMasked = true;
+
+    void updateDashboardBackground();
+
+    QStackedWidget *m_stackSettings = nullptr;
+    QStackedWidget *m_stackFirewall = nullptr;
+    QLabel         *m_dashboardBg = nullptr;
+    QProgressBar   *m_scanProgressBar = nullptr;
 
     QString      m_activeScanPhase;
     QString      m_selectedScanMode = QStringLiteral("quick");

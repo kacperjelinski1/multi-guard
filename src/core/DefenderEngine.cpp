@@ -174,9 +174,16 @@ bool DefenderEngine::startScan(ScanMode mode, const QStringList &customPaths)
     emit scanStarted(scanTypeName);
     emit scanProgress(5, tr("Inicjalizacja silnika Microsoft Defender..."));
 
+    if (!m_progressTimer) {
+        m_progressTimer = new QTimer(this);
+        connect(m_progressTimer, &QTimer::timeout, this, &DefenderEngine::onProgressTimerTick);
+    }
+    m_progressTimer->start(800);
+
     m_scanProcess->start(m_mpCmdRunPath, args);
     if (!m_scanProcess->waitForStarted(4000)) {
         m_isScanning = false;
+        m_progressTimer->stop();
         Logger::error(QStringLiteral("DefenderEngine: Nie udało się uruchomić procesu skanera Defender."));
         emit scanFinished(false, 0, {});
         return false;
@@ -234,6 +241,9 @@ void DefenderEngine::cancelScan()
     if (m_scanProcess && m_scanProcess->state() != QProcess::NotRunning) {
         m_scanProcess->kill();
         m_scanProcess->waitForFinished(2000);
+    }
+    if (m_progressTimer) {
+        m_progressTimer->stop();
     }
     if (m_isScanning) {
         m_isScanning = false;
@@ -318,6 +328,9 @@ void DefenderEngine::onProcessFinished(int exitCode, QProcess::ExitStatus exitSt
         return;
     }
 
+    if (m_progressTimer) {
+        m_progressTimer->stop();
+    }
     m_isScanning = false;
     bool success = (exitStatus == QProcess::NormalExit && (exitCode == 0 || exitCode == 2));
     emit scanProgress(100, tr("Skanowanie silnikiem Defender zakończone."));
@@ -325,6 +338,20 @@ void DefenderEngine::onProcessFinished(int exitCode, QProcess::ExitStatus exitSt
 
     Logger::info(QStringLiteral("DefenderEngine: Skanowanie zakończone z kodem %1. Wykryto zagrożeń: %2")
         .arg(exitCode).arg(m_detectedThreats.size()));
+}
+
+void DefenderEngine::onProgressTimerTick()
+{
+    if (!m_isScanning) {
+        if (m_progressTimer) m_progressTimer->stop();
+        return;
+    }
+    if (m_currentMode != Custom || m_totalCustomPaths <= 1) {
+        if (m_simulatedPercent < 94) {
+            m_simulatedPercent = qMin(94, m_simulatedPercent + (m_currentMode == Quick ? 3 : 1));
+            emit scanProgress(m_simulatedPercent, tr("Trwa analiza plików i pamięci silnikiem Microsoft Defender (%1%)...").arg(m_simulatedPercent));
+        }
+    }
 }
 
 bool DefenderEngine::updateSignatures()

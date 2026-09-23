@@ -13,6 +13,11 @@ namespace verax {
 void Toaster::show(QWidget *anchor, const QString &text, Kind k, int msec)
 {
     if (!anchor) return;
+    const auto existing = anchor->findChildren<Toaster*>();
+    for (auto *t : existing) {
+        t->close();
+        t->deleteLater();
+    }
     auto *t = new Toaster(anchor, text, k);
     t->slideAndAutoClose(msec);
 }

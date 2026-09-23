@@ -16,6 +16,14 @@ struct FirewallRuleItem {
     bool    enabled = true;
 };
 
+struct RealConnectionItem {
+    QString processName;
+    QString localAddress;
+    QString remoteAddress;
+    QString state;
+    int pid = 0;
+};
+
 class FirewallManager : public QObject {
     Q_OBJECT
 public:
@@ -32,6 +40,7 @@ public:
     bool deleteRule(const QString &ruleName);
 
     QVector<FirewallRuleItem> loadActiveRules();
+    QVector<RealConnectionItem> loadActiveConnections();
     bool resetToDefaults();
 
 signals:

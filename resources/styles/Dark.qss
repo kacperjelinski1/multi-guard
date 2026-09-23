@@ -153,9 +153,7 @@ QLabel#pageSubtitle, QLabel#lblDashHeroSubtitle {
 
 /* Dashboard full mountain background & Hero */
 #pageDashboard {
-    background-image: url(:/assets/mountain_bg.jpg);
-    background-position: top right;
-    background-repeat: no-repeat;
+    background-color: #070e17;
 }
 #heroCardWithBg {
     background-color: transparent;

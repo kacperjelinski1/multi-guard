@@ -356,7 +356,7 @@
             </message>
         <message>
             <source>English</source>
-            <translation>Polski</translation>
+            <translation>English</translation>
             </message>
         <message>
             <source>العربية</source>
