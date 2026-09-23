@@ -7,7 +7,7 @@ a projekt stosuje [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-## [2.0.3.0] - 2026-09-23
+## [2.0.4.0] - 2026-09-23
 
 ### 🚀 Pełna naprawa UI, Działające Zakładki, Realne Połączenia Firewall i Płynny Skan Defender
 - **Dynamiczna Panorama Gór**: Podmieniono tło na pełnowymiarową panoramę 1376x768 ze skalowaniem `KeepAspectRatioByExpanding` i wycentrowaniem – 100% pokrycia Dashboardu bez czarnych przerw na dole.
