@@ -53,18 +53,9 @@ INCLUDEPATH += $$PWD \
 # ─── Sources ──────────────────────────────────────────────────────────
 SOURCES += \
     main.cpp \
-    src/core/ShieldEngine.cpp \
-    src/core/Scanner.cpp \
-    src/core/SignatureDb.cpp \
-    src/core/Quarantine.cpp \
-    src/core/Repair.cpp \
-    src/core/SystemEnum.cpp \
     src/core/Settings.cpp \
     src/core/Translator.cpp \
     src/core/Logger.cpp \
-    src/core/Updater.cpp \
-    src/core/RealTimeShield.cpp \
-    src/core/WebShield.cpp \
     src/ui/MainWindow.cpp \
     src/widgets/AnimatedButton.cpp \
     src/widgets/ProgressRing.cpp \
@@ -83,41 +74,13 @@ SOURCES += \
     src/utils/HashUtils.cpp \
     src/utils/FileOps.cpp \
     src/utils/ContextMenuManager.cpp \
-    src/core/SystemOptimizer.cpp \
-    src/core/StartupManager.cpp \
-    src/core/HardwareMonitor.cpp \
     src/utils/ThemeManager.cpp \
-    src/core/RansomwareShield.cpp \
-    src/core/AuditLogger.cpp \
-    src/core/ReportGenerator.cpp \
-    src/core/Ed25519.cpp \
-    src/core/LicenseManager.cpp \
-    src/core/DefenderEngine.cpp \
-    src/core/FirewallManager.cpp \
-    src/core/BrowserProtectionManager.cpp \
-    src/core/tweetnacl.c
 
-HEADERS += src/core/WindowsCommand.h \
     Version.h \
     harden.h \
-    src/core/ShieldEngine.h \
-    src/core/DefenderEngine.h \
-    src/core/Scanner.h \
-    src/core/SignatureDb.h \
-    src/core/Quarantine.h \
-    src/core/Repair.h \
-    src/core/SystemEnum.h \
     src/core/Settings.h \
     src/core/Translator.h \
     src/core/Logger.h \
-    src/core/Updater.h \
-    src/core/RealTimeShield.h \
-    src/core/WebShield.h \
-    src/core/FirewallManager.h \
-    src/core/BrowserProtectionManager.h \
-    src/core/SystemOptimizer.h \
-    src/core/StartupManager.h \
-    src/core/HardwareMonitor.h \
     src/ui/MainWindow.h \
     src/widgets/AnimatedButton.h \
     src/widgets/ProgressRing.h \
@@ -138,12 +101,6 @@ HEADERS += src/core/WindowsCommand.h \
     src/utils/Strings.h \
     src/utils/ContextMenuManager.h \
     src/utils/ThemeManager.h \
-    src/core/RansomwareShield.h \
-    src/core/AuditLogger.h \
-    src/core/ReportGenerator.h \
-    src/core/Ed25519.h \
-    src/core/LicenseManager.h \
-    src/core/tweetnacl.h
 
 FORMS   += src/ui/mainwindow.ui
 
